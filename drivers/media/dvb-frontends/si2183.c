@@ -17,6 +17,10 @@
 #include <linux/firmware.h>
 #include <linux/i2c-mux.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0)
+#define SI2183_USE_I2C_MUX
+#endif
+
 #define SI2183_B60_FIRMWARE "dvb-demod-si2183-b60-01.fw"
 
 #define SI2183_PROP_MODE	0x100a
@@ -49,13 +53,16 @@ struct si_base {
 	u32                  count;
 
 	struct i2c_adapter  *tuner_adapter;
+
+#ifndef SI2183_USE_I2C_MUX
+	struct i2c_client *i2c_gate_client;
+#endif
 };
 
 /* state struct */
 struct si2183_dev {
 	struct dvb_frontend fe;
 	enum fe_delivery_system delivery_system;
-	enum fe_status fe_status;
 	bool active;
 	bool fw_loaded;
 	u8 ts_mode;
@@ -186,7 +193,7 @@ static int si2183_set_prop(struct i2c_client *client, u16 prop, u16 *val)
 	*val = (cmd.args[2] | (cmd.args[3] << 8));
 	return ret;
 }
-
+#if 0
 static int si2183_get_prop(struct i2c_client *client, u16 prop, u16 *val)
 {
 	struct si2183_cmd cmd;
@@ -202,7 +209,7 @@ static int si2183_get_prop(struct i2c_client *client, u16 prop, u16 *val)
 	*val = (cmd.args[2] | (cmd.args[3] << 8));
 	return ret;
 }
-
+#endif
 static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct i2c_client *client = fe->demodulator_priv;
@@ -237,6 +244,11 @@ static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		cmd.wlen = 2;
 		cmd.rlen = 14;
 		break;
+	case SYS_ISDBT:
+		memcpy(cmd.args, "\xa4\x01", 2);
+		cmd.wlen = 2;
+		cmd.rlen = 14;
+		break;
 	case SYS_DVBS:
 		memcpy(cmd.args, "\x60\x01", 2);
 		cmd.wlen = 2;
@@ -259,20 +271,17 @@ static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	}
 
 	switch ((cmd.args[2] >> 1) & 0x03) {
-	case 0x01:
-		*status = FE_HAS_SIGNAL | FE_HAS_CARRIER;
-		break;
 	case 0x03:
 		*status = FE_HAS_SIGNAL | FE_HAS_CARRIER | FE_HAS_VITERBI |
 				FE_HAS_SYNC | FE_HAS_LOCK;
 		c->cnr.stat[0].svalue = cmd.args[3] * 1000 / 4;
 		break;
+	case 0x01:
+		*status = FE_HAS_SIGNAL | FE_HAS_CARRIER;
 	default:
 		c->cnr.stat[0].svalue = 0;
 		break;
 	}
-
-	dev->fe_status = *status;
 
 	dev_dbg(&client->dev, "status=%02x args=%*ph\n",
 			*status, cmd.rlen, cmd.args);
@@ -287,7 +296,6 @@ static int si2183_set_dvbc(struct dvb_frontend *fe)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	struct i2c_client *client = fe->demodulator_priv;
-	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
 
@@ -393,7 +401,6 @@ static int si2183_set_dvbs(struct dvb_frontend *fe)
 	return 0;
 }
 
-
 static int si2183_set_dvbt(struct dvb_frontend *fe)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
@@ -463,6 +470,42 @@ static int si2183_set_dvbt(struct dvb_frontend *fe)
 	return 0;
 }
 
+static int si2183_set_isdbt(struct dvb_frontend *fe)
+{
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
+	struct i2c_client *client = fe->demodulator_priv;
+	int ret;
+	u16 prop;
+
+	if (c->bandwidth_hz == 0) {
+		return -EINVAL;
+	} else if (c->bandwidth_hz <= 2000000)
+		prop = 0x02;
+	else if (c->bandwidth_hz <= 5000000)
+		prop = 0x05;
+	else if (c->bandwidth_hz <= 6000000)
+		prop = 0x06;
+	else if (c->bandwidth_hz <= 7000000)
+		prop = 0x07;
+	else if (c->bandwidth_hz <= 8000000)
+		prop = 0x08;
+	else if (c->bandwidth_hz <= 9000000)
+		prop = 0x09;
+	else if (c->bandwidth_hz <= 10000000)
+		prop = 0x0a;
+	else
+		prop = 0x0f;
+
+	/* ISDB-T mode */
+	prop |= 0x40;
+	ret = si2183_set_prop(client, SI2183_PROP_MODE, &prop);
+	if (ret) {
+		dev_err(&client->dev, "err set dvb-t mode\n");
+		return ret;
+	}
+	return 0;
+}
+
 static int si2183_set_frontend(struct dvb_frontend *fe)
 {
 	struct i2c_client *client = fe->demodulator_priv;
@@ -483,7 +526,15 @@ static int si2183_set_frontend(struct dvb_frontend *fe)
 	}
 
 	if (fe->ops.tuner_ops.set_params) {
+#ifndef SI2183_USE_I2C_MUX
+		if (fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 1);
+#endif
 		ret = fe->ops.tuner_ops.set_params(fe);
+#ifndef SI2183_USE_I2C_MUX
+		if (fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 0);
+#endif
 		if (ret) {
 			dev_err(&client->dev, "err setting tuner params\n");
 			goto err;
@@ -497,6 +548,9 @@ static int si2183_set_frontend(struct dvb_frontend *fe)
 		break;
 	case SYS_DVBC_ANNEX_A:
 		ret = si2183_set_dvbc(fe);
+		break;
+	case SYS_ISDBT:
+		ret = si2183_set_isdbt(fe);
 		break;
 	case SYS_DVBS:
 	case SYS_DVBS2:
@@ -779,6 +833,7 @@ static int si2183_get_tune_settings(struct dvb_frontend *fe,
 	return 0;
 }
 
+#ifdef SI2183_USE_I2C_MUX
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 static int si2183_select(struct i2c_mux_core *muxc, u32 chan)
 {
@@ -830,6 +885,21 @@ err:
 	dev_dbg(&client->dev, "failed=%d\n", ret);
 	return ret;
 }
+#else
+static int i2c_gate_ctrl(struct dvb_frontend* fe, int enable)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
+	struct si2183_cmd cmd;
+
+	memcpy(cmd.args, "\xc0\x0d\x00", 3);
+	if (enable)
+		cmd.args[2] = 1;
+	cmd.wlen = 3;
+	cmd.rlen = 0;
+	return si2183_cmd_execute(dev->base->i2c_gate_client, &cmd);
+}
+#endif
 
 static int si2183_tune(struct dvb_frontend *fe, bool re_tune,
 	unsigned int mode_flags, unsigned int *delay, enum fe_status *status)
@@ -863,6 +933,11 @@ static int si2183_set_property(struct dvb_frontend *fe,
 			fe->ops.info.frequency_max = 2150000;
 			fe->ops.info.frequency_stepsize = 0;
 			break;
+		case SYS_ISDBT:
+			fe->ops.info.frequency_min = 42000000;
+			fe->ops.info.frequency_max = 1002000000;
+			fe->ops.info.frequency_stepsize = 0;
+			break;
 		case SYS_DVBC_ANNEX_A:
 			fe->ops.info.frequency_min = 47000000;
 			fe->ops.info.frequency_max = 862000000;
@@ -884,22 +959,35 @@ static int si2183_set_property(struct dvb_frontend *fe,
 	return ret;
 }
 
+
+static int send_diseqc_cmd(struct dvb_frontend *fe,
+	u8 cont_tone, u8 tone_burst, u8 burst_sel,
+	u8 end_seq, u8 msg_len, u8 *msg)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_cmd cmd;
+	u8 enable = 1;
+
+	cmd.args[0] = 0x8c;
+	cmd.args[1] |= enable | (cont_tone << 1)
+		    | (tone_burst << 2) | (burst_sel << 3)
+		    | (end_seq << 4) | (msg_len << 5);
+
+	if (msg_len > 0)
+		memcpy(&cmd.args[2], msg, msg_len);
+
+	cmd.wlen = 8;
+	cmd.rlen = 1;
+	return si2183_cmd_execute(client, &cmd);
+}
+
 static int set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 {
 	struct i2c_client *client = fe->demodulator_priv;
 	int ret;
-	struct si2183_cmd cmd;
+	u8 cont_tone;
 
-	u8	enable = 1,
-		cont_tone = 1,
-		tone_burst = 0,
-		burst_sel = 0,
-		end_seq = 1,
-		msg_len = 0;
-
-	dev_dbg(&client->dev, "\n");
-
-	switch(tone) {
+	switch (tone) {
 	case SEC_TONE_ON:
 		cont_tone = 1;
 		break;
@@ -909,12 +997,8 @@ static int set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 	default:
 		return -EINVAL;
 	}
-	
-	memcpy(cmd.args, "\x8c\x00\x00\x00\x00\x00\x00\x00", 8);
-	cmd.args[1] |= enable | (cont_tone << 1) | (tone_burst << 2) | (burst_sel << 3) | (end_seq << 4) | (msg_len << 5);
-	cmd.wlen = 8;
-	cmd.rlen = 1;
-	ret = si2183_cmd_execute(client, &cmd);
+
+	ret = send_diseqc_cmd(fe, cont_tone, 0, 0, 1, 0, NULL);
 	if (ret)
 		goto err;
 
@@ -924,8 +1008,65 @@ err:
 	return ret;
 }
 
+static int diseqc_send_burst(struct dvb_frontend *fe,
+	enum fe_sec_mini_cmd burst)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	int ret;
+	u8 burst_sel;
+
+	switch (burst) {
+	case SEC_MINI_A:
+		burst_sel = 0;
+		break;
+	case SEC_MINI_B:
+		burst_sel = 1;
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	ret = send_diseqc_cmd(fe, 0, 1, burst_sel, 1, 0, NULL);
+	if (ret)
+		goto err;
+
+	return 0;
+err:
+	dev_err(&client->dev, "set_tone failed=%d\n", ret);
+	return ret;
+}
+
+static int send_diseqc_msg(struct dvb_frontend *fe,
+	struct dvb_diseqc_master_cmd *d)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	int ret;
+	u8 remaining = d->msg_len;
+	u8 *p = d->msg;
+	u8 len = 0;
+
+	while (remaining > 0) {
+		p += len;
+		len = (remaining > 6) ? 6 : remaining;
+		remaining -= len;
+		ret = send_diseqc_cmd(fe, 0, 0, 0,
+			(remaining == 0) ? 1 : 0, len, p);
+		if (ret)
+			goto err;
+		msleep(50);
+	}
+
+	return 0;
+err:
+	dev_err(&client->dev, "set_tone failed=%d\n", ret);
+	return ret;
+}
+
 static const struct dvb_frontend_ops si2183_ops = {
-	.delsys = {SYS_DVBT, SYS_DVBT2, SYS_DVBC_ANNEX_A, SYS_DVBS, SYS_DVBS2, SYS_DSS},
+	.delsys = {SYS_DVBT, SYS_DVBT2,
+		   SYS_ISDBT,
+		   SYS_DVBC_ANNEX_A,
+		   SYS_DVBS, SYS_DVBS2, SYS_DSS},
 	.info = {
 		.name = "Silicon Labs Si2183",
 		.symbol_rate_min = 1000000,
@@ -964,7 +1105,13 @@ static const struct dvb_frontend_ops si2183_ops = {
 	.tune = si2183_tune,
 
 	.set_property			= si2183_set_property,
+
 	.set_tone			= set_tone,
+	.diseqc_send_burst		= diseqc_send_burst,
+	.diseqc_send_master_cmd		= send_diseqc_msg,
+#ifndef SI2183_USE_I2C_MUX
+	.i2c_gate_ctrl			= i2c_gate_ctrl,
+#endif
 };
 
 
@@ -977,8 +1124,6 @@ static struct si_base *match_base(struct i2c_adapter *i2c, u8 adr)
 			return p;
 	return NULL;
 }
-
-
 
 static int si2183_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
@@ -1011,6 +1156,7 @@ static int si2183_probe(struct i2c_client *client,
 		dev->base = base;
 		list_add(&base->silist, &silist);
 
+#ifdef SI2183_USE_I2C_MUX
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 		/* create mux i2c adapter for tuner */
 		base->muxc = i2c_mux_alloc(client->adapter, &client->adapter->dev,
@@ -1034,6 +1180,10 @@ static int si2183_probe(struct i2c_client *client,
 			goto err_base_kfree;
 		}
 #endif
+#else
+		base->tuner_adapter = client->adapter;
+		base->i2c_gate_client = client;
+#endif
 	}
 
 	/* create dvb_frontend */
@@ -1050,6 +1200,10 @@ static int si2183_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, dev);
 
+#ifndef SI2183_USE_I2C_MUX
+	/* leave gate open for tuner to init */
+	i2c_gate_ctrl(&dev->fe, 1);
+#endif
 	dev_info(&client->dev, "Silicon Labs Si2183 successfully attached\n");
 	return 0;
 err_base_kfree:
@@ -1069,10 +1223,12 @@ static int si2183_remove(struct i2c_client *client)
 
 	dev->base->count--;
 	if (dev->base->count == 0) {
+#ifdef SI2183_USE_I2C_MUX
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 		i2c_mux_del_adapters(dev->base->muxc);
 #else
 		i2c_del_mux_adapter(dev->base->tuner_adapter);
+#endif
 #endif
 		list_del(&dev->base->silist);
 		kfree(dev->base);
