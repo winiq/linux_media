@@ -501,23 +501,11 @@ static int get_property(struct dvb_frontend *fe,
 		break;
 	default:
 		break;
-
-<<<<<<< HEAD
-	mutex_lock(&state->base->status_lock);
-	HYDRA_DEMOD_STATUS_LOCK(state, state->demod);
-	stat = read_register(state, (HYDRA_DMD_SNR_ADDR_OFFSET +
-				     HYDRA_DMD_STATUS_OFFSET(state->demod)),
-			     &regData);
-	HYDRA_DEMOD_STATUS_UNLOCK(state, state->demod);
-	mutex_unlock(&state->base->status_lock);
-	*snr = (s16) (regData & 0xFFFF) + 4200;
-	//printk("snr dmd%d=%d\n", state->demod, *snr);
-	return stat;
-=======
-
+		
+		
 	}
 	return ret;
->>>>>>> upstream/latest
+
 }
 
 static int read_ber(struct dvb_frontend *fe, u32 *ber)
