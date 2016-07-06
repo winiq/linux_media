@@ -150,7 +150,7 @@ static int write_register(struct mxl *state, u32 reg, u32 val)
 		pr_err("i2c write error\n");
 	return stat;
 }
-
+//test bob
 static int write_register_block(struct mxl *state, u32 reg, u32 size, u8 *data)
 {
 	int stat;
