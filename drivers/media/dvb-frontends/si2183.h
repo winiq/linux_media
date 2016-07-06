@@ -43,6 +43,8 @@ struct si2183_config {
 
 	/* TS clock gapped */
 	bool ts_clock_gapped;
+	/*agc*/
+	u8 agc_mode;
 };
 
 #endif

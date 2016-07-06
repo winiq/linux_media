@@ -390,6 +390,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "si2183", I2C_NAME_SIZE);
 		info.addr = adapter->nr ? 0x64 : 0x67;
+		si2183_config.agc_mode = adapter->nr? 0x4 : 0x5;
 		info.platform_data = &si2183_config;
 		request_module(info.type);
 		client_demod = i2c_new_device(i2c, &info);

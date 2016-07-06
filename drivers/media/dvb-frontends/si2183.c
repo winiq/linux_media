@@ -68,7 +68,7 @@ struct si2183_dev {
 	u8 ts_mode;
 	bool ts_clock_inv;
 	bool ts_clock_gapped;
-
+	u8 agc_mode;
 	struct si_base *base;
 
 	u8 active_fe;
@@ -126,7 +126,7 @@ static int si2183_cmd_execute_unlocked(struct i2c_client *client,
 
 	if (cmd->rlen) {
 		/* wait cmd execution terminate */
-		#define TIMEOUT 70
+		#define TIMEOUT 500
 		timeout = jiffies + msecs_to_jiffies(TIMEOUT);
 		while (!time_after(jiffies, timeout)) {
 			ret = si2183_i2c_master_recv_unlocked(client, cmd->args,
@@ -296,9 +296,19 @@ static int si2183_set_dvbc(struct dvb_frontend *fe)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
+	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
 
+	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
+	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
+ 	cmd.wlen = 6;
+ 	cmd.rlen = 3;
+ 	ret = si2183_cmd_execute(client, &cmd);
+ 	if(ret){
+ 		printk("Ter AGC set error !");
+ 	}
 	/* dvb-c mode */
 	prop = 0x38;
 	ret = si2183_set_prop(client, SI2183_PROP_MODE, &prop);
@@ -350,10 +360,20 @@ static int si2183_set_dvbs(struct dvb_frontend *fe)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
-	
+	/*set SAT agc*/
+	memcpy(cmd.args, "\x8a\x1d\x12\x0\x0\x0", 6);
+	cmd.args[1]= dev->agc_mode|0x18;  
+ 	cmd.wlen = 6;
+ 	cmd.rlen = 3;
+ 	ret = si2183_cmd_execute(client, &cmd);
+ 	if(ret){
+ 		printk("AGC set error !");
+ 	}
+
 	/* set mode */
 	prop = 0x8;
 	switch (c->delivery_system) {
@@ -405,9 +425,19 @@ static int si2183_set_dvbt(struct dvb_frontend *fe)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
+
+	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
+	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
+ 	cmd.wlen = 6;
+ 	cmd.rlen = 3;
+ 	ret = si2183_cmd_execute(client, &cmd);
+ 	if(ret){
+ 		printk("Ter AGC set error !");
+ 	}
 
 	if (c->bandwidth_hz == 0) {
 		return -EINVAL;
@@ -474,9 +504,19 @@ static int si2183_set_isdbt(struct dvb_frontend *fe)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
+	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
 
+	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
+	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1; 
+ 	cmd.wlen = 6;
+ 	cmd.rlen = 3;
+ 	ret = si2183_cmd_execute(client, &cmd);
+ 	if(ret){
+ 		printk("Ter AGC set error !");
+ 	}
 	if (c->bandwidth_hz == 0) {
 		return -EINVAL;
 	} else if (c->bandwidth_hz <= 2000000)
@@ -1194,6 +1234,7 @@ static int si2183_probe(struct i2c_client *client,
 	dev->ts_mode = config->ts_mode;
 	dev->ts_clock_inv = config->ts_clock_inv;
 	dev->ts_clock_gapped = config->ts_clock_gapped;
+ 	dev->agc_mode = config->agc_mode;
 	dev->fw_loaded = false;
 
 	dev->active_fe = 0;
