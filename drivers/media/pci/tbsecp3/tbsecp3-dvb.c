@@ -195,18 +195,12 @@ static struct av201x_config tbs6902_av201x_cfg = {
 
 static struct tas2101_config tbs6904_demod_cfg[] = {
 	{
-		.i2c_address   = 0x68,
+		.i2c_address   = 0x60,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
 		.init2         = 0,
 	},
 	{
-		.i2c_address   = 0x60,
-		.id            = ID_TAS2101,
-		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
-		.init2         = 0,
-	},
-	{
 		.i2c_address   = 0x68,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
@@ -214,6 +208,12 @@ static struct tas2101_config tbs6904_demod_cfg[] = {
 	},
 	{
 		.i2c_address   = 0x60,
+		.id            = ID_TAS2101,
+		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
+		.init2         = 0,
+	},
+	{
+		.i2c_address   = 0x68,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
 		.init2         = 0,
