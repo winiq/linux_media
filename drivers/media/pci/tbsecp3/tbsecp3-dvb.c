@@ -553,8 +553,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
 
-		adapter->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
-		adapter->fe->ops.diseqc_send_burst = max_send_burst;
+	//	adapter->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
+	//	adapter->fe->ops.diseqc_send_burst = max_send_burst;
 
 		if (tbsecp3_attach_sec(adapter, adapter->fe) == NULL) {
 			dev_warn(&dev->pci_dev->dev,

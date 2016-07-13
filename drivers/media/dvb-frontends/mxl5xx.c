@@ -49,7 +49,7 @@
 static int mode = 0;
 module_param(mode, int, 0444);
 MODULE_PARM_DESC(mode,
-		"Multi-switch mode: 0=quattro/quad");
+		"Multi-switch mode: 0=quattro/quad 1=normal direct connection");
 
 LIST_HEAD(mxllist);
 
@@ -337,10 +337,33 @@ static int send_master_cmd(struct dvb_frontend *fe,
 			   struct dvb_diseqc_master_cmd *cmd)
 {
 	struct mxl *state = fe->demodulator_priv;
+	MXL_HYDRA_DISEQC_TX_MSG_T diseqcMsgPtr;
+	u8 cmdSize = sizeof(MXL_HYDRA_DISEQC_TX_MSG_T);
+	u8 cmdBuff[MXL_HYDRA_OEM_MAX_CMD_BUFF_LEN];
+	int i = 0,ret = 0;
 
-	return CfgDemodAbortTune(state);
+	diseqcMsgPtr.diseqcId = state->rf_in;
+	diseqcMsgPtr.nbyte	= cmd->msg_len;
+	diseqcMsgPtr.toneBurst = MXL_HYDRA_DISEQC_TONE_NONE;
+
+	for( i =0;i < cmd->msg_len;i++)
+	{
+	 diseqcMsgPtr.bufMsg[i] = cmd->msg[i];
+	}
+
+	BUILD_HYDRA_CMD(MXL_HYDRA_DISEQC_MSG_CMD, MXL_CMD_WRITE, cmdSize, &diseqcMsgPtr, cmdBuff);
+	mutex_lock(&state->base->status_lock);
+	ret=send_command(state, cmdSize + MXL_HYDRA_CMD_HEADER_SIZE, &cmdBuff[0]);
+	mutex_unlock(&state->base->status_lock);
+
+	return ret;
 }
-
+static int diseqc_send_burst(struct dvb_frontend *fe,
+	enum fe_sec_mini_cmd burst)
+{
+	
+	return 0;
+}
 static int set_parameters(struct dvb_frontend *fe)
 {
 	struct mxl *state = fe->demodulator_priv;
@@ -573,6 +596,8 @@ static int set_input_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone, i
 static int set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 {
 	struct mxl *state = fe->demodulator_priv;
+	struct i2c_adapter *i2c = state->base->i2c;
+	struct mxl5xx_cfg *cfg = state->base->cfg;
 
 	switch (mode) {
 	case 0:
@@ -582,6 +607,13 @@ static int set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 		else
 			state->rf_in |= 2;
 		break;
+	 case 1:
+		if (voltage == SEC_VOLTAGE_18)
+			cfg->set_voltage(i2c, SEC_VOLTAGE_18, state->rf_in);
+		else
+			cfg->set_voltage(i2c, SEC_VOLTAGE_13, state->rf_in);
+	 	
+	 	break;
 	}
 
 	return 0; //state->base->cfg->set_voltage(fe, voltage, 0);
@@ -599,6 +631,12 @@ static int set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 			state->rf_in &= ~1;
 		else
 			state->rf_in |= 1;
+		break;
+	case 1:
+		if(tone == SEC_TONE_ON)
+			set_input_tone(fe, SEC_TONE_ON, state->rf_in);
+		else if(tone == SEC_TONE_OFF)
+			set_input_tone(fe, SEC_TONE_OFF, state->rf_in);
 		break;
 	}
 
@@ -1206,6 +1244,8 @@ static int init_multisw(struct mxl *state)
 		set_input_tone(fe, SEC_TONE_OFF, 1);
 		set_input_tone(fe, SEC_TONE_ON, 0);
 		break;
+	case 1:
+		break;
 	}
 
 	return 0;
@@ -1305,6 +1345,17 @@ struct dvb_frontend *mxl5xx_attach(struct i2c_adapter *i2c,
 
 	state->demod = demod;
 	state->rf_in = 0;
+	if(mode)
+	{ 
+	   if((demod ==0)||(demod ==1))
+			state->rf_in = 3;
+	   if((demod ==2)||(demod ==3))
+			state->rf_in = 2;
+	   if((demod ==4)||(demod ==5))
+			state->rf_in = 1;
+	   if((demod ==6)||(demod ==7))
+			state->rf_in = 0;
+	}
 	state->fe.ops = mxl_ops;
 	state->fe.demodulator_priv = state;
 
@@ -1328,7 +1379,7 @@ struct dvb_frontend *mxl5xx_attach(struct i2c_adapter *i2c,
 			kfree(base);
 			goto fail;
 		}
-
+		
 		init_multisw(state);
 
 		list_add(&base->mxllist, &mxllist);
