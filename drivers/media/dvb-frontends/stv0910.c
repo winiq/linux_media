@@ -1523,13 +1523,18 @@ static int send_master_cmd(struct dvb_frontend *fe,
 	int i;
 
 	//pr_info("master_cmd %02x %02x %02x %02x\n", cmd->msg[0],  cmd->msg[1],  cmd->msg[2],  cmd->msg[3]);
-	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3E);
+	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x02);
+	write_reg(state,RSTV0910_P1_DISTXCFG + offs,0x82);
+	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x02);
+	write_reg(state,RSTV0910_P1_DISRXCFG + offs,0x34);
+	write_reg(state,RSTV0910_P1_DISTXCFG + offs,0x06);
 	for (i = 0; i < cmd->msg_len; i++) {
 		wait_dis(state, 0x40, 0x00);
 		write_reg(state, RSTV0910_P1_DISTXFIFO + offs, cmd->msg[i]);
 	}
-	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3A);
+	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x02);
 	wait_dis(state, 0x20, 0x20);
+	write_reg(state,RSTV0910_P1_DISRXCFG + offs,0x35);
 	return 0;
 }
 
