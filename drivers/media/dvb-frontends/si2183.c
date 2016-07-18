@@ -239,6 +239,11 @@ static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		cmd.wlen = 2;
 		cmd.rlen = 9;
 		break;
+	case SYS_DVBC_ANNEX_B:
+		memcpy(cmd.args, "\x98\x01", 2);
+		cmd.wlen = 2;
+		cmd.rlen = 10;
+		break;
 	case SYS_DVBT2:
 		memcpy(cmd.args, "\x50\x01", 2);
 		cmd.wlen = 2;
@@ -307,7 +312,7 @@ static int si2183_set_dvbc(struct dvb_frontend *fe)
  	cmd.rlen = 3;
  	ret = si2183_cmd_execute(client, &cmd);
  	if(ret){
- 		printk("Ter AGC set error !");
+ 		dev_err(&client->dev, "err set agc mode\n");
  	}
 	/* dvb-c mode */
 	prop = 0x38;
@@ -355,6 +360,68 @@ static int si2183_set_dvbc(struct dvb_frontend *fe)
 	return 0;
 }
 
+static int si2183_set_mcns(struct dvb_frontend *fe)
+{
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2183_dev *dev = i2c_get_clientdata(client);
+	struct si2183_cmd cmd;
+	int ret;
+	u16 prop;
+
+	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
+	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
+ 	cmd.wlen = 6;
+ 	cmd.rlen = 3;
+ 	ret = si2183_cmd_execute(client, &cmd);
+ 	if(ret){
+ 		dev_err(&client->dev, "err set agc mode\n");
+ 	}
+	/* mcns mode */
+	prop = 0x16;
+	ret = si2183_set_prop(client, SI2183_PROP_MODE, &prop);
+	if (ret) {
+		dev_err(&client->dev, "err set mcns mode\n");
+		return ret;
+	}
+
+	switch (c->modulation) {
+	default:
+	case QAM_AUTO:
+		prop = 0;
+		break;
+	case QAM_16:
+		prop = 7;
+		break;
+	case QAM_32:
+		prop = 8;
+		break;
+	case QAM_64:
+		prop = 9;
+		break;
+	case QAM_128:
+		prop = 10;
+		break;
+	case QAM_256:
+		prop = 11;
+		break;
+	}
+	ret = si2183_set_prop(client, SI2183_PROP_MCNS_CONST, &prop);
+	if (ret) {
+		dev_err(&client->dev, "err set mcns constelation\n");
+		return ret;
+	}
+
+	/* symbol rate */
+	prop = c->symbol_rate / 1000;
+	ret = si2183_set_prop(client, SI2183_PROP_MCNS_SR, &prop);
+	if (ret) {
+		dev_err(&client->dev, "err set mcns symbol rate\n");
+		return ret;
+	}
+
+	return 0;
+}
 
 static int si2183_set_dvbs(struct dvb_frontend *fe)
 {
@@ -371,7 +438,7 @@ static int si2183_set_dvbs(struct dvb_frontend *fe)
  	cmd.rlen = 3;
  	ret = si2183_cmd_execute(client, &cmd);
  	if(ret){
- 		printk("AGC set error !");
+ 		dev_err(&client->dev, "err set agc mode\n");
  	}
 
 	/* set mode */
@@ -436,7 +503,7 @@ static int si2183_set_dvbt(struct dvb_frontend *fe)
  	cmd.rlen = 3;
  	ret = si2183_cmd_execute(client, &cmd);
  	if(ret){
- 		printk("Ter AGC set error !");
+ 		dev_err(&client->dev, "err set agc mode\n");
  	}
 
 	if (c->bandwidth_hz == 0) {
@@ -515,7 +582,7 @@ static int si2183_set_isdbt(struct dvb_frontend *fe)
  	cmd.rlen = 3;
  	ret = si2183_cmd_execute(client, &cmd);
  	if(ret){
- 		printk("Ter AGC set error !");
+ 		dev_err(&client->dev, "err set agc mode\n");
  	}
 	if (c->bandwidth_hz == 0) {
 		return -EINVAL;
@@ -588,6 +655,9 @@ static int si2183_set_frontend(struct dvb_frontend *fe)
 		break;
 	case SYS_DVBC_ANNEX_A:
 		ret = si2183_set_dvbc(fe);
+		break;
+	case SYS_DVBC_ANNEX_B:
+		ret= si2183_set_mcns(fe);
 		break;
 	case SYS_ISDBT:
 		ret = si2183_set_isdbt(fe);
@@ -979,6 +1049,7 @@ static int si2183_set_property(struct dvb_frontend *fe,
 			fe->ops.info.frequency_stepsize = 0;
 			break;
 		case SYS_DVBC_ANNEX_A:
+		case SYS_DVBC_ANNEX_B:
 			fe->ops.info.frequency_min = 47000000;
 			fe->ops.info.frequency_max = 862000000;
 			fe->ops.info.frequency_stepsize = 62500;
@@ -1105,7 +1176,7 @@ err:
 static const struct dvb_frontend_ops si2183_ops = {
 	.delsys = {SYS_DVBT, SYS_DVBT2,
 		   SYS_ISDBT,
-		   SYS_DVBC_ANNEX_A,
+		   SYS_DVBC_ANNEX_A,SYS_DVBC_ANNEX_B,
 		   SYS_DVBS, SYS_DVBS2, SYS_DSS},
 	.info = {
 		.name = "Silicon Labs Si2183",
