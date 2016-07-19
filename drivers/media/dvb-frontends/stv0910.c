@@ -328,6 +328,8 @@ enum FE_STV0910_ModCod {
 
 enum FE_STV0910_RollOff { FE_SAT_35, FE_SAT_25, FE_SAT_20, FE_SAT_15 };
 
+
+
 static inline u32 MulDiv32(u32 a, u32 b, u32 c)
 {
 	u64 tmp64;
@@ -395,6 +397,11 @@ struct SLookupSNTable {
 	u16  RefValue;
 };
 
+struct SLookup {
+	s16  Value;
+	u32  RegValue;
+};
+
 static inline int i2c_write(struct i2c_adapter *adap, u8 adr,
 			    u8 *data, int len)
 {
@@ -449,6 +456,24 @@ static int read_regs(struct stv *state, u16 reg, u8 *val, int len)
 	return i2c_read_regs16(state->base->i2c, state->base->adr,
 			       reg, val, len);
 }
+
+struct SLookup PADC_Lookup[] = {
+	{-2000, 1179 }, /*PADC=-20dBm*/
+	{-1900, 1485 }, /*PADC=-19dBm*/
+	{-1700, 2354 }, /*PADC=-17dBm*/
+	{-1500, 3730 }, /*PADC=-15dBm*/
+	{-1300,	5910 }, /*PADC=-13dBm*/
+	{-1100,	9380 }, /*PADC=-11dBm*/
+	{- 900,	14850}, /*PADC=-9dBm*/
+	{- 700,	23520}, /*PADC=-7dBm*/
+	{- 600,	29650}, /*PADC=-6dBm*/
+	{- 500,	37300}, /*PADC=-5dBm*/
+	{- 400,	47000}, /*PADC=-4dBm*/
+	{- 300,	59100}, /*PADC=-3dBm*/
+	{- 200,	74500}, /*PADC=-2dBm*/
+	{- 100,	93600}, /*PADC=-1dBm*/
+	{    0,	118000}  /*PADC=+0dBm*/
+};
 
 struct SLookupSNTable S1_SN_Lookup[] = {
 	{   0,    9242  },  /*C/N=  0dB*/
@@ -804,6 +829,41 @@ static int TrackingOptimization(struct stv *state)
 		}
 	}
 	return 0;
+}
+
+static s32 TableLookup(struct SLookup *Table,
+		       int TableSize, u16 RegValue)
+{
+	s32 Value;
+	int imin = 0;
+	int imax = TableSize - 1;
+	int i;
+	s32 RegDiff;
+	
+	// Assumes Table[0].RegValue > Table[imax].RegValue 
+	if( RegValue >= Table[0].RegValue )
+		Value = Table[0].Value;
+	else if( RegValue <= Table[imax].RegValue )
+		Value = Table[imax].Value;
+	else
+	{
+		while(imax-imin > 1)
+		{
+			i = (imax + imin) / 2;
+			if( (Table[imin].RegValue >= RegValue) && (RegValue >= Table[i].RegValue) )
+				imax = i;
+			else
+				imin = i;
+		}
+		
+		RegDiff = Table[imax].RegValue - Table[imin].RegValue;
+		Value = Table[imin].Value;
+		if( RegDiff != 0 )
+			Value += ((s32)(RegValue - Table[imin].RegValue) *
+				  (s32)(Table[imax].Value - Table[imin].Value))/(RegDiff);
+	}
+	
+	return Value;
 }
 
 static int GetSignalToNoise(struct stv *state, s32 *SignalToNoise)
@@ -1580,18 +1640,26 @@ static int sleep(struct dvb_frontend *fe)
 static int read_snr(struct dvb_frontend *fe, u16 *snr)
 {
 	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	s32 SNR;
 
 	*snr = 0;
 	if (GetSignalToNoise(state, &SNR))
 		return -EIO;
-	*snr = (SNR * 100);
+	
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].uvalue = 100 * (s64) SNR;
+	if(SNR > 200)SNR = 200;
+	
+	*snr = (SNR * 328);
 	return 0;
 }
 
 static int read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 n, d;
 
 	GetBitErrorRate(state, &n, &d);
@@ -1599,18 +1667,50 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 		*ber = n / d;
 	else
 		*ber = 0;
+	
+	p->post_bit_error.len = 1;
+	p->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
+	p->post_bit_error.stat[0].uvalue = n;
+	p->post_bit_count.len = 1;
+	p->post_bit_count.stat[0].scale = FE_SCALE_COUNTER;
+	p->post_bit_count.stat[0].uvalue = d;
 	return 0;
 }
 
 static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct stv *state = fe->demodulator_priv;
-	u8 Agc1, Agc0;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	u8 Reg[2];
+	s32 power = 0, Padc = 0;
+	int i;
 
-	read_reg(state, RSTV0910_P2_AGCIQIN1 + state->regoff, &Agc1);
-	read_reg(state, RSTV0910_P2_AGCIQIN0 + state->regoff, &Agc0);
+	read_regs(state, RSTV0910_P2_AGCIQIN1 + state->regoff, Reg, 2);
+	
+	*strength = (((u32) Reg[0]) << 8) | Reg[1];
+	
+	if (fe->ops.tuner_ops.get_rf_strength)
+		fe->ops.tuner_ops.get_rf_strength(fe, strength);
+	else
+		*strength = 0;
 
-	*strength = ((255 - Agc1) * 3300) / 256;
+	for (i = 0; i < 5; i += 1) {
+		read_regs(state, RSTV0910_P2_POWERI + state->regoff, Reg, 2);
+		power += (u32) Reg[0] * (u32) Reg[0] + (u32) Reg[1] * (u32) Reg[1];
+		msleep(3);
+	}
+	power /= 5;
+
+	Padc = TableLookup(PADC_Lookup, ARRAY_SIZE(PADC_Lookup), power) + 352;	
+
+	//pr_warn("%s: power = %d  Padc = %d  str = %u\n", __func__, power, Padc, *strength);
+	
+	p->strength.len = 1;
+	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	p->strength.stat[0].svalue = Padc - *strength;
+	
+	*strength = (100 + p->strength.stat[0].svalue/1000) * 656;
+
 	return 0;
 }
 

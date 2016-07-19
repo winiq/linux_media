@@ -39,6 +39,93 @@
 #define REG_CFHF	5
 #define REG_CAL		6
 
+struct SLookup {
+	s16 Value;
+	u16 RegValue;
+};
+
+static struct SLookup Gain_RFAGC_LookUp[] = {                
+	/*Gain *100dB*/   /*reg*/
+	{	7429		,	0        },  /*	74.61 dB	*/
+	{	7368		,	18711	 },  /*	74.43 dB	*/
+	{	7214		,	23432	 },  /*	73.36 dB	*/
+	{	7090		,	25123	 },  /*	72.4  dB	*/
+	{	6988		,	26305	 },  /*	71.47 dB	*/
+	{	6897		,	27100	 },  /*	70.47 dB	*/
+	{	6809		,	27741	 },  /*	69.5  dB	*/
+	{	6728		,	28271	 },  /*	68.52 dB	*/
+	{	6645		,	28737	 },  /*	67.52 dB	*/
+	{	6571		,	29120	 },  /*	66.53 dB	*/
+	{	6494		,	29504	 },  /*	65.54 dB	*/
+	{	6416		,	29857	 },  /*	64.55 dB	*/
+	{	6341		,	30180	 },  /*	63.55 dB	*/
+	{	6263		,	30490	 },  /*	62.56 dB	*/
+	{	6179		,	30815	 },  /*	61.57 dB	*/
+	{	6101		,	31088	 },  /*	60.58 dB	*/
+	{	6028		,	31345	 },  /*	59.57 dB	*/
+	{	5956		,	31600	 },  /*	58.59 dB	*/
+	{	5883		,	31840	 },  /*	57.6  dB	*/
+	{	5801		,	32096	 },  /*	56.6  dB	*/
+	{	5730		,	32320	 },  /*	55.59 dB	*/
+	{	5659		,	32544	 },  /*	54.59 dB	*/
+	{	5582		,	32752	 },  /*	53.61 dB	*/
+	{	5498		,	32960	 },  /*	52.61 dB	*/
+	{	5414		,	33184	 },  /*	51.61 dB	*/
+	{	5340		,	33392	 },  /*	50.62 dB	*/
+	{	5271		,	33584	 },  /*	49.61 dB	*/
+	{	5198		,	33775	 },  /*	48.61 dB	*/
+	{	5125		,	33967	 },  /*	47.62 dB	*/
+	{	5048		,	34160	 },  /*	46.62 dB	*/
+	{	4963		,	34352	 },  /*	45.62 dB	*/
+	{	4884		,	34543	 },  /*	44.62 dB	*/
+	{	4820		,	34719	 },  /*	43.62 dB	*/
+	{	4740		,	34910	 },  /*	42.62 dB	*/
+	{	4666		,	35103	 },  /*	41.62 dB	*/
+	{	4582		,	35295	 },  /*	40.62 dB	*/
+	{	4500		,	35488	 },  /*	39.62 dB	*/
+	{	4426		,	35680	 },  /*	38.62 dB	*/
+	{	4365		,	35870	 },  /*	37.62 dB	*/
+	{	4279		,	36095	 },  /*	36.62 dB	*/
+	{	4113		,	36289	 },  /*	35.62 dB	*/
+	{	4020		,	36500	 },  /*	34.62 dB	*/
+	{	3930		,	36704	 },  /*	33.62 dB	*/
+	{	3838		,	36912	 },  /*	32.62 dB	*/
+	{	3738		,	37152	 },  /*	31.62 dB	*/
+	{	3648		,	37375	 },  /*	30.62 dB	*/
+	{	3544		,	37600	 },  /*	29.62 dB	*/
+	{	3458		,	37823	 },  /*	28.62 dB	*/
+	{	3358		,	38048	 },  /*	27.62 dB	*/
+	{	3281		,	38240	 },  /*	26.62 dB	*/
+	{	3191		,	38479	 },  /*	25.62 dB	*/
+	{	3091		,	38720	 },  /*	24.62 dB	*/
+	{	2993		,	38976	 },  /*	23.63 dB	*/
+	{	2900		,	39226	 },  /*	22.63 dB	*/
+	{	2792		,	39520	 },  /*	21.62 dB	*/
+	{	2692		,	39792	 },  /*	20.62 dB	*/
+	{	2592    	,	40064	 },  /*	19.62 dB	*/
+	{	2497		,	40351	 },  /*	18.62 dB	*/
+	{	2392		,	40640	 },  /*	17.62 dB	*/
+	{	2290		,	40976	 },  /*	16.62 dB	*/
+	{	2189		,	41295	 },  /*	15.62 dB	*/
+	{	2088		,	41631	 },  /*	14.62 dB	*/
+	{	1999		,	41934	 },  /*	13.62 dB	*/
+	{	1875		,	42354	 },  /*	12.62 dB	*/
+	{	1764	   	,	42815	 },  /*	11.62 dB	*/
+	{	1637	   	,	43263	 },  /*	10.62 dB	*/	
+	{	1537	   	,	43743    },  /*	9.62  dB	*/		
+	{	1412		,	44288    },  /*	8.62  dB	*/	
+	{	1291		,	44913    },  /*	7.62  dB	*/		
+	{	1188	  	,	45712    },  /*	6.62  dB	*/	
+	{	1080    	,	46720    },  /*	5.63  dB	*/	
+	{	976		,       48164	 },  /*	4.63  dB	*/	
+	{	930	    	,	50816    },  /*	3.63  dB	*/	
+	{	898	    	,	65534    },  /*	2.94  dB	*/	
+	{	880	    	,	65535    }  /*	2.95  dB	*/	
+};
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#endif
 
 
 static const u8 tuner_init[25] = {
@@ -481,21 +568,57 @@ static u32 AGC_Gain[] = {
 	67000, /* 2.9 */
 };
 
+static s32 TableLookup(struct SLookup *Table, int TableSize, u16 RegValue)
+{
+	s32 Gain;
+	s32 RegDiff;
+	int imin = 0;
+	int imax = TableSize - 1;
+	int i;
+	
+	// Assumes Table[0].RegValue < Table[imax].RegValue 
+	if( RegValue <= Table[0].RegValue )
+		Gain = Table[0].Value;
+	else if( RegValue >= Table[imax].RegValue )
+		Gain = Table[imax].Value;
+	else {
+		while(imax-imin > 1) {
+			i = (imax + imin) / 2;
+			if ((Table[imin].RegValue <= RegValue) &&
+			    (RegValue <= Table[i].RegValue) )
+				imax = i;
+			else
+				imin = i;
+		}
+		RegDiff = Table[imax].RegValue - Table[imin].RegValue;
+		Gain = Table[imin].Value;
+		if (RegDiff != 0)
+			Gain += ((s32) (RegValue - Table[imin].RegValue) *
+			    (s32)(Table[imax].Value - Table[imin].Value))/(RegDiff);
+	}
+	return Gain;
+}
+
 static int get_rf_strength(struct dvb_frontend *fe, u16 *st)
 {
-	*st = 0;
-#if 0
 	struct stv *state = fe->tuner_priv;
-	s32 Gain;
-	u32 Index = RFAgc / 100;
-	if (Index >= (sizeof(AGC_Gain) / sizeof(AGC_Gain[0]) - 1))
-		Gain = AGC_Gain[sizeof(AGC_Gain) / sizeof(AGC_Gain[0]) - 1];
-	else
-		Gain = AGC_Gain[Index] +
-			((AGC_Gain[Index+1] - AGC_Gain[Index]) *
-			 (RFAgc % 100)) / 100;
-	*st = Gain;
-#endif
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+
+	s32 gain = 1, ref_bbgain = 12, tilt = 6;
+	u32 freq;
+
+	gain = TableLookup(Gain_RFAGC_LookUp, ARRAY_SIZE(Gain_RFAGC_LookUp), *st);
+
+	gain += 100 * (6 - ref_bbgain); 	
+	
+	freq = p->frequency / 10000;
+	
+	if (freq<159)
+		gain -= 200; /* HMR filter 2dB gain compensation below freq=1590MHz */	
+	
+	gain-=(((freq-155)*tilt)/12)*10; 
+	//pr_warn("%s: str = %u\n", __func__, *st);
+
 	return 0;
 }
 
@@ -524,7 +647,7 @@ static struct dvb_tuner_ops tuner_ops = {
 //	.get_frequency     = get_frequency,
 //	.get_if_frequency  = get_if,
 //	.get_bandwidth     = get_bandwidth,
-//	.get_rf_strength   = get_rf_strength,
+	.get_rf_strength   = get_rf_strength,
 //	.set_bandwidth     = set_bandwidth,
 };
 
