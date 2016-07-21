@@ -291,6 +291,23 @@ static int max_send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 	//printk("send burst: %d\n", burst);
 	return 0;
 }
+static void RF_switch(struct i2c_adapter *i2c,u8 rf_in,u8 flag)//flag : 0: dvbs/s2 signal 1:Terrestrial and cable signal 
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+	u32 val ,reg;
+	
+	reg = 0xc-rf_in*4;
+	
+	val = tbs_read(TBSECP3_GPIO_BASE, reg);
+	if(flag)
+		val |= 2;
+	else
+		val &= ~2;
+		
+	tbs_write(TBSECP3_GPIO_BASE, reg, val);
+
+}
 
 static struct mxl5xx_cfg tbs6909_mxl5xx_cfg = {
 	.adr		= 0x60,
@@ -408,6 +425,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		si2183_config.fe = &adapter->fe;
 		si2183_config.ts_mode = SI2183_TS_PARALLEL;
 		si2183_config.ts_clock_gapped = true;
+		si2183_config.rf_in = adapter->nr;
+		si2183_config.RF_switch = NULL;
 
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "si2183", I2C_NAME_SIZE);
@@ -483,7 +502,102 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		}
 
 		break;
+	case 0x6528:
+	case 0x6590:
+			/* attach demod */
+		memset(&si2183_config, 0, sizeof(si2183_config));
+		si2183_config.i2c_adapter = &i2c;
+		si2183_config.fe = &adapter->fe;
+		si2183_config.ts_clock_gapped = true;
+		if(pci->subsystem_vendor==0x6528)
+			si2183_config.rf_in = 1;
+		else
+			si2183_config.rf_in = adapter->nr;
+		
+		si2183_config.RF_switch = RF_switch;
+		
+		if(pci->subsystem_vendor==0x6528)
+			si2183_config.ts_mode = SI2183_TS_PARALLEL;
+		else 
+			si2183_config.ts_mode = SI2183_TS_SERIAL;
+		
+		memset(&info, 0, sizeof(struct i2c_board_info));
+		strlcpy(info.type, "si2183", I2C_NAME_SIZE);
+		info.addr = adapter->nr ? 0x64 : 0x67;
+		si2183_config.agc_mode = adapter->nr? 0x4 : 0x5;
+		info.platform_data = &si2183_config;
+		request_module(info.type);
+		client_demod = i2c_new_device(i2c, &info);
+		if (client_demod == NULL ||
+				client_demod->dev.driver == NULL)
+			goto frontend_atach_fail;
+		if (!try_module_get(client_demod->dev.driver->owner)) {
+			i2c_unregister_device(client_demod);
+			goto frontend_atach_fail;
+		}
+		adapter->i2c_client_demod = client_demod;
 
+
+
+		/* dvb core doesn't support 2 tuners for 1 demod so
+		   we split the adapter in 2 frontends */
+		adapter->fe2 = &adapter->_fe2;
+		memcpy(adapter->fe2, adapter->fe, sizeof(struct dvb_frontend));
+
+
+		/* terrestrial tuner */
+		memset(adapter->fe->ops.delsys, 0, MAX_DELSYS);
+		adapter->fe->ops.delsys[0] = SYS_DVBT;
+		adapter->fe->ops.delsys[1] = SYS_DVBT2;
+		adapter->fe->ops.delsys[2] = SYS_DVBC_ANNEX_A;
+		adapter->fe->ops.delsys[3] = SYS_ISDBT;
+		adapter->fe->ops.delsys[4] = SYS_DVBC_ANNEX_B;
+
+		/* attach tuner */
+		memset(&si2157_config, 0, sizeof(si2157_config));
+		si2157_config.fe = adapter->fe;
+		si2157_config.if_port = 1;
+
+		memset(&info, 0, sizeof(struct i2c_board_info));
+		strlcpy(info.type, "si2157", I2C_NAME_SIZE);
+		info.addr = adapter->nr ? 0x60 : 0x61;
+		info.platform_data = &si2157_config;
+		request_module(info.type);
+		client_tuner = i2c_new_device(i2c, &info);
+		if (client_tuner == NULL ||
+				client_tuner->dev.driver == NULL)
+			goto frontend_atach_fail;
+
+		if (!try_module_get(client_tuner->dev.driver->owner)) {
+			i2c_unregister_device(client_tuner);
+			goto frontend_atach_fail;
+		}
+		adapter->i2c_client_tuner = client_tuner;
+
+
+		/* sattelite tuner */
+		memset(adapter->fe2->ops.delsys, 0, MAX_DELSYS);
+		adapter->fe2->ops.delsys[0] = SYS_DVBS;
+		adapter->fe2->ops.delsys[1] = SYS_DVBS2;
+		adapter->fe2->ops.delsys[2] = SYS_DSS;
+		adapter->fe2->id = 1;
+		if (dvb_attach(av201x_attach, adapter->fe2, &tbs6522_av201x_cfg[1-(adapter->nr)],
+				i2c) == NULL) {
+			dev_err(&dev->pci_dev->dev,
+				"frontend %d tuner attach failed\n",
+				adapter->nr);
+			goto frontend_atach_fail;
+		}
+		if (tbsecp3_attach_sec(adapter, adapter->fe2) == NULL) {
+			dev_warn(&dev->pci_dev->dev,
+				"error attaching lnb control on adapter %d\n",
+				adapter->nr);
+		}
+
+		tbsecp3_ca_init(adapter, adapter->nr);
+
+		break;
+		
 	case 0x6902:
 		adapter->fe = dvb_attach(tas2101_attach, &tbs6902_demod_cfg[adapter->nr], i2c);
 		if (adapter->fe == NULL)

@@ -45,6 +45,11 @@ struct si2183_config {
 	bool ts_clock_gapped;
 	/*agc*/
 	u8 agc_mode;
+
+	/*rf switch*/
+	void (*RF_switch)(struct i2c_adapter * i2c,u8 rf_in,u8 flag);
+	/*rf no.*/
+	u8 rf_in;
 };
 
 #endif

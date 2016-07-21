@@ -72,7 +72,8 @@ struct si2183_dev {
 	bool ts_clock_gapped;
 	u8 agc_mode;
 	struct si_base *base;
-
+	void (*RF_switch)(struct i2c_adapter * i2c,u8 rf_in,u8 flag);
+	u8 rf_in;
 	u8 active_fe;
 };
 
@@ -292,6 +293,9 @@ static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 	dev_dbg(&client->dev, "status=%02x args=%*ph\n",
 			*status, cmd.rlen, cmd.args);
+	printk( "status=%02x args=%*ph\n",
+			*status, cmd.rlen, cmd.args);
+
 	return 0;
 err:
 	dev_err(&client->dev, "read_status failed=%d\n", ret);
@@ -633,7 +637,28 @@ static int si2183_set_frontend(struct dvb_frontend *fe)
 		ret = -EAGAIN;
 		goto err;
 	}
-
+	if(dev->RF_switch)
+	{	
+		switch (c->delivery_system) {
+		case SYS_DVBT:
+		case SYS_DVBT2:
+		case SYS_DVBC_ANNEX_A:
+		case SYS_DVBC_ANNEX_B:
+		case SYS_ISDBT:
+			dev->RF_switch(dev->base->i2c,dev->rf_in,1);
+			
+			 break;
+			
+		case SYS_DVBS:
+		case SYS_DVBS2:
+		case SYS_DSS:
+		default:
+			dev->RF_switch(dev->base->i2c,dev->rf_in,0);
+			break;
+		
+		}
+	}
+		
 	if (fe->ops.tuner_ops.set_params) {
 #ifndef SI2183_USE_I2C_MUX
 		if (fe->ops.i2c_gate_ctrl)
@@ -884,14 +909,15 @@ static int si2183_init(struct dvb_frontend *fe)
 		return ret;
 	}
 
-	prop = 0x08e3 | (dev->ts_clock_inv ? 0x0000 : 0x1000);
+//	prop = 0x08e3 | (dev->ts_clock_inv ? 0x0000 : 0x1000);
+	prop = 0x1104;
 	ret = si2183_set_prop(client, 0x1009, &prop);
 	if (ret) {
 		dev_err(&client->dev, "err set par_ts\n");
 		return ret;
 	}
 
-	prop = 0x05d7 | (dev->ts_clock_inv ? 0x0000 : 0x1000);
+	prop = 0x330C ;
 	ret = si2183_set_prop(client, 0x1008, &prop);
 	if (ret) {
 		dev_err(&client->dev, "err set ser_ts\n");
@@ -1308,6 +1334,8 @@ static int si2183_probe(struct i2c_client *client,
 	dev->ts_clock_inv = config->ts_clock_inv;
 	dev->ts_clock_gapped = config->ts_clock_gapped;
  	dev->agc_mode = config->agc_mode;
+	dev->RF_switch = config->RF_switch;
+	dev->rf_in  = config->rf_in;
 	dev->fw_loaded = false;
 
 	dev->active_fe = 0;
