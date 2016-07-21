@@ -509,22 +509,29 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		si2183_config.i2c_adapter = &i2c;
 		si2183_config.fe = &adapter->fe;
 		si2183_config.ts_clock_gapped = true;
-		if(pci->subsystem_vendor==0x6528)
-			si2183_config.rf_in = 1;
-		else
-			si2183_config.rf_in = adapter->nr;
-		
 		si2183_config.RF_switch = RF_switch;
-		
 		if(pci->subsystem_vendor==0x6528)
+		{
+			si2183_config.rf_in = 1;
 			si2183_config.ts_mode = SI2183_TS_PARALLEL;
-		else 
+		}
+		else
+		{
+			si2183_config.rf_in = adapter->nr;
 			si2183_config.ts_mode = SI2183_TS_SERIAL;
+		}
 		
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "si2183", I2C_NAME_SIZE);
-		info.addr = adapter->nr ? 0x64 : 0x67;
-		si2183_config.agc_mode = adapter->nr? 0x4 : 0x5;
+		if(pci->subsystem_vendor==0x6528)
+		{
+			info.addr = 0x67;
+			si2183_config.agc_mode = 0x5 ;
+		}
+		else{
+			info.addr = adapter->nr ? 0x67 : 0x64;
+			si2183_config.agc_mode = adapter->nr? 0x5 : 0x4;
+		}
 		info.platform_data = &si2183_config;
 		request_module(info.type);
 		client_demod = i2c_new_device(i2c, &info);
@@ -560,7 +567,10 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "si2157", I2C_NAME_SIZE);
-		info.addr = adapter->nr ? 0x60 : 0x61;
+		if(pci->subsystem_vendor==0x6528)info.addr = 0x61;
+		else
+		info.addr = adapter->nr ? 0x61 : 0x60;
+		
 		info.platform_data = &si2157_config;
 		request_module(info.type);
 		client_tuner = i2c_new_device(i2c, &info);
@@ -581,12 +591,24 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		adapter->fe2->ops.delsys[1] = SYS_DVBS2;
 		adapter->fe2->ops.delsys[2] = SYS_DSS;
 		adapter->fe2->id = 1;
-		if (dvb_attach(av201x_attach, adapter->fe2, &tbs6522_av201x_cfg[1-(adapter->nr)],
+		if(pci->subsystem_vendor==0x6528)
+		{
+		  if (dvb_attach(av201x_attach, adapter->fe2, &tbs6522_av201x_cfg[1],
+				i2c) == NULL) {
+				dev_err(&dev->pci_dev->dev,
+				"frontend %d tuner attach failed\n",
+				adapter->nr);
+				goto frontend_atach_fail;
+			}
+		}
+		else{
+		if (dvb_attach(av201x_attach, adapter->fe2, &tbs6522_av201x_cfg[adapter->nr],
 				i2c) == NULL) {
 			dev_err(&dev->pci_dev->dev,
 				"frontend %d tuner attach failed\n",
 				adapter->nr);
 			goto frontend_atach_fail;
+		}
 		}
 		if (tbsecp3_attach_sec(adapter, adapter->fe2) == NULL) {
 			dev_warn(&dev->pci_dev->dev,

@@ -293,9 +293,6 @@ static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 	dev_dbg(&client->dev, "status=%02x args=%*ph\n",
 			*status, cmd.rlen, cmd.args);
-	printk( "status=%02x args=%*ph\n",
-			*status, cmd.rlen, cmd.args);
-
 	return 0;
 err:
 	dev_err(&client->dev, "read_status failed=%d\n", ret);
