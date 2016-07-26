@@ -817,7 +817,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		return -ENODEV;
 		break;
 	}
-
+	strlcpy(adapter->fe->ops.info.name,tbsecp3_boards[pci->subsystem_vendor].name,52);
 	return 0;
 
 frontend_atach_fail:
