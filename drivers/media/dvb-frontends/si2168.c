@@ -106,6 +106,11 @@ static int si2168_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		cmd.wlen = 2;
 		cmd.rlen = 9;
 		break;
+	case SYS_DVBC_ANNEX_B:
+		memcpy(cmd.args, "\x98\x01", 2);
+		cmd.wlen = 2;
+		cmd.rlen = 10;
+		break;
 	case SYS_DVBT2:
 		memcpy(cmd.args, "\x50\x01", 2);
 		cmd.wlen = 2;
@@ -140,13 +145,81 @@ static int si2168_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		c->cnr.len = 1;
 		c->cnr.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
 	}
-
 	dev_dbg(&client->dev, "status=%02x args=%*ph\n",
 			*status, cmd.rlen, cmd.args);
 
 	return 0;
 err:
 	dev_dbg(&client->dev, "failed=%d\n", ret);
+	return ret;
+}
+
+static int si2168_read_snr(struct dvb_frontend *fe, u16 *snr)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2168_dev *dev = i2c_get_clientdata(client);
+	dev->snr=52428;
+	*snr = (dev->fe_status & FE_HAS_LOCK) ? dev->snr : 0;
+
+	return 0;
+}
+
+static int si2168_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
+{
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
+	//*strength = (c->strength.stat[0].scale == FE_SCALE_DECIBEL) ? ((100000 + c->strength.stat[0].svalue) / 1000) * 656 : 0;
+	*strength = (c->cnr.stat[0].scale == FE_SCALE_DECIBEL) ? ((100000 + c->cnr.stat[0].svalue) / 1000) * 656 : 0;
+	return 0;
+}
+
+static int si2168_read_ber(struct dvb_frontend *fe, u32 *ber)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2168_dev *dev = i2c_get_clientdata(client);
+	struct si2168_cmd cmd;
+	int ret;
+	
+	if (dev->fe_status & FE_HAS_LOCK) {
+		memcpy(cmd.args, "\x82\x00", 2);
+		cmd.wlen = 2;
+		cmd.rlen = 3;
+		ret = si2168_cmd_execute(client, &cmd);
+		if (ret) {
+			dev_err(&client->dev, "read_ber fe%d cmd_exec failed=%d\n", fe->id, ret);
+			goto err;
+		}
+		*ber = (u32)cmd.args[2] * cmd.args[1] & 0xf;
+	} else *ber = 1;
+
+	return 0;
+err:
+	dev_err(&client->dev, "read_ber failed=%d\n", ret);
+	return ret;
+}
+
+static int si2168_read_ucblocks(struct dvb_frontend *fe, u32 *ucblocks)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct si2168_dev *dev = i2c_get_clientdata(client);
+	struct si2168_cmd cmd;
+	int ret;
+	
+	if (dev->stat_resp & 0x10) {
+		memcpy(cmd.args, "\x84\x00", 2);
+		cmd.wlen = 2;
+		cmd.rlen = 3;
+		ret = si2168_cmd_execute(client, &cmd);
+		if (ret) {
+		dev_err(&client->dev, "read_ucblocks fe%d cmd_exec failed=%d\n", fe->id, ret);
+			goto err;
+		}
+
+		*ucblocks = (u16)cmd.args[2] << 8 | cmd.args[1];
+	} else 	*ucblocks = 0;
+
+	return 0;
+err:
+	dev_err(&client->dev, "read_ucblocks failed=%d\n", ret);
 	return ret;
 }
 
@@ -171,6 +244,9 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 	}
 
 	switch (c->delivery_system) {
+	case SYS_DVBC_ANNEX_B:
+		delivery_system = 0x10;
+		break;		
 	case SYS_DVBT:
 		delivery_system = 0x20;
 		break;
@@ -223,6 +299,8 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 	if (c->delivery_system == SYS_DVBT)
 		memcpy(cmd.args, "\x89\x21\x06\x11\xff\x98", 6);
 	else if (c->delivery_system == SYS_DVBC_ANNEX_A)
+		memcpy(cmd.args, "\x89\x21\x06\x11\x89\xf0", 6);
+	else if (c->delivery_system == SYS_DVBC_ANNEX_B)
 		memcpy(cmd.args, "\x89\x21\x06\x11\x89\xf0", 6);
 	else if (c->delivery_system == SYS_DVBT2)
 		memcpy(cmd.args, "\x89\x21\x06\x11\x89\x20", 6);
@@ -379,7 +457,7 @@ static int si2168_init(struct dvb_frontend *fe)
 	if (ret)
 		goto err;
 
-	if (dev->fw_loaded) {
+	if (dev->warm) {
 		/* resume */
 		memcpy(cmd.args, "\xc0\x06\x08\x0f\x00\x20\x21\x01", 8);
 		cmd.wlen = 8;
@@ -615,6 +693,10 @@ static int si2168_sleep(struct dvb_frontend *fe)
 	dev_dbg(&client->dev, "\n");
 
 	dev->active = false;
+	
+		/* Firmware B 4.0-11 or later loses warm state during sleep */
+	if (dev->version > ('B' << 24 | 4 << 16 | 0 << 8 | 11 << 0))
+		dev->warm = false;
 
 	memcpy(cmd.args, "\x13", 1);
 	cmd.wlen = 1;
@@ -678,7 +760,7 @@ err:
 }
 
 static const struct dvb_frontend_ops si2168_ops = {
-	.delsys = {SYS_DVBT, SYS_DVBT2, SYS_DVBC_ANNEX_A},
+	.delsys = {SYS_DVBT, SYS_DVBT2, SYS_DVBC_ANNEX_A, SYS_DVBC_ANNEX_B},
 	.info = {
 		.name = "Silicon Labs Si2168",
 		.symbol_rate_min = 1000000,
@@ -712,6 +794,10 @@ static const struct dvb_frontend_ops si2168_ops = {
 	.set_frontend = si2168_set_frontend,
 
 	.read_status = si2168_read_status,
+	.read_signal_strength	= si2168_read_signal_strength,
+	.read_snr		= si2168_read_snr,
+	.read_ber		= si2168_read_ber,
+	.read_ucblocks		= si2168_read_ucblocks,
 };
 
 static int si2168_probe(struct i2c_client *client,
