@@ -743,6 +743,10 @@ static int saa716x_tbs6284_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
+
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6284 DVB-T/T2/C ",52);
+
+	
 	return 0;
 err2:
 	dev_err(&dev->pdev->dev, "%s frontend %d tuner attach failed\n",
@@ -841,6 +845,8 @@ static int saa716x_tbs6280_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
+
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6280 DVB-T/T2/C ",52);
 	return 0;
 err2:
 	dev_err(&dev->pdev->dev, "%s frontend %d tuner attach failed\n",
@@ -943,6 +949,8 @@ static int saa716x_tbs6281_frontend_attach(struct saa716x_adapter *adapter, int 
 	}
 	adapter->i2c_client_tuner = client;
 
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6281 DVB-T/T2/C ",52);
+
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
 
@@ -1039,6 +1047,8 @@ static int saa716x_tbs6285_frontend_attach(struct saa716x_adapter *adapter, int 
 	}
 	adapter->i2c_client_tuner = client;
 
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6285 DVB-T/T2/C ",52);
+
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
 
@@ -1127,6 +1137,8 @@ static int saa716x_tbs6220_frontend_attach(struct saa716x_adapter *adapter, int 
 
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6220 DVB-T/T2/C ",52);
+	
 	return 0;
 err2:
 	dev_err(&dev->pdev->dev, "%s frontend %d tuner attach failed\n",
@@ -1223,6 +1235,8 @@ static int saa716x_tbs6922_frontend_attach(
 		goto err;
 	}
 
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6922 DVB-S/S2 ",52);
+
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
 
@@ -1315,6 +1329,8 @@ static int saa716x_tbs6923_frontend_attach(
 			dev->config->model_name, count);
 		goto err;
 	}
+
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6923 DVB-S/S2 ",52);
 
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
@@ -1447,6 +1463,8 @@ static int tbs6925_frontend_attach(struct saa716x_adapter *adapter,
 		adapter->fe = NULL;
 		goto err;
 	}
+
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6925 DVB-S/S2 ",52);
 
 	dprintk(SAA716x_ERROR, 1, "Done!");
 	return 0;
@@ -1583,6 +1601,8 @@ static int saa716x_tbs6982_frontend_attach(
 		goto err;
 	}
 
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6982 DVB-S/S2 ",52);
+
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
 
@@ -1718,6 +1738,8 @@ static int saa716x_tbs6982se_frontend_attach(
 			dev->config->model_name, count);
 		goto err;
 	}
+
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6982SE DVB-S/S2 ",52);
 
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
@@ -1890,6 +1912,8 @@ static int saa716x_tbs6984_frontend_attach(
 		dev_info(&dev->pdev->dev,
 			"%s frontend %d doesn't seem to have a isl6422b on the i2c bus.\n",
 			dev->config->model_name, count);
+
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6984 DVB-S/S2 ",52);
 
 	return 0;
 err:
@@ -2084,6 +2108,8 @@ static int saa716x_tbs6985_frontend_attach(struct saa716x_adapter *adapter, int 
 		goto err;
 	}
 
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6985 DVB-S/S2 ",52);
+
 	return 0;
 err:
 	dev_err(&dev->pdev->dev, "%s frontend %d attach failed\n",
@@ -2241,6 +2267,8 @@ static int saa716x_tbs6991_frontend_attach(
 		goto err;
 	}
 
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6991 DVB-S/S2 ",52);
+
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
 
@@ -2276,7 +2304,7 @@ static struct saa716x_config saa716x_tbs6991_config = {
 
 
 #define SAA716x_MODEL_TBS6991SE			"TurboSight TBS 6991SE"
-#define SAA716x_DEV_TBS6991SE			"DVB-S/S2"
+#define SAA716x_DEV_TBS6991SE			"DVB-S/S2 "
 
 static struct tas2101_config tbs6991se_cfg[] = {
 	{
@@ -2321,6 +2349,8 @@ static int saa716x_tbs6991se_frontend_attach(
 			dev->config->model_name, count);
 		goto err;
 	}
+
+	strlcpy(adapter->fe->ops.info.name,"TurboSight TBS 6991SE DVB-S/S2 ",52);
 
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
 		dev->config->model_name, count);
