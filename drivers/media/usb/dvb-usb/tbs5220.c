@@ -178,12 +178,9 @@ static int tbs5220_frontend_attach(struct dvb_usb_adapter *adap)
 	struct si2168_config si2168_config;
 	struct si2157_config si2157_config;
 	u8 buf[20];
-	
-// 	st->i2c_client_demod = 0;	
-// 	st->i2c_client_tuner = 0;
-
 
 	/* attach frontend */
+	memset(&si2168_config, 0, sizeof(si2168_config));
 	si2168_config.i2c_adapter = &adapter;
 	si2168_config.fe = &adap->fe_adap[0].fe;
 	si2168_config.ts_mode = SI2168_TS_PARALLEL;
@@ -224,7 +221,7 @@ static int tbs5220_frontend_attach(struct dvb_usb_adapter *adap)
 		return -ENODEV;
 	}
 
-	st->i2c_client_demod = client_demod;	
+	st->i2c_client_demod = client_demod;
 	st->i2c_client_tuner = client_tuner;
 
 	buf[0] = 0;
@@ -240,7 +237,7 @@ static int tbs5220_frontend_attach(struct dvb_usb_adapter *adap)
 	buf[1] = 1;
 	tbs5220_op_rw(d->udev, 0x8a, 0, 0,
 			buf, 2, TBS5220_WRITE_MSG);
-
+\
 	buf[0] = 6;
 	buf[1] = 1;
 	tbs5220_op_rw(d->udev, 0x8a, 0, 0,
@@ -449,6 +446,7 @@ static int tbs5220_probe(struct usb_interface *intf,
 
 static void tbs5220_disconnect(struct usb_interface *intf)
 {
+#if 0
 	struct dvb_usb_device *d = usb_get_intfdata(intf);
 	struct tbs5220_state *st = d->priv;
 	struct i2c_client *client;
@@ -466,7 +464,7 @@ static void tbs5220_disconnect(struct usb_interface *intf)
 		module_put(client->dev.driver->owner);
 		i2c_unregister_device(client);
 	}
-	
+#endif
 	dvb_usb_device_exit(intf);
 }
 
