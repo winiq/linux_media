@@ -373,8 +373,9 @@ static void domain_dirty_limits(struct dirty_throttle_control *dtc)
 	struct dirty_throttle_control *gdtc = mdtc_gdtc(dtc);
 	unsigned long bytes = vm_dirty_bytes;
 	unsigned long bg_bytes = dirty_background_bytes;
-	unsigned long ratio = vm_dirty_ratio;
-	unsigned long bg_ratio = dirty_background_ratio;
+	/* convert ratios to per-PAGE_SIZE for higher precision */
+	unsigned long ratio = (vm_dirty_ratio * PAGE_SIZE) / 100;
+	unsigned long bg_ratio = (dirty_background_ratio * PAGE_SIZE) / 100;
 	unsigned long thresh;
 	unsigned long bg_thresh;
 	struct task_struct *tsk;
@@ -386,26 +387,28 @@ static void domain_dirty_limits(struct dirty_throttle_control *dtc)
 		/*
 		 * The byte settings can't be applied directly to memcg
 		 * domains.  Convert them to ratios by scaling against
-		 * globally available memory.
+		 * globally available memory.  As the ratios are in
+		 * per-PAGE_SIZE, they can be obtained by dividing bytes by
+		 * number of pages.
 		 */
 		if (bytes)
-			ratio = min(DIV_ROUND_UP(bytes, PAGE_SIZE) * 100 /
-				    global_avail, 100UL);
+			ratio = min(DIV_ROUND_UP(bytes, global_avail),
+				    PAGE_SIZE);
 		if (bg_bytes)
-			bg_ratio = min(DIV_ROUND_UP(bg_bytes, PAGE_SIZE) * 100 /
-				       global_avail, 100UL);
+			bg_ratio = min(DIV_ROUND_UP(bg_bytes, global_avail),
+				       PAGE_SIZE);
 		bytes = bg_bytes = 0;
 	}
 
 	if (bytes)
 		thresh = DIV_ROUND_UP(bytes, PAGE_SIZE);
 	else
-		thresh = (ratio * available_memory) / 100;
+		thresh = (ratio * available_memory) / PAGE_SIZE;
 
 	if (bg_bytes)
 		bg_thresh = DIV_ROUND_UP(bg_bytes, PAGE_SIZE);
 	else
-		bg_thresh = (bg_ratio * available_memory) / 100;
+		bg_thresh = (bg_ratio * available_memory) / PAGE_SIZE;
 
 	if (bg_thresh >= thresh)
 		bg_thresh = thresh / 2;
@@ -2560,6 +2563,7 @@ int set_page_dirty(struct page *page)
 {
 	struct address_space *mapping = page_mapping(page);
 
+	page = compound_head(page);
 	if (likely(mapping)) {
 		int (*spd)(struct page *) = mapping->a_ops->set_page_dirty;
 		/*
@@ -2744,6 +2748,11 @@ int test_clear_page_writeback(struct page *page)
 				__wb_writeout_inc(wb);
 			}
 		}
+
+		if (mapping->host && !mapping_tagged(mapping,
+						     PAGECACHE_TAG_WRITEBACK))
+			sb_clear_inode_writeback(mapping->host);
+
 		spin_unlock_irqrestore(&mapping->tree_lock, flags);
 	} else {
 		ret = TestClearPageWriteback(page);
@@ -2771,11 +2780,24 @@ int __test_set_page_writeback(struct page *page, bool keep_write)
 		spin_lock_irqsave(&mapping->tree_lock, flags);
 		ret = TestSetPageWriteback(page);
 		if (!ret) {
+			bool on_wblist;
+
+			on_wblist = mapping_tagged(mapping,
+						   PAGECACHE_TAG_WRITEBACK);
+
 			radix_tree_tag_set(&mapping->page_tree,
 						page_index(page),
 						PAGECACHE_TAG_WRITEBACK);
 			if (bdi_cap_account_writeback(bdi))
 				__inc_wb_stat(inode_to_wb(inode), WB_WRITEBACK);
+
+			/*
+			 * We can come through here when swapping anonymous
+			 * pages, so we don't necessarily have an inode to track
+			 * for sync.
+			 */
+			if (mapping->host && !on_wblist)
+				sb_mark_inode_writeback(mapping->host);
 		}
 		if (!PageDirty(page))
 			radix_tree_tag_clear(&mapping->page_tree,

@@ -43,7 +43,6 @@ struct si2168_dev {
 	unsigned int version;	
 	const char *firmware_name;
 	bool active;
-	bool fw_loaded;
 	bool warm;
 	u8 ts_mode;
 	bool ts_clock_inv;
