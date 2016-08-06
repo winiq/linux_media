@@ -170,7 +170,6 @@ static void tbsqboxs1_led_ctrl(struct dvb_frontend *fe, int offon)
 	if (offon)
 		msg.buf = led_on;
 	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
-	info("tbsqboxs1_led_ctrl %d",offon);
 }
 
 
@@ -225,8 +224,7 @@ static int tbsqboxs1_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
 	return 0;
 };
 
-static int tbsqboxs1_set_voltage(struct dvb_frontend *fe,
-				enum fe_sec_voltage voltage)
+static int tbsqboxs1_set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 {
 	static u8 command_13v[1] = {0x00};
 	static u8 command_18v[1] = {0x01};

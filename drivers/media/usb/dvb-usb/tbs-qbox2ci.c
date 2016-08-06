@@ -480,7 +480,6 @@ static void tbsqbox2ci_led_ctrl(struct dvb_frontend *fe, int offon)
 	if (offon)
 		msg.buf = led_on;
 	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
-	info("tbsqbox2ci_led_ctrl %d",offon);
 }
 
 static struct stv090x_config earda_config = {
@@ -556,7 +555,7 @@ static int tbsqbox2ci_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
 };
 
 static int tbsqbox2ci_set_voltage(struct dvb_frontend *fe, 
-				enum fe_sec_voltage voltage)
+						enum fe_sec_voltage voltage)
 {
 	static u8 command_13v[1] = {0x00};
 	static u8 command_18v[1] = {0x01};
