@@ -95,7 +95,7 @@ static int si2168_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		goto err;
 	}
 
-	switch (c->delivery_system) {
+	switch (dev->delivery_system) {
 	case SYS_DVBT:
 		memcpy(cmd.args, "\xa0\x01", 2);
 		cmd.wlen = 2;
@@ -140,11 +140,12 @@ static int si2168_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (*status & FE_HAS_LOCK) {
 		c->cnr.len = 1;
 		c->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-		c->cnr.stat[0].svalue = cmd.args[3] * 1000 / 4;
+		c->cnr.stat[0].svalue = cmd.args[3] * 250;
 	} else {
 		c->cnr.len = 1;
 		c->cnr.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
 	}
+
 	dev_dbg(&client->dev, "status=%02x args=%*ph\n",
 			*status, cmd.rlen, cmd.args);
 
@@ -156,10 +157,9 @@ err:
 
 static int si2168_read_snr(struct dvb_frontend *fe, u16 *snr)
 {
-	struct i2c_client *client = fe->demodulator_priv;
-	struct si2168_dev *dev = i2c_get_clientdata(client);
-	dev->snr=52428;
-	*snr = (dev->fe_status & FE_HAS_LOCK) ? dev->snr : 0;
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
+	
+	*snr = c->cnr.stat[0].scale == FE_SCALE_DECIBEL ? ((s32)c->cnr.stat[0].svalue / 250) *  328  : 0;
 
 	return 0;
 }
@@ -167,8 +167,9 @@ static int si2168_read_snr(struct dvb_frontend *fe, u16 *snr)
 static int si2168_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
-	//*strength = (c->strength.stat[0].scale == FE_SCALE_DECIBEL) ? ((100000 + c->strength.stat[0].svalue) / 1000) * 656 : 0;
-	*strength = (c->cnr.stat[0].scale == FE_SCALE_DECIBEL) ? ((100000 + c->cnr.stat[0].svalue) / 1000) * 656 : 0;
+	
+	*strength = c->strength.stat[0].scale == FE_SCALE_DECIBEL ? ((100000 + (s32)c->strength.stat[0].svalue) / 1000) * 656 : 0;
+
 	return 0;
 }
 
@@ -246,12 +247,17 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 	switch (c->delivery_system) {
 	case SYS_DVBC_ANNEX_B:
 		delivery_system = 0x10;
-		break;		
+		break;
 	case SYS_DVBT:
 		delivery_system = 0x20;
 		break;
 	case SYS_DVBC_ANNEX_A:
 		delivery_system = 0x30;
+		if (c->symbol_rate < 6000000) {
+			delivery_system = 0x10;
+			c->delivery_system = SYS_DVBC_ANNEX_B;
+			c->bandwidth_hz = 6000000;
+		}
 		break;
 	case SYS_DVBT2:
 		delivery_system = 0x70;
@@ -288,28 +294,6 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 			goto err;
 	}
 
-	memcpy(cmd.args, "\x88\x02\x02\x02\x02", 5);
-	cmd.wlen = 5;
-	cmd.rlen = 5;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
-
-	/* that has no big effect */
-	if (c->delivery_system == SYS_DVBT)
-		memcpy(cmd.args, "\x89\x21\x06\x11\xff\x98", 6);
-	else if (c->delivery_system == SYS_DVBC_ANNEX_A)
-		memcpy(cmd.args, "\x89\x21\x06\x11\x89\xf0", 6);
-	else if (c->delivery_system == SYS_DVBC_ANNEX_B)
-		memcpy(cmd.args, "\x89\x21\x06\x11\x89\xf0", 6);
-	else if (c->delivery_system == SYS_DVBT2)
-		memcpy(cmd.args, "\x89\x21\x06\x11\x89\x20", 6);
-	cmd.wlen = 6;
-	cmd.rlen = 3;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
-
 	if (c->delivery_system == SYS_DVBT2) {
 		/* select PLP */
 		cmd.args[0] = 0x52;
@@ -336,7 +320,7 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 	if (ret)
 		goto err;
 
-	/*memcpy(cmd.args, "\x14\x00\x0c\x10\x12\x00", 6);
+	memcpy(cmd.args, "\x14\x00\x0c\x10\x12\x00", 6);
 	cmd.wlen = 6;
 	cmd.rlen = 4;
 	ret = si2168_cmd_execute(client, &cmd);
@@ -363,7 +347,7 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 	cmd.rlen = 4;
 	ret = si2168_cmd_execute(client, &cmd);
 	if (ret)
-		goto err;*/
+		goto err;
 
 	/* set DVB-C symbol rate */
 	if (c->delivery_system == SYS_DVBC_ANNEX_A) {
@@ -376,16 +360,18 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 		if (ret)
 			goto err;
 	}
-	
-	memcpy(cmd.args, "\x14\x00\x0a\x10\x00\x00", 6);
-	cmd.args[4] = delivery_system | bandwidth;
-	cmd.wlen = 6;
-	cmd.rlen = 4;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;	
+	else if (c->delivery_system == SYS_DVBC_ANNEX_B) {
+		memcpy(cmd.args, "\x14\x00\x02\x16", 4);
+		cmd.args[4] = ((c->symbol_rate / 1000) >> 0) & 0xff;
+		cmd.args[5] = ((c->symbol_rate / 1000) >> 8) & 0xff;
+		cmd.wlen = 6;
+		cmd.rlen = 4;
+		ret = si2168_cmd_execute(client, &cmd);
+		if (ret)
+			goto err;
+	}
 
-	/*memcpy(cmd.args, "\x14\x00\x0f\x10\x10\x00", 6);
+	memcpy(cmd.args, "\x14\x00\x0f\x10\x10\x00", 6);
 	cmd.wlen = 6;
 	cmd.rlen = 4;
 	ret = si2168_cmd_execute(client, &cmd);
@@ -420,7 +406,7 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 	cmd.rlen = 4;
 	ret = si2168_cmd_execute(client, &cmd);
 	if (ret)
-		goto err;*/
+		goto err;
 
 	memcpy(cmd.args, "\x85", 1);
 	cmd.wlen = 1;
@@ -446,6 +432,9 @@ static int si2168_init(struct dvb_frontend *fe)
 	struct si2168_cmd cmd;
 
 	dev_dbg(&client->dev, "\n");
+	
+	if (dev->active)
+		return 0;	
 
 	/* initialize */
 	memcpy(cmd.args, "\xc0\x12\x00\x0c\x00\x0d\x16\x00\x00\x00\x00\x00\x00", 13);
@@ -565,64 +554,56 @@ static int si2168_init(struct dvb_frontend *fe)
 	dev_info(&client->dev, "firmware version: %c %d.%d.%d\n",
 		 dev->version >> 24 & 0xff, dev->version >> 16 & 0xff,
 		 dev->version >> 8 & 0xff, dev->version >> 0 & 0xff);
-			
-	memcpy(cmd.args, "\x14\x00\x0c\x10\x12\x00", 6);
-	cmd.wlen = 6;
-	cmd.rlen = 4;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
 
-	memcpy(cmd.args, "\x14\x00\x06\x10\x24\x00", 6);
-	cmd.wlen = 6;
-	cmd.rlen = 4;
+	/* TER FEF */
+	memcpy(cmd.args, "\x51\x00", 2);
+	cmd.wlen = 2;
+	cmd.rlen = 12;
+	cmd.args[1] = (dev->fef_inv & 1) << 3 | (dev->fef_pin & 7);
+	dev_dbg(&client->dev, "args=%*ph\n", cmd.wlen, cmd.args);
+	
 	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
+	if (ret) {
+		dev_err(&client->dev, "err set fef pip\n");
+	}
 
-	memcpy(cmd.args, "\x14\x00\x07\x10\x00\x24", 6);
-	cmd.wlen = 6;
-	cmd.rlen = 4;
+	/* MP DEFAULTS */
+	memcpy(cmd.args, "\x88\x01\x01\x01\x01", 5);
+	cmd.wlen = 5;
+	cmd.rlen = 2;
+	switch (dev->fef_pin)
+	{
+	case SI2168_MP_A:
+		cmd.args[1] = dev->fef_inv ? 3 : 2;
+		break;
+	case SI2168_MP_B:
+		cmd.args[2] = dev->fef_inv ? 3 : 2;
+		break;
+	case SI2168_MP_C:
+		cmd.args[3] = dev->fef_inv ? 3 : 2;
+		break;
+	case SI2168_MP_D:
+		cmd.args[4] = dev->fef_inv ? 3 : 2;
+		break;
+	}
+	dev_dbg(&client->dev, "args=%*ph\n", cmd.wlen, cmd.args);
+	
 	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
+	if (ret) {
+		dev_err(&client->dev, "err set mp defaults\n");
+	}
 
-			
-	memcpy(cmd.args, "\x14\x00\x0f\x10\x10\x00", 6);
+	/* AGC */
+	memcpy(cmd.args, "\x89\x01\x06\x12\x00\x00", 6);
 	cmd.wlen = 6;
-	cmd.rlen = 4;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
+	cmd.rlen = 3;
+	cmd.args[1] |= (dev->agc_inv & 1) << 7 | (dev->agc_pin & 7) << 4;
+	dev_dbg(&client->dev, "args=%*ph\n", cmd.wlen, cmd.args);
 
-	memcpy(cmd.args, "\x14\x00\x09\x10\xe3\x08", 6);
-	cmd.args[5] |= dev->ts_clock_inv ? 0x00 : 0x10;
-	cmd.wlen = 6;
-	cmd.rlen = 4;
 	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
-
-	memcpy(cmd.args, "\x14\x00\x08\x10\xcf\x33", 6);
-	cmd.wlen = 6;
-	cmd.rlen = 4;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
-
-	memcpy(cmd.args, "\x14\x00\x01\x12\x00\x00", 6);
-	cmd.wlen = 6;
-	cmd.rlen = 4;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
-
-	memcpy(cmd.args, "\x14\x00\x01\x03\x0c\x00", 6);
-	cmd.wlen = 6;
-	cmd.rlen = 4;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;			
+	if (ret) {
+		dev_err(&client->dev, "err set ter agc\n");
+	}
 
 	/* set ts mode */
 	memcpy(cmd.args, "\x14\x00\x01\x10\x10\x00", 6);
@@ -853,6 +834,13 @@ static int si2168_probe(struct i2c_client *client,
 	dev->ts_mode = config->ts_mode;
 	dev->ts_clock_inv = config->ts_clock_inv;
 	dev->ts_clock_gapped = config->ts_clock_gapped;
+	dev->fef_pin = config->fef_pin;
+	dev->fef_inv = config->fef_inv;
+	dev->agc_pin = config->agc_pin;
+	dev->agc_inv = config->agc_inv;
+
+	if (!dev->agc_pin) dev->agc_pin = SI2168_MP_A;
+	if (!dev->fef_pin) dev->fef_pin = SI2168_MP_B;
 
 	dev_info(&client->dev, "Silicon Labs Si2168-%c%d%d successfully identified\n",
 		 dev->version >> 24 & 0xff, dev->version >> 16 & 0xff,
