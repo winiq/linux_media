@@ -9,15 +9,13 @@ struct stv0910_cfg {
 	u8  adr;
 	u8  parallel;
 	u8  rptlvl;
+	u8  dual_tuner;
 };
 
-#if defined(CONFIG_DVB_STV0910) || \
-	(defined(CONFIG_DVB_STV0910_MODULE) && defined(MODULE))
-
+#if IS_REACHABLE(CONFIG_DVB_STV0910)
 extern struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 					   struct stv0910_cfg *cfg, int nr);
 #else
-
 static inline struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 						  struct stv0910_cfg *cfg,
 						  int nr)
@@ -29,4 +27,3 @@ static inline struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 #endif
 
 #endif
-
