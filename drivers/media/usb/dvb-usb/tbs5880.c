@@ -516,14 +516,13 @@ static void tbs5880_led_ctrl(struct dvb_frontend *fe, int offon)
 	if (offon)
 		msg.buf = led_on;
 	i2c_transfer(&udev_adap->dev->i2c_adap, &msg, 1);
-	info("tbs5880_led_ctrl %d",offon);
 }
 
 static struct dvb_usb_device_properties tbs5880_properties;
 
 static struct cxd2820r_config cxd2820r_config = {
 	.i2c_address = 0x6c, /* (0xd8 >> 1) */
-	.ts_mode = 0x08,
+	.ts_mode = CXD2820R_TS_SERIAL,
 	.set_lock_led = tbs5880_led_ctrl,
 };
 
