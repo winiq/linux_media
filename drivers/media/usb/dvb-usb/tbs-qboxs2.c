@@ -259,25 +259,24 @@ static struct dvb_usb_device_properties tbsqboxs2_properties;
 
 static int tbsqboxs2_frontend_attach(struct dvb_usb_adapter *d)
 {
+	struct dvb_usb_device *u = d->dev;
 	u8 buf[20];
 	
 	if ((d->fe_adap->fe = dvb_attach(cx24116_attach, &qbox2_cx24116_config,
-					&d->dev->i2c_adap)) != NULL) {
-			d->fe_adap->fe->ops.set_voltage = tbsqboxs2_set_voltage;
-			printk("QBOXS2: CX24116 attached.\n");
+					&u->i2c_adap)) != NULL) {
+		d->fe_adap->fe->ops.set_voltage = tbsqboxs2_set_voltage;
 
-			buf[0] = 7;
-			buf[1] = 1;
-			tbsqboxs2_op_rw(d->dev->udev, 0x8a, 0, 0,
-					buf, 2, TBSQBOX_WRITE_MSG);
+		buf[0] = 7;
+		buf[1] = 1;
+		tbsqboxs2_op_rw(u->udev, 0x8a, 0, 0,
+				buf, 2, TBSQBOX_WRITE_MSG);
 
-			return 0;
+		strlcpy(d->fe_adap->fe->ops.info.name,u->props.devices[0].name,52);
+		return 0;
 	}
 
 	return -EIO;
 }
-
-
 
 static struct rc_map_table tbsqboxs2_rc_keys[] = {
 	{ 0xff84, KEY_POWER2},		/* power */
@@ -462,7 +461,7 @@ static struct dvb_usb_device_properties tbsqboxs2_properties = {
 
 	.num_device_descs = 1,
 	.devices = {
-		{"TBS QBOXS2 DVBS2 USB2.0",
+		{"TurboSight TBS QBOX-S2 DVB-S/S2",
 			{&tbsqboxs2_table[0], NULL},
 			{NULL},
 		}

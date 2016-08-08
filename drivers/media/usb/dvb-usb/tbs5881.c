@@ -562,6 +562,7 @@ static int tbs5881_frontend_attach(struct dvb_usb_adapter *adap)
 					buf, 2, TBS5881_WRITE_MSG);
 
 	tbs5881_init(adap);
+	strlcpy(adap->fe_adap->fe->ops.info.name,d->props.devices[0].name,52);
 	return 0;
 }
 
@@ -770,7 +771,7 @@ static struct dvb_usb_device_properties tbs5881_properties = {
 	}},
 	.num_device_descs = 1,
 	.devices = {
-		{"TBS 5881 CI USB2.0",
+		{"TurboSight TBS 5881 DVB-T/T2/C + CI",
 			{&tbs5881_table[0], NULL},
 			{NULL},
 		}

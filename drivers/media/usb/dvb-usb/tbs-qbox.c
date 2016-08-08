@@ -189,8 +189,6 @@ static int tbsqboxs1_earda_tuner_attach(struct dvb_usb_adapter *adap)
 		&adap->dev->i2c_adap))
 		return -EIO;
 
-	info("Attached stb6100!\n");
-
 	return 0;
 }
 static int tbsqboxs1_read_mac_address(struct dvb_usb_device *d, u8 mac[6])
@@ -246,20 +244,21 @@ static struct dvb_usb_device_properties tbsqboxs1_properties;
 
 static int tbsqboxs1_frontend_attach(struct dvb_usb_adapter *d)
 {
+	struct dvb_usb_device *u = d->dev;
 	u8 buf[20];
 
 	if (tbsqboxs1_properties.adapter->fe->tuner_attach == &tbsqboxs1_earda_tuner_attach) {
 		d->fe_adap->fe = dvb_attach(stv0288_attach, &earda_config,
-					&d->dev->i2c_adap);
+					&u->i2c_adap);
 		if (d->fe_adap->fe != NULL) {
 			d->fe_adap->fe->ops.set_voltage = tbsqboxs1_set_voltage;
-			info("Attached stv0288!\n");
 
 			buf[0] = 7;
 			buf[1] = 1;
-			tbsqboxs1_op_rw(d->dev->udev, 0x8a, 0, 0,
+			tbsqboxs1_op_rw(u->udev, 0x8a, 0, 0,
 					 buf, 2, TBSQBOX_WRITE_MSG);
 
+			strlcpy(d->fe_adap->fe->ops.info.name,u->props.devices[0].name,52);
 			return 0;
 		}
 	}
@@ -464,11 +463,11 @@ static struct dvb_usb_device_properties tbsqboxs1_properties = {
 
 	.num_device_descs = 2,
 	.devices = {
-		{"TBS QBOX DVBS USB2.0",
+		{"TurboSight TBS QBOX DVB-S",
 			{&tbsqboxs1_table[0], NULL},
 			{NULL},
 		},
-		{"TBS QBOX DVBS USB2.0",
+		{"TurboSight TBS QBOX DVB-S",
 			{&tbsqboxs1_table[1], NULL},
 			{NULL},
 		}

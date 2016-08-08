@@ -196,10 +196,11 @@ static struct av201x_config tbs5922_av201x_cfg = {
 
 static int tbs5922se_frontend_attach(struct dvb_usb_adapter *d)
 {
+	struct dvb_usb_device *u = d->dev;
 	u8 buf[20];
 
 	d->fe_adap->fe = dvb_attach(tas2101_attach, &tbs5922_cfg,
-				&d->dev->i2c_adap);
+				&u->i2c_adap);
 	if (d->fe_adap->fe == NULL)
 		goto err;
 
@@ -207,28 +208,25 @@ static int tbs5922se_frontend_attach(struct dvb_usb_adapter *d)
 			tas2101_get_i2c_adapter(d->fe_adap->fe, 2)) == NULL) {
 		dvb_frontend_detach(d->fe_adap->fe);
 		d->fe_adap->fe = NULL;
-		printk("TBS: tuner attach failed\n");
 		goto err;
 	}
 
-	printk("TBS: TBS5922SE attached.\n");
-
 	buf[0] = 7;
 	buf[1] = 1;
-	tbs5922se_op_rw(d->dev->udev, 0x8a, 0, 0, buf, 2, TBS5922SE_WRITE_MSG);
+	tbs5922se_op_rw(u->udev, 0x8a, 0, 0, buf, 2, TBS5922SE_WRITE_MSG);
 
 	buf[0] = 1;
 	buf[1] = 1;
-	tbs5922se_op_rw(d->dev->udev, 0x8a, 0, 0, buf, 2, TBS5922SE_WRITE_MSG);
+	tbs5922se_op_rw(u->udev, 0x8a, 0, 0, buf, 2, TBS5922SE_WRITE_MSG);
 
 	buf[0] = 6;     
 	buf[1] = 1;
-	tbs5922se_op_rw(d->dev->udev, 0x8a, 0, 0, buf, 2, TBS5922SE_WRITE_MSG);
+	tbs5922se_op_rw(u->udev, 0x8a, 0, 0, buf, 2, TBS5922SE_WRITE_MSG);
+	
+	strlcpy(d->fe_adap->fe->ops.info.name,u->props.devices[0].name,52);
 
-	printk("TBS: frontend attached\n");
 	return 0;
 err:
-	printk("TBS: frontend attach failed\n");
 	return -ENODEV;
 }
 
@@ -418,7 +416,7 @@ static struct dvb_usb_device_properties tbs5922se_properties = {
 	}},
 	.num_device_descs = 1,
 	.devices = {
-		{"TBS 5922SE DVBS2 USB2.0",
+		{"TurboSight TBS 5922SE DVB-S/S2",
 			{&tbs5922se_table[0], NULL},
 			{NULL},
 		}

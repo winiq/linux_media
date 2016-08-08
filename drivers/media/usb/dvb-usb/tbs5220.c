@@ -237,11 +237,13 @@ static int tbs5220_frontend_attach(struct dvb_usb_adapter *adap)
 	buf[1] = 1;
 	tbs5220_op_rw(d->udev, 0x8a, 0, 0,
 			buf, 2, TBS5220_WRITE_MSG);
-\
+
 	buf[0] = 6;
 	buf[1] = 1;
 	tbs5220_op_rw(d->udev, 0x8a, 0, 0,
 		buf, 2, TBS5220_WRITE_MSG);
+
+	strlcpy(adap->fe_adap->fe->ops.info.name,d->props.devices[0].name,52);
 
 	return 0;
 }
@@ -427,7 +429,7 @@ static struct dvb_usb_device_properties tbs5220_properties = {
 
 	.num_device_descs = 1,
 	.devices = {
-		{"TBS 5220 USB2.0",
+		{"TurboSight TBS 5220 DVB-T/T2/C",
 			{&tbs5220_table[0], NULL},
 			{NULL},
 		}

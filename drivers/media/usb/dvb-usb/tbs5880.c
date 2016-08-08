@@ -584,14 +584,13 @@ static int tbs5880_frontend_attach(struct dvb_usb_adapter *d)
 			&d->dev->i2c_adap,NULL);
 
 		if (d->fe_adap->fe != NULL) {
-			info("Attached TBS5880FE!\n");
-
 			buf[0] = 7;
 			buf[1] = 1;
-			tbs5880_op_rw(d->dev->udev, 0x8a, 0, 0,
+			tbs5880_op_rw(u->udev, 0x8a, 0, 0,
 					buf, 2, TBS5880_WRITE_MSG);
 
 			tbs5880_init(d);
+			strlcpy(d->fe_adap->fe->ops.info.name,u->props.devices[0].name,52);
 			return 0;
 		}
 	}
@@ -789,7 +788,7 @@ static struct dvb_usb_device_properties tbs5880_properties = {
 
 	.num_device_descs = 1,
 	.devices = {
-		{"TBS 5880 CI USB2.0",
+		{"TurboSight TBS 5880 DVB-T/T2/C + CI",
 			{&tbs5880_table[0], NULL},
 			{NULL},
 		}
