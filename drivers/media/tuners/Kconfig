@@ -307,4 +307,12 @@ config MEDIA_TUNER_R848
         help
           Rafael Micro R848 silicon tuner driver.
 
+config MEDIA_TUNER_MXL603
+        tristate "MaxLinear mxl603 silicon tuner"
+        depends on MEDIA_SUPPORT && I2C
+        default m if !MEDIA_SUBDRV_AUTOSELECT
+        select BITREVERSE
+        help
+          A driver for the silicon tuner MXL603 from MaxLinear.
+
 endmenu

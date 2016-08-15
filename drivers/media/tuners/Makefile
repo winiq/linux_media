@@ -45,6 +45,7 @@ obj-$(CONFIG_MEDIA_TUNER_M88RS6000T) += m88rs6000t.o
 obj-$(CONFIG_MEDIA_TUNER_AV201X) += av201x.o
 obj-$(CONFIG_MEDIA_TUNER_STV6120) += stv6120.o
 obj-$(CONFIG_MEDIA_TUNER_R848) += r848.o
+obj-$(CONFIG_MEDIA_TUNER_MXL603) += mxl603.o
 
 ccflags-y += -I$(srctree)/drivers/media/dvb-core
 ccflags-y += -I$(srctree)/drivers/media/dvb-frontends

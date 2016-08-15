@@ -30,6 +30,9 @@
 #include "stv0910.h"
 #include "stv6120.h"
 
+#include "mn88436.h"
+#include "mxl603.h"
+
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
 struct sec_priv {
@@ -357,6 +360,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	struct si2168_config si2168_config;
 	struct si2183_config si2183_config;
 	struct si2157_config si2157_config;
+	struct mn88436_config mn88436_config;
+	struct mxl603_config mxl603_config;
 
 	//struct av201x_config av201x_config;
 
@@ -374,6 +379,54 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	set_mac_address(adapter);
 
 	switch (pci->subsystem_vendor) {
+	case 0x6704:
+		/* attach demod */
+		memset(&mn88436_config, 0, sizeof(mn88436_config));
+		mn88436_config.fe = &adapter->fe;
+		mn88436_config.ts_mode = 0;
+		mn88436_config.i2c_wr_max = 32;
+
+		memset(&info, 0, sizeof(struct i2c_board_info));
+		strlcpy(info.type, "mn88436", I2C_NAME_SIZE);
+		info.addr = 0x18;
+		info.platform_data = &mn88436_config;
+		request_module(info.type);
+		client_demod = i2c_new_device(i2c, &info);
+		if (client_demod == NULL ||
+				client_demod->dev.driver == NULL)
+			goto frontend_atach_fail;
+		if (!try_module_get(client_demod->dev.driver->owner)) {
+			i2c_unregister_device(client_demod);
+			goto frontend_atach_fail;
+		}
+		adapter->i2c_client_demod = client_demod;
+
+		/* attach tuner */
+		memset(&mxl603_config, 0, sizeof(mxl603_config));
+		mxl603_config.fe = adapter->fe;
+		mxl603_config.xtalFreqSel= 1; //0:16M ,1:24M
+		mxl603_config.agcType = 0 ; //0:self 1:external
+		mxl603_config.ifOutFreq = MXL603_IF_5MHz;
+		mxl603_config.manualIFFreqSet = false;
+		mxl603_config.manualIFOutFreqInKHz = 0 ;//if manual set ,input the freq
+
+		memset(&info, 0, sizeof(struct i2c_board_info));
+		strlcpy(info.type, "mxl603", I2C_NAME_SIZE);
+		info.addr = 0x60;
+		info.platform_data = &mxl603_config;
+		request_module(info.type);
+		client_tuner = i2c_new_device(i2c, &info);
+		if (client_tuner == NULL ||
+				client_tuner->dev.driver == NULL)
+			goto frontend_atach_fail;
+
+		if (!try_module_get(client_tuner->dev.driver->owner)) {
+			i2c_unregister_device(client_tuner);
+			goto frontend_atach_fail;
+		}
+		adapter->i2c_client_tuner = client_tuner;
+
+		break;
 	case 0x6205:
 	case 0x6281:
 		/* attach demod */

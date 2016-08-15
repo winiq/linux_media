@@ -913,6 +913,14 @@ config DVB_AVL6882
         help
           Say Y when you want to support this frontend.
 
+config DVB_MN88436
+	tristate "Panasonic MN88436"
+	depends on DVB_CORE && I2C
+	default m if !MEDIA_SUBDRV_AUTOSELECT
+	help
+	  An ATSC 8VSB and QAM64/256 tuner module. Say Y when you want
+	  to support this frontend.
+
 config DVB_DUMMY_FE
 	tristate "Dummy frontend driver"
 	default n
