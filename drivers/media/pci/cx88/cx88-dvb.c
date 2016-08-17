@@ -1003,13 +1003,13 @@ static const struct stv0299_config samsung_stv0299_config = {
 	.set_symbol_rate = samsung_smt_7020_stv0299_set_symbol_rate,
 };
 
-static struct tas2101_config tbs8922_demod_cfg[] = {
-	{
+static struct tas2101_config tbs8922_demod_cfg = {
+	
 		.i2c_address   = 0x68,
 		.id            = ID_TAS2100,
 		.init          = {0x67, 0x45, 0x23, 0x01, 0xa8, 0x9b, 0x33}, // 0xb1
 		.init2         = 0,
-	}
+	
 };
 
 static struct av201x_config tbs8922_av201x_cfg = {
