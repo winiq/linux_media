@@ -743,6 +743,8 @@ int cx231xx_set_mode(struct cx231xx *dev, enum cx231xx_mode set_mode)
 		case CX231XX_BOARD_HAUPPAUGE_USB2_FM_PAL:
 		case CX231XX_BOARD_HAUPPAUGE_USB2_FM_NTSC:
 		case CX231XX_BOARD_TBS_5280:
+		case CX231XX_BOARD_TBS_5281:
+		case CX231XX_BOARD_TBS_5990:
 		errCode = cx231xx_set_agc_analog_digital_mux_select(dev, 0);
 			break;
 		default:
@@ -1539,11 +1541,13 @@ int cx231xx_dev_init(struct cx231xx *dev)
 		return errCode;
 	cx231xx_i2c_mux_register(dev, 0);
 	cx231xx_i2c_mux_register(dev, 1);
+	
 
 	/* scan the real bus segments in the order of physical port numbers */
 	cx231xx_do_i2c_scan(dev, I2C_0);
-	cx231xx_do_i2c_scan(dev, I2C_1_MUX_1);
+	cx231xx_do_i2c_scan(dev, I2C_1);
 	cx231xx_do_i2c_scan(dev, I2C_2);
+	cx231xx_do_i2c_scan(dev, I2C_1_MUX_1);
 	cx231xx_do_i2c_scan(dev, I2C_1_MUX_3);
 
 	/* init hardware */
@@ -1582,6 +1586,7 @@ int cx231xx_dev_init(struct cx231xx *dev)
 			__func__, errCode);
 		return errCode;
 	}
+
 	errCode = cx231xx_afe_init_channels(dev);
 	if (errCode < 0) {
 		dev_err(dev->dev,
@@ -1589,7 +1594,6 @@ int cx231xx_dev_init(struct cx231xx *dev)
 			__func__, errCode);
 		return errCode;
 	}
-
 	/* Set DIF in By pass mode */
 	errCode = cx231xx_dif_set_standard(dev, DIF_USE_BASEBAND);
 	if (errCode < 0) {
@@ -1598,7 +1602,6 @@ int cx231xx_dev_init(struct cx231xx *dev)
 			__func__, errCode);
 		return errCode;
 	}
-
 	/* I2S block related functions */
 	errCode = cx231xx_i2s_blk_initialize(dev);
 	if (errCode < 0) {
@@ -1607,7 +1610,6 @@ int cx231xx_dev_init(struct cx231xx *dev)
 			__func__, errCode);
 		return errCode;
 	}
-
 	/* init control pins */
 	errCode = cx231xx_init_ctrl_pin_status(dev);
 	if (errCode < 0) {
@@ -1616,7 +1618,6 @@ int cx231xx_dev_init(struct cx231xx *dev)
 			__func__, errCode);
 		return errCode;
 	}
-
 	/* set AGC mode to Analog */
 	switch (dev->model) {
 	case CX231XX_BOARD_CNXT_CARRAERA:
@@ -1633,6 +1634,8 @@ int cx231xx_dev_init(struct cx231xx *dev)
 	case CX231XX_BOARD_HAUPPAUGE_USB2_FM_PAL:
 	case CX231XX_BOARD_HAUPPAUGE_USB2_FM_NTSC:
 	case CX231XX_BOARD_TBS_5280:
+	case CX231XX_BOARD_TBS_5281:	
+	case CX231XX_BOARD_TBS_5990:
 	errCode = cx231xx_set_agc_analog_digital_mux_select(dev, 0);
 		break;
 	default:
@@ -1644,7 +1647,6 @@ int cx231xx_dev_init(struct cx231xx *dev)
 			__func__, errCode);
 		return errCode;
 	}
-
 	/* set all alternate settings to zero initially */
 	cx231xx_set_alt_setting(dev, INDEX_VIDEO, 0);
 	cx231xx_set_alt_setting(dev, INDEX_VANC, 0);
@@ -1655,7 +1657,9 @@ int cx231xx_dev_init(struct cx231xx *dev)
 			cx231xx_set_alt_setting(dev, INDEX_TS2, 0);
 	}
 
-	errCode = 0;
+	
+	errCode = cx231xx_enable_i2c_port_3( dev,true);
+
 	return errCode;
 }
 EXPORT_SYMBOL_GPL(cx231xx_dev_init);

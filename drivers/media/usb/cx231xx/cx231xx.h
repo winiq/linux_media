@@ -78,7 +78,9 @@
 #define CX231XX_BOARD_HAUPPAUGE_930C_HD_1114xx 20
 #define CX231XX_BOARD_HAUPPAUGE_955Q 21
 #define CX231XX_BOARD_TERRATEC_GRABBY 22
-#define CX231XX_BOARD_TBS_5280 22
+#define CX231XX_BOARD_TBS_5280 23
+#define CX231XX_BOARD_TBS_5281 24
+#define CX231XX_BOARD_TBS_5990 25
 
 /* Limits minimum and default number of buffers */
 #define CX231XX_MIN_BUF                 4
@@ -587,6 +589,31 @@ struct cx231xx_tsport {
 	void                       *port_priv;
 };
 
+
+
+struct cx231xx_dvb {
+	struct dvb_frontend *frontend;
+
+	/* feed count management */
+	struct mutex lock;
+	int nfeeds;
+	u8 count;
+
+	/* general boilerplate stuff */
+	struct dvb_adapter adapter;
+	struct dvb_demux demux;
+	struct dmxdev dmxdev;
+	struct dmx_frontend fe_hw;
+	struct dmx_frontend fe_mem;
+	struct dvb_net net;
+	struct i2c_client *i2c_client_demod;
+	struct i2c_client *i2c_client_tuner;
+
+	void *adap_priv;
+};
+
+
+
 /* main device struct */
 struct cx231xx {
 	/* generic device properties */
@@ -690,6 +717,7 @@ struct cx231xx {
 				       char *buf, int len);
 	int (*cx231xx_send_usb_command) (struct cx231xx_i2c *i2c_bus,
 				struct cx231xx_i2c_xfer_data *req_data);
+	
 	int (*cx231xx_gpio_i2c_read) (struct cx231xx *dev, u8 dev_addr,
 				      u8 *buf, u8 len);
 	int (*cx231xx_gpio_i2c_write) (struct cx231xx *dev, u8 dev_addr,
@@ -877,6 +905,8 @@ int cx231xx_gpio_i2c_write_nak(struct cx231xx *dev);
 
 int cx231xx_gpio_i2c_read(struct cx231xx *dev, u8 dev_addr, u8 *buf, u8 len);
 int cx231xx_gpio_i2c_write(struct cx231xx *dev, u8 dev_addr, u8 *buf, u8 len);
+int cx231xx_set_gpio_bit(struct cx231xx *dev, u32 gpio_bit, u32 gpio_val);
+int cx231xx_get_gpio_bit(struct cx231xx *dev, u32 gpio_bit, u32 *gpio_val);
 
 /* audio related functions */
 int cx231xx_set_audio_decoder_input(struct cx231xx *dev,

@@ -35,9 +35,13 @@
 #include "si2165.h"
 #include "mb86a20s.h"
 #include "si2157.h"
+#include "si2168.h"
 #include "lgdt3306a.h"
 #include "tda18212.h"
 #include "cxd2820r.h"
+#include "tas2101.h"
+#include "av201x.h"
+#include "tbscxci.h"
 
 MODULE_DESCRIPTION("driver for cx231xx based DVB cards");
 MODULE_AUTHOR("Srinivasa Deevi <srinivasa.deevi@conexant.com>");
@@ -53,23 +57,6 @@ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 #define CX231XX_DVB_MAX_PACKETSIZE 564
 #define CX231XX_DVB_MAX_PACKETS 64
 
-struct cx231xx_dvb {
-	struct dvb_frontend *frontend;
-
-	/* feed count management */
-	struct mutex lock;
-	int nfeeds;
-	u8 count;
-
-	/* general boilerplate stuff */
-	struct dvb_adapter adapter;
-	struct dvb_demux demux;
-	struct dmxdev dmxdev;
-	struct dmx_frontend fe_hw;
-	struct dmx_frontend fe_mem;
-	struct dvb_net net;
-	struct i2c_client *i2c_client_tuner;
-};
 
 static struct s5h1432_config dvico_s5h1432_config = {
 	.output_mode   = S5H1432_SERIAL_OUTPUT,
@@ -453,7 +440,52 @@ static struct xc5000_config cnxt_rdu250_tunerconfig = {
 	.i2c_address = 0x61,
 	.if_khz = 3250,
 };
+static void tbs5990_lnb_power(struct dvb_frontend *fe,
+	int enpwr_pin, int onoff)
+{
+	struct cx231xx *dev = fe->dvb->priv;
 
+	/* lnb power, active low */
+	cx231xx_set_gpio_direction(dev, enpwr_pin, 1);
+	if (onoff)
+		cx231xx_set_gpio_value(dev, enpwr_pin, 0);
+	else
+		cx231xx_set_gpio_value(dev, enpwr_pin, 1);
+}
+
+static void tbs5990_lnb0_power(struct dvb_frontend *fe, int onoff)
+{
+	tbs5990_lnb_power(fe, 26, onoff);
+}
+
+static void tbs5990_lnb1_power(struct dvb_frontend *fe, int onoff)
+{
+	tbs5990_lnb_power(fe, 22, onoff);
+}
+
+static struct tas2101_config tbs5990_config0 ={
+	.i2c_address   = 0x60,
+	.id            = ID_TAS2101,
+	.reset_demod   = NULL,
+	.lnb_power     = tbs5990_lnb0_power,
+	.init          = {0x80, 0xAB, 0x47, 0x61, 0x25, 0x93, 0x31},
+	.init2         = 0,
+
+};
+static struct tas2101_config tbs5990_config1 ={
+	.i2c_address   = 0x68,
+	.id            = ID_TAS2101,
+	.reset_demod   = NULL,
+	.lnb_power     = tbs5990_lnb1_power,
+	.init          = {0xB0, 0xA8, 0x21, 0x53, 0x74, 0x96, 0x31},
+	.init2         = 0,
+
+};
+static struct av201x_config tbs5990_tuner_config = {
+	.i2c_address = 0x63,
+	.id = ID_AV2012,
+	.xtal_freq = 27000,
+};
 /* ------------------------------------------------------------------ */
 #if 0
 static int attach_xc5000(u8 addr, struct cx231xx *dev)
@@ -547,8 +579,6 @@ static int register_dvb(struct cx231xx_dvb *dvb,
 	int result;
 
 	mutex_init(&dvb->lock);
-
-
 	/* register adapter */
 	result = dvb_register_adapter(&dvb->adapter, dev->name, module, device,
 				      adapter_nr);
@@ -558,13 +588,13 @@ static int register_dvb(struct cx231xx_dvb *dvb,
 		       dev->name, result);
 		goto fail_adapter;
 	}
-	dvb_register_media_controller(&dvb->adapter, dev->media_dev);
+//	dvb_register_media_controller(&dvb->adapter, dev->media_dev);
 
 	/* Ensure all frontends negotiate bus access */
-	dvb->frontend->ops.ts_bus_ctrl = cx231xx_dvb_bus_ctrl;
+//	dvb->frontend->ops.ts_bus_ctrl = cx231xx_dvb_bus_ctrl;
 
 	dvb->adapter.priv = dev;
-
+#if 0
 	/* register frontend */
 	result = dvb_register_frontend(&dvb->adapter, dvb->frontend);
 	if (result < 0) {
@@ -573,7 +603,7 @@ static int register_dvb(struct cx231xx_dvb *dvb,
 		       dev->name, result);
 		goto fail_frontend;
 	}
-
+#endif
 	/* register demux stuff */
 	dvb->demux.dmx.capabilities =
 	    DMX_TS_FILTERING | DMX_SECTION_FILTERING |
@@ -635,7 +665,7 @@ static int register_dvb(struct cx231xx_dvb *dvb,
 					dev->tuner_type == TUNER_ABSENT);
 	if (result < 0)
 		goto fail_create_graph;
-
+	
 	return 0;
 
 fail_create_graph:
@@ -676,17 +706,49 @@ static void unregister_dvb(struct cx231xx_dvb *dvb)
 	dvb_unregister_adapter(&dvb->adapter);
 }
 
+static int tbs_cx_mac(struct i2c_adapter *i2c_adap, u8 count, u8 *mac)
+{
+	u8 b[64], e[256];
+	int ret, i;
+
+	struct i2c_msg msg[] = {
+		{ .addr = 0x50, .flags = 0,
+			.buf = b, .len = 1 },
+		{ .addr = 0x50, .flags = I2C_M_RD,
+			.buf = b, .len = 64 }
+	};
+
+	for (i = 0; i < 4; i++) {
+		b[0] = 0x40 * i;
+
+		ret = i2c_transfer(i2c_adap, msg, 2);
+
+		if (ret != 2) {
+			printk("TBS CX read MAC failed\n");
+			return -1;
+		}
+
+		memcpy(&e[0x40 * i], b , 64);
+	}
+	
+	memcpy(mac, &e[0x58 + 6 + 0x10*count], 6);
+	
+	return 0;
+}
+
 static int dvb_init(struct cx231xx *dev)
 {
 	int i, result = 0;
 	struct cx231xx_dvb *dvb;
 	struct i2c_adapter *tuner_i2c;
 	struct i2c_adapter *demod_i2c;
-
+	u8 mac[6] = {0,0,0,0,0,0};
 	if (!dev->board.has_dvb) {
 		/* This device does not support the extension */
 		return 0;
 	}
+	
+	mutex_lock(&dev->lock);
 
 	for (i = 0; i < dev->board.adap_cnt; i++) {
 	dvb = kzalloc(sizeof(struct cx231xx_dvb), GFP_KERNEL);
@@ -705,7 +767,10 @@ static int dvb_init(struct cx231xx *dev)
 
 	tuner_i2c = cx231xx_get_i2c_adap(dev, dev->board.tuner_i2c_master);
 	demod_i2c = cx231xx_get_i2c_adap(dev, dev->board.demod_i2c_master);
-	mutex_lock(&dev->lock);
+
+	result = register_dvb(dev->dvb[i],THIS_MODULE,dev,&dev->udev->dev);
+
+	
 	cx231xx_set_mode(dev, CX231XX_DIGITAL_MODE);
 	cx231xx_demod_reset(dev);
 	/* init frontend */
@@ -1046,6 +1111,106 @@ static int dvb_init(struct cx231xx *dev)
 	
 		break;
 	}
+	case CX231XX_BOARD_TBS_5281:
+	{
+		struct i2c_adapter *adapter;
+		struct i2c_client *client_demod;
+		struct i2c_client *client_tuner;
+		struct i2c_board_info info;
+		struct si2168_config si2168_config;
+		struct si2157_config si2157_config;
+
+		demod_i2c = cx231xx_get_i2c_adap(dev, dev->board.demod_i2c_master+i);
+		/* attach frontend */
+		memset(&si2168_config, 0, sizeof(si2168_config));
+		si2168_config.i2c_adapter = &adapter;
+		si2168_config.fe = &dev->dvb[i]->frontend;
+		si2168_config.ts_mode = SI2168_TS_SERIAL;
+		memset(&info, 0, sizeof(struct i2c_board_info));
+		strlcpy(info.type, "si2168", I2C_NAME_SIZE);
+		info.addr = 0x64;
+		info.platform_data = &si2168_config;
+		request_module(info.type);
+		client_demod = i2c_new_device(demod_i2c, &info);
+		if (client_demod == NULL || client_demod->dev.driver == NULL) {
+			result = -ENODEV;
+			goto out_free;
+		}
+
+		if (!try_module_get(client_demod->dev.driver->owner)) {
+			i2c_unregister_device(client_demod);
+			result = -ENODEV;
+			goto out_free;
+		}
+
+		/* define general-purpose callback pointer */
+		dvb->frontend->callback = cx231xx_tuner_callback;
+
+		/* attach tuner */
+		memset(&si2157_config, 0, sizeof(si2157_config));
+		si2157_config.fe = dev->dvb[i]->frontend;
+		si2157_config.if_port = 1;
+		memset(&info, 0, sizeof(struct i2c_board_info));
+		strlcpy(info.type, "si2157", I2C_NAME_SIZE);
+		info.addr = 0x60;
+		info.platform_data = &si2157_config;
+		request_module(info.type);
+		client_tuner = i2c_new_device(adapter, &info);
+		if (client_tuner == NULL || client_tuner->dev.driver == NULL) {
+			module_put(client_demod->dev.driver->owner);
+			i2c_unregister_device(client_demod);
+			result = -ENODEV;
+			goto out_free;
+		}
+		if (!try_module_get(client_tuner->dev.driver->owner)) {
+			i2c_unregister_device(client_tuner);
+			module_put(client_demod->dev.driver->owner);
+			i2c_unregister_device(client_demod);
+			result = -ENODEV;
+			goto out_free;
+		}
+		
+		dev->dvb[i]->i2c_client_demod = client_demod;
+		dev->dvb[i]->i2c_client_tuner = client_tuner;
+
+		break;
+	}
+	case CX231XX_BOARD_TBS_5990:
+	{
+		dev->dvb[i]->frontend = dvb_attach(tas2101_attach,i ? &tbs5990_config1 : &tbs5990_config0,
+			 &dev->i2c_bus[1+i].i2c_adap);
+		if (dev->dvb[i]->frontend == NULL) {
+			dev_err(dev->dev,
+				"Failed to attach demod TAS2101 %d\n", i);
+			result = -EINVAL;
+			goto out_free;
+		}
+
+		 /*attach tuner*/
+		 if(dvb_attach(av201x_attach,dev->dvb[i]->frontend,
+		&tbs5990_tuner_config,tas2101_get_i2c_adapter(dev->dvb[i]->frontend, 2))==NULL)
+		{
+			 dvb_frontend_detach(dev->dvb[i]->frontend);
+			 result = -ENODEV;
+			 goto out_free;
+		 }
+
+		if (i == 0) { 
+			tbs_cx_mac(&dev->i2c_bus[1].i2c_adap, 0, mac);
+		}
+
+		if (i == 1) {
+			memcpy(dev->dvb[0]->adapter.proposed_mac, mac, 6);
+			printk(KERN_INFO "TurboSight TBS5990 MAC Addresse bas: %pM\n", mac);
+			mac[5] +=1;
+			memcpy(dev->dvb[1]->adapter.proposed_mac, mac, 6);
+		}
+
+		/* define general-purpose callback pointer */
+		dvb->frontend->callback = cx231xx_tuner_callback;
+
+		break;
+	}
 	default:
 		dev_err(dev->dev,
 			"%s/2: The frontend of your DVB/ATSC card isn't supported yet\n",
@@ -1059,14 +1224,17 @@ static int dvb_init(struct cx231xx *dev)
 		goto out_free;
 	}
 
-	/* register everything */
-	result = register_dvb(dvb, THIS_MODULE, dev, dev->dev);
-
+	result = dvb_register_frontend(&dev->dvb[i]->adapter,dev->dvb[i]->frontend);
 	if (result < 0)
 		goto out_free;
+		switch(dev->model){
+		case CX231XX_BOARD_TBS_5990:
+			tbscxci_init(dev->dvb[i], i);
+		}
+
+
 	}
-
-
+	
 	dev_info(dev->dev, "Successfully loaded cx231xx-dvb\n");
 
 ret:
@@ -1091,6 +1259,11 @@ static int dvb_fini(struct cx231xx *dev)
 
 	for (i = 0; i < dev->board.adap_cnt; i++) {
 	if (dev->dvb[i]) {
+				switch (dev->model) {
+					case CX231XX_BOARD_TBS_5990:
+						tbscxci_release(dev->dvb[i]);
+						break;
+				}	
 		unregister_dvb(dev->dvb[i]);
 		dev->dvb[i] = NULL;
 	}
