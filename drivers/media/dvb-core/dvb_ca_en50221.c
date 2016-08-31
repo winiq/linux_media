@@ -248,7 +248,7 @@ static int dvb_ca_en50221_check_camstatus(struct dvb_ca_private *ca, int slot)
 		int cam_present_old = (ca->slot_info[slot].slot_state != DVB_CA_SLOTSTATE_NONE);
 		cam_changed = (cam_present_now != cam_present_old);
 	}
-
+	
 	if (cam_changed) {
 		if (!cam_present_now) {
 			ca->slot_info[slot].camchange_type = DVB_CA_EN50221_CAMCHANGE_REMOVED;
@@ -1046,7 +1046,6 @@ static int dvb_ca_en50221_thread(void *data)
 				dvb_ca_en50221_thread_update_delay(ca);
 				atomic_dec(&ca->slot_info[slot].camchange_count);
 			}
-
 			// CAM state machine
 			switch (ca->slot_info[slot].slot_state) {
 			case DVB_CA_SLOTSTATE_NONE:
@@ -1759,6 +1758,7 @@ int dvb_ca_en50221_init(struct dvb_adapter *dvb_adapter,
 			ret);
 		goto unregister_device;
 	}
+
 	return 0;
 
 unregister_device:

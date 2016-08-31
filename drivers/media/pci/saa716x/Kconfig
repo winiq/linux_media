@@ -14,7 +14,7 @@ config SAA716X_CORE
 
 	  Say Y if you own such a device and want to use it.
 
-config DVB_SAA716X_BUDGET
+config DVB_SAA716X_TBS
 	tristate "SAA7160/1/2 based Budget PCIe cards (DVB only)"
 	depends on SAA716X_CORE && DVB_CORE
 	select DVB_CX24117 if MEDIA_SUBDRV_AUTOSELECT

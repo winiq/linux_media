@@ -51,6 +51,8 @@
 
 #include "stv6120.h"
 #include "stv0910.h"
+#include "tbsci-i2c.h"
+#include "tbs-ci.h"
 
 unsigned int verbose;
 module_param(verbose, int, 0644);
@@ -157,6 +159,18 @@ fail0:
 static void saa716x_budget_pci_remove(struct pci_dev *pdev)
 {
 	struct saa716x_dev *saa716x = pci_get_drvdata(pdev);
+	struct saa716x_adapter *saa716x_adap = saa716x->saa716x_adap;
+	int i;
+
+	for(i = 0;i<saa716x->config->adapters; i++)
+	{
+		if(saa716x_adap->tbsci){
+			tbsci_release(saa716x_adap);
+			tbsci_i2c_remove(saa716x_adap);
+		}
+		
+		saa716x_adap++;
+	}
 
 	saa716x_dvb_exit(saa716x);
 	saa716x_i2c_exit(saa716x);
@@ -2378,7 +2392,7 @@ static void tbs6991_lnb0_power(struct dvb_frontend *fe, int onoff)
 
 static void tbs6991_lnb1_power(struct dvb_frontend *fe, int onoff)
 {
-	tbs6991_lnb_power(fe, 22, onoff);
+	tbs6991_lnb_power(fe, 26, onoff);
 }
 
 /*
@@ -2425,7 +2439,8 @@ static int saa716x_tbs6991_frontend_attach(
 {
 	struct saa716x_dev *dev = adapter->saa716x;
 	u8 mac[6];
-
+	int ret;
+	
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attaching\n",
 		dev->config->model_name, count);
 	if (count > 1)
@@ -2445,6 +2460,10 @@ static int saa716x_tbs6991_frontend_attach(
 			dev->config->model_name, count);
 		goto err;
 	}
+
+	ret = tbsci_i2c_probe(adapter,count?3:4);
+	if(!ret)
+		tbsci_init(adapter,count,2);
 
 	strlcpy(adapter->fe->ops.info.name,dev->config->model_name,52);
 	strlcat(adapter->fe->ops.info.name,dev->config->dev_type,52);
@@ -2515,7 +2534,8 @@ static int saa716x_tbs6991se_frontend_attach(
 {
 	struct saa716x_dev *dev = adapter->saa716x;
 	u8 mac[6];
-
+	int ret;
+	
 	dev_dbg(&dev->pdev->dev, "%s frontend %d attaching\n",
 		dev->config->model_name, count);
 	if (count > 1)
@@ -2535,6 +2555,15 @@ static int saa716x_tbs6991se_frontend_attach(
 			dev->config->model_name, count);
 		goto err;
 	}
+	saa716x_gpio_set_input(dev,count ?6:2);
+	msleep(1);
+	saa716x_gpio_set_input(dev,count?3:14);
+	msleep(1);
+	saa716x_gpio_set_output(dev,count?17:20);
+	msleep(1);
+	ret = tbsci_i2c_probe(adapter,count?4:3);
+	if(!ret)
+		tbsci_init(adapter,count,8);
 
 	strlcpy(adapter->fe->ops.info.name,dev->config->model_name,52);
 	strlcat(adapter->fe->ops.info.name,dev->config->dev_type,52);
