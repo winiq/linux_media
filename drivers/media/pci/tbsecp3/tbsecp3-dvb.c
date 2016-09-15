@@ -325,7 +325,7 @@ static struct mxl5xx_cfg tbs6909_mxl5xx_cfg = {
 static struct stv0910_cfg tbs6903_stv0910_cfg = {
 	.adr      = 0x68,
 	.parallel = 1,
-	.rptlvl   = 4,
+	.rptlvl   = 3,
 	.clk      = 30000000,
 	.dual_tuner = 1,
 };
@@ -730,7 +730,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 			dvb_frontend_detach(adapter->fe);
 			adapter->fe = NULL;
 			dev_err(&dev->pci_dev->dev,
-				"TBS_PCIE frontend %d tuner attach failed\n",
+				"frontend %d tuner attach failed\n",
 				adapter->nr);
 			goto frontend_atach_fail;
 		}
@@ -749,12 +749,11 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
 
-		if (dvb_attach(stv6120_attach, adapter->fe, i2c, &tbs6903_stv6120_cfg) == NULL) {
-			pr_err("No STV6120 found at 0x%02x!\n", 0x60);
+		if (dvb_attach(stv6120_attach, adapter->fe, i2c, &tbs6903_stv6120_cfg, 1 - (adapter->nr & 1)) == NULL) {
 			dvb_frontend_detach(adapter->fe);
 			adapter->fe = NULL;
 			dev_err(&dev->pci_dev->dev,
-				"TBS_PCIE frontend %d tuner attach failed\n",
+				"frontend %d tuner attach failed\n",
 				adapter->nr);
 			goto frontend_atach_fail;
 		}
@@ -775,7 +774,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 			dvb_frontend_detach(adapter->fe);
 			adapter->fe = NULL;
 			dev_err(&dev->pci_dev->dev,
-				"TBS_PCIE frontend %d tuner attach failed\n",
+				"frontend %d tuner attach failed\n",
 				adapter->nr);
 			goto frontend_atach_fail;
 		}
@@ -855,7 +854,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 			dvb_frontend_detach(adapter->fe);
 			adapter->fe = NULL;
 			dev_err(&dev->pci_dev->dev,
-				"TBS_PCIE frontend %d tuner attach failed\n",
+				"frontend %d tuner attach failed\n",
 				adapter->nr);
 			goto frontend_atach_fail;
 		}
