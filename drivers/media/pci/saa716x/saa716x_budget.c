@@ -2447,7 +2447,7 @@ static int saa716x_tbs6991_frontend_attach(
 		goto err;
 
 	adapter->fe = dvb_attach(tas2101_attach, &tbs6991_cfg[count],
-				&dev->i2c[count].i2c_adapter);
+				&dev->i2c[1-count].i2c_adapter);
 	if (adapter->fe == NULL)
 		goto err;
 
@@ -2460,8 +2460,12 @@ static int saa716x_tbs6991_frontend_attach(
 			dev->config->model_name, count);
 		goto err;
 	}
-
-	ret = tbsci_i2c_probe(adapter,count?3:4);
+	
+	saa716x_gpio_set_input(dev,count?3:14);
+	msleep(1);
+	saa716x_gpio_set_input(dev,count?6:2);
+	msleep(1);
+	ret = tbsci_i2c_probe(adapter,count?4:3);
 	if(!ret)
 		tbsci_init(adapter,count,2);
 
