@@ -132,3 +132,4 @@ obj-$(CONFIG_DVB_SI2183) += si2183.o
 obj-$(CONFIG_DVB_STV0910) += stv0910.o
 obj-$(CONFIG_DVB_AVL6882) += avl6882.o
 obj-$(CONFIG_DVB_MN88436) += mn88436.o
+obj-$(CONFIG_DVB_MTV23X) += mtv23x.o

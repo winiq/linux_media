@@ -18,8 +18,41 @@
 #include "tbsecp3.h"
 
 struct tbsecp3_board tbsecp3_boards[] = {
+	[TBSECP3_BOARD_TBS6814] = {
+		.name  		= "Turbosight TBS 6814 (Quad ISDB-T/DVBT)",
+		.i2c_speed  = 39,
+		.eeprom_i2c = 1,
+		.adapters	= 4,
+		.adap_config ={
+			
+			{
+				.ts_in = 0,
+				.i2c_bus_nr = 0,
+				.gpio.demod_reset.lvl = TBSECP3_GPIODEF_LOW,
+				.gpio.demod_reset.nr  = TBSECP3_GPIO_PIN(0, 0),
+			}, 
+			{
+				.ts_in = 1,
+				.i2c_bus_nr = 1,
+				.gpio.demod_reset.lvl = TBSECP3_GPIODEF_LOW,
+				.gpio.demod_reset.nr  = TBSECP3_GPIO_PIN(1, 0),
+			},
+			{
+				.ts_in = 2,
+				.i2c_bus_nr = 2,
+				.gpio.demod_reset.lvl = TBSECP3_GPIODEF_LOW,
+				.gpio.demod_reset.nr  = TBSECP3_GPIO_PIN(2, 0),
+			},
+			{
+				.ts_in = 3,
+				.i2c_bus_nr = 3,
+				.gpio.demod_reset.lvl = TBSECP3_GPIODEF_LOW,
+				.gpio.demod_reset.nr  = TBSECP3_GPIO_PIN(3, 0),
+			}
+		},
+	},
 	[TBSECP3_BOARD_TBS6209] = {
-		.name		= "Turbosight TBS 6209 (Octa DVB-T/T2/C2/C(j83-a/b/c) ISDB-T)",
+		.name		= "Turbosight TBS 6209 (Octa DVB-T/T2/C2/C(j83-a/b/c)/ISDB-T)",
 		.i2c_speed  = 39,
 		.eeprom_i2c	= 0,
 		.adapters	= 8,

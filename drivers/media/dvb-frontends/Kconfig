@@ -691,6 +691,14 @@ config DVB_MB86A20S
 	  A driver for Fujitsu mb86a20s ISDB-T/ISDB-Tsb demodulator.
 	  Say Y when you want to support this frontend.
 
+config DVB_MTV23X
+	tristate "RAONTECH mtv23x"
+	depends on DVB_CORE && I2C
+	default m if !MEDIA_SUBDRV_AUTOSELECT
+	help
+	  A driver for RAONTECH mtv23x DVB-T/ISDB-T demodulator.
+	  Say Y when you want to support this frontend.
+
 comment "ISDB-S (satellite) & ISDB-T (terrestrial) frontends"
 	depends on DVB_CORE
 

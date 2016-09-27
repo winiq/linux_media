@@ -33,6 +33,8 @@
 #include "mn88436.h"
 #include "mxl603.h"
 
+#include "mtv23x.h"
+
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
 struct sec_priv {
@@ -362,7 +364,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	struct si2157_config si2157_config;
 	struct mn88436_config mn88436_config;
 	struct mxl603_config mxl603_config;
-
+	struct mtv23x_config mtv23x_config;
 	//struct av201x_config av201x_config;
 
 	struct i2c_board_info info;
@@ -379,6 +381,28 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	set_mac_address(adapter);
 
 	switch (pci->subsystem_vendor) {
+	case 0x6814:
+		 memset(&mtv23x_config, 0, sizeof(mtv23x_config));
+		 mtv23x_config.fe = &adapter->fe;
+		 mtv23x_config.clk_freq = 32000;
+		 mtv23x_config.ts_mode  = 6;
+		 mtv23x_config.i2c_wr_max = 32;
+
+		 memset(&info, 0, sizeof(struct i2c_board_info));
+		 strlcpy(info.type, "mtv23x", I2C_NAME_SIZE);
+		 info.addr = (adapter->nr%2)? 0x44 : 0x43;
+		 info.platform_data = &mtv23x_config;
+		 request_module(info.type);
+		client_demod = i2c_new_device(i2c, &info);
+		if (client_demod == NULL ||
+				client_demod->dev.driver == NULL)
+			goto frontend_atach_fail;
+		if (!try_module_get(client_demod->dev.driver->owner)) {
+			i2c_unregister_device(client_demod);
+			goto frontend_atach_fail;
+		}
+		adapter->i2c_client_demod = client_demod;
+		 break;
 	case 0x6209:
 		/* attach demod */
 		memset(&si2183_config, 0, sizeof(si2183_config));
