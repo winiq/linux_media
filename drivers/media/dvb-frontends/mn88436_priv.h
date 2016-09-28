@@ -5,6 +5,13 @@
 #include "mn88436.h"
 #include <linux/regmap.h>
 
+typedef enum{
+	DMD_E_ATSC,
+	DMD_E_QAMB_64QAM,
+	DMD_E_QAMB_256QAM,
+
+}DMD_SYSTEM_t;
+
 struct mn88436_dev {
 	struct i2c_client *client[2];
 	struct regmap *regmap[2];
@@ -12,6 +19,8 @@ struct mn88436_dev {
 	u16 i2c_write_max;
 
 	unsigned int ts_mode;
+	
+	DMD_SYSTEM_t mode;
 
 };
 

@@ -1060,6 +1060,47 @@ static u8  MN88436_REG_AUTOCTRL[] = {
 
 static const struct dvb_frontend_ops mn88436_ops;
 
+static int  log10_easy( u32  cnr )
+{
+	u32	c;
+	s32	ret;
+	s32	logtbl[] = {
+	0	,-1000,-699	,-523,-398,
+	-301,-222 ,-155	,-97 ,-46 ,
+	0	,41	,79	,114	,146	,
+	176	,204	,230	,255	,
+	279	,301	,322	,342	,
+	362	,380	,398	,415	,
+	431	,447	,462	,477	,
+	491	,505	,519	,531	,
+	544	,556	,568	,580	,
+	591	,602	,613	,623	,
+	633	,643	,653	,663	,
+	672	,681	,690	,699	,
+	708	,716	,724	,732	,
+	740	,748	,756	,763	,
+	771	,778	,785	,792	,
+	799	,806	,813	,820	,
+	826	,833	,839	,845	,
+	851	,857	,863	,869	,
+	875	,881	,886	,892	,
+	898	,903	,908	,914	,
+	919	,924	,929	,934	,
+	940	,944	,949	,954	,
+	959	,964	,968	,973	,
+	978	,982	,987	,991	,
+	996	,1000};
+	c = 0;
+
+	while( cnr > 100 ){
+		cnr = cnr / 10;
+		c++;
+	}
+	ret = logtbl[cnr] + c*1000 + 1000;
+
+	return ret;
+}
+
 static int DMD_send_registers(struct i2c_client *client,u8*regset)
 {
 	struct mn88436_dev*dev = i2c_get_clientdata(client);
@@ -1078,10 +1119,27 @@ static int mn88436_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
  	struct i2c_client *client = fe->demodulator_priv;
 	struct mn88436_dev *dev = i2c_get_clientdata(client);
+	u32	ifagc = 0;
+	int IF1,IF2;
 
+	regmap_read(dev->regmap[1], DMD_USR_IFAGCMON1 , &IF1 );
+	regmap_read(dev->regmap[1], DMD_USR_IFAGCMON2 , &IF2 );
 	
-	*strength = 90;
-
+	ifagc = IF1 * 256 + IF2;
+	if ( ifagc < AGC_MIN )
+	{
+	   strength = 0;
+	}
+	else if ( ifagc > AGC_MAX ) 
+	{
+	   *strength = 100;
+	}
+	else
+	{
+	    *strength = (ifagc-AGC_MIN)*100/AGC_RANGE;
+	}
+	
+	
 	return 0;
 }
 
@@ -1184,12 +1242,15 @@ static int mn88436_set_frontend(struct dvb_frontend *fe)
 	  default:
 	  case VSB_8:
 	  	ret = DMD_send_registers(client,DMD_REG_ATSC);
+		dev->mode = DMD_E_ATSC;
 	  	break;
 	  case QAM_64:
 	  	ret = DMD_send_registers(client,DMD_REG_QAM_64QAM);
+		dev->mode = DMD_E_QAMB_64QAM;
 	  	break;
 	  case QAM_256:
 	  	ret = DMD_send_registers(client,DMD_REG_QAM_256QAM);
+		dev->mode = DMD_E_QAMB_256QAM;
 	   	break;
 	 }
 	/*set TS again*/
@@ -1226,6 +1287,40 @@ err:
 	dev_err(&client->dev,"failed = %d" ,ret);
 	return ret;
 }
+static int mn88436_read_snr(struct dvb_frontend* fe, u16* snr)
+{
+	struct i2c_client *client = fe->demodulator_priv;
+	struct mn88436_dev *dev = i2c_get_clientdata(client);
+	int	rd;
+	u32	cni,cnd;
+	u32	x,y;
+
+	regmap_read(dev->regmap[1], DMD_USR_CNMON1 , &rd );
+	x = 0x100 * rd;
+	regmap_read(dev->regmap[1], DMD_USR_CNMON2 , &rd );
+	x += rd;
+	regmap_read(dev->regmap[1], DMD_USR_CNMON3 , &rd );
+	y = 0x100 * rd;
+	regmap_read(dev->regmap[1], DMD_USR_CNMON4 , &rd );
+	y += rd;
+	if( dev->mode == DMD_E_ATSC )
+	{
+		//after EQ
+		*snr = 4634 - log10_easy( y );
+		
+	}
+	else
+	{
+		if( y != 0	)
+			*snr = log10_easy( (8*x) / y );
+		else
+			*snr = 0;
+	
+	}
+
+	return 0;
+}
+
 static const struct dvb_frontend_ops mn88436_ops = {
 	.delsys = {SYS_ATSC,SYS_DVBC_ANNEX_B},
 	.info = {
@@ -1240,6 +1335,7 @@ static const struct dvb_frontend_ops mn88436_ops = {
 	.set_frontend = mn88436_set_frontend,
 	.read_status = mn88436_read_status,
 	.read_signal_strength = mn88436_read_signal_strength,
+	.read_snr 		= mn88436_read_snr,
 };
 static int mn88436_probe(struct i2c_client *client ,
 			const struct i2c_device_id *id)
@@ -1260,6 +1356,7 @@ static int mn88436_probe(struct i2c_client *client ,
 
 	dev->i2c_write_max = cfg->i2c_wr_max ?cfg->i2c_wr_max : ~0;
 	dev->ts_mode = cfg->ts_mode;
+	dev->mode = DMD_E_ATSC;
 	dev->client[0] = client;
 	dev->regmap[0] = regmap_init_i2c(dev->client[0],&regmap_config);
 	if(IS_ERR(dev->regmap[0])){
