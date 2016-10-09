@@ -1128,7 +1128,7 @@ static int mn88436_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	ifagc = IF1 * 256 + IF2;
 	if ( ifagc < AGC_MIN )
 	{
-	   strength = 0;
+	   *strength = 0;
 	}
 	else if ( ifagc > AGC_MAX ) 
 	{

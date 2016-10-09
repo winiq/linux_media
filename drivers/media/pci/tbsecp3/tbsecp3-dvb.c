@@ -65,7 +65,7 @@ static int tbsecp3_set_voltage(struct dvb_frontend* fe,
 			tbsecp3_gpio_set_pin(dev, &cfg->lnb_voltage, 1);
 			break;
 		default: /* OFF */
-			tbsecp3_gpio_set_pin(dev, &cfg->lnb_power, 0);
+			//tbsecp3_gpio_set_pin(dev, &cfg->lnb_power, 0);
 			break;
 	}
 
@@ -278,7 +278,7 @@ static int max_set_voltage(struct i2c_adapter *i2c,
 		break;
 	case SEC_VOLTAGE_OFF:
 	default:
-		val |= 4;
+		//val |= 4;
 		break;
 	}
 
