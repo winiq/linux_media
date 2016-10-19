@@ -1217,12 +1217,15 @@ static int dvb_init(struct cx231xx *dev)
 			dev->name);
 		break;
 	}
+        
 	if (NULL == dvb->frontend) {
 		dev_err(dev->dev,
 		       "%s/2: frontend initialization failed\n", dev->name);
 		result = -EINVAL;
 		goto out_free;
 	}
+
+strlcpy(dev->dvb[i]->frontend->ops.info.name,dev->board.name,52);
 
 	result = dvb_register_frontend(&dev->dvb[i]->adapter,dev->dvb[i]->frontend);
 	if (result < 0)

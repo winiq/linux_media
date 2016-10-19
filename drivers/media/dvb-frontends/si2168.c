@@ -386,13 +386,13 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 	if (ret)
 		goto err;
 
-	memcpy(cmd.args, "\x14\x00\x08\x10\xd7\x05", 6);
-	cmd.args[5] |= dev->ts_clock_inv ? 0x00 : 0x10;
-	cmd.wlen = 6;
-	cmd.rlen = 4;
-	ret = si2168_cmd_execute(client, &cmd);
-	if (ret)
-		goto err;
+
+	memcpy(cmd.args, "\x14\x00\x08\x10\xcf\x33", 6);
+    	cmd.wlen = 6;
+    	cmd.rlen = 4;
+    	ret = si2168_cmd_execute(client, &cmd);
+    	if (ret)
+        	goto err;	
 
 	memcpy(cmd.args, "\x14\x00\x01\x12\x00\x00", 6);
 	cmd.wlen = 6;
