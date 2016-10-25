@@ -58,4 +58,7 @@
 #define TECHNOTREND		0x13c2
 #define TT4100			0x3010
 
+#define TURBOSIGHT_TBS7220	0x7220
+#define TBS7220 		0x0001
+
 #endif /* __SAA716x_BUDGET_H */

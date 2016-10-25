@@ -1011,8 +1011,26 @@ static struct saa716x_config saa716x_tbs6221_config = {
 		},
 	},
 };
+#define SAA716x_MODEL_TBS7220		"TurboSight TBS 7220 "
+#define SAA716x_DEV_TBS7220		"DVB-T/T2/C"
 
+static struct saa716x_config saa716x_tbs7220_config = {
+	.model_name		= SAA716x_MODEL_TBS7220,
+	.dev_type		= SAA716x_DEV_TBS7220,
+	.boot_mode 		= SAA716x_EXT_BOOT,
+	.adapters		= 1,
+	.frontend_attach	= saa716x_tbs6221_frontend_attach,
+	.irq_handler		= saa716x_budget_pci_irq,
+	.i2c_rate		= SAA716x_I2C_RATE_100,
+	.i2c_mode		= SAA716x_I2C_MODE_POLLING,
+	.adap_config	= {
+		{
+			.ts_port = 1,
+			.worker = demux_worker
+		},
+	},
 
+};
 #define SAA716x_MODEL_TBS6281		"TurboSight TBS 6281 "
 #define SAA716x_DEV_TBS6281		"DVB-T/T2/C"
 
@@ -2769,6 +2787,7 @@ static struct pci_device_id saa716x_budget_pci_table[] = {
 	MAKE_ENTRY(TECHNOTREND,        TT4100,    SAA7160, &saa716x_tbs6922_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS6983, TBS6983, SAA7160, &saa716x_tbs6983_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS6983, TBS6983+1, SAA7160, &saa716x_tbs6983_config),
+	MAKE_ENTRY(TURBOSIGHT_TBS7220, TBS7220, SAA7160, &saa716x_tbs7220_config),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, saa716x_budget_pci_table);
