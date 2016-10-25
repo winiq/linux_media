@@ -2326,8 +2326,8 @@ static int mtv23x_set_frontend(struct dvb_frontend *fe)
 				svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
 				break;
 			case SYS_DVBT:
-				//svc_type = RTV_SERVICE_DVBT;
-				svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
+				 svc_type = RTV_SERVICE_DVBT;
+				//svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
 				break;
 		
 		}
