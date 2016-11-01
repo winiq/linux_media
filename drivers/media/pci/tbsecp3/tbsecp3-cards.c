@@ -197,7 +197,7 @@ struct tbsecp3_board tbsecp3_boards[] = {
 		.name		= "TurboSight TBS 6902 DVB-S/S2 ",
 		.adapters	= 2,
 		.i2c_speed	= 39,
-		.eeprom_i2c	= 1,
+		.eeprom_i2c	= 0,
 		.adap_config	= {
 			{
 				.ts_in = 1,
