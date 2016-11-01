@@ -19,7 +19,7 @@
 
 struct tbsecp3_board tbsecp3_boards[] = {
 	[TBSECP3_BOARD_TBS6814] = {
-		.name  		= "Turbosight TBS 6814 (Quad ISDB-T/DVBT)",
+		.name  		= "Turbosight TBS 6814 (Quad ISDB-T)",
 		.i2c_speed  = 39,
 		.eeprom_i2c = 1,
 		.adapters	= 4,

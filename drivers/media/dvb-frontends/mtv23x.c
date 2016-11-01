@@ -534,322 +534,6 @@ static unsigned int GetSNR_FULL_Mode(u8 mod, int val)
 		return (cn_a*1000) + (cn_b*100);
 }
 
-static unsigned int GetSNR_DVBT_Mode(u8 mod, int val)
-{
-	unsigned int cn_a = 0;
-	unsigned int cn_b = 0;
-
-	if (mod == 1) {
-	/* QPSK */
-		if (val > 43000) { 
-			cn_a = 0;
-			cn_b = 0;
-			return 0;
-		} else if (val > 41000) {	// 0~
-			cn_a = 0;
-			cn_b = (43000 - val)/222;
-		} else if (val > 39000) {	// 1~
-			cn_a = 1;
-			cn_b = (41000 - val)/222;
-		} else if (val > 36400) {	// 2~
-			cn_a = 2;
-			cn_b = (39000 - val)/289;
-		} else if (val > 33500) {	// 3~
-			cn_a = 3;
-			cn_b = (36400 - val)/322;
-		} else if (val > 30000) {	// 4~
-			cn_a = 4;
-			cn_b = (33500 - val)/389;
-		} else if (val > 26450) {	// 5~
-			cn_a = 5;
-			cn_b = (30000 - val)/394;
-		} else if (val > 22900) {	// 6~
-			cn_a = 6;
-			cn_b = (26450 - val)/394;
-		} else if (val > 19200) {	// 7~
-			cn_a = 7;
-			cn_b = (22900 - val)/411;
-		} else if (val > 15900) {	// 8~
-			cn_a = 8;
-			cn_b = (19200 - val)/367;
-		} else if (val > 13000) {
-			cn_a = 9;
-			cn_b = (15900 - val)/322;
-		} else if (val > 10400) {
-			cn_a = 10;
-			cn_b = (13000 - val)/289;
-		} else if (val > 8400) {
-			cn_a = 11;
-			cn_b = (10400 - val)/222;
-		} else if (val > 6720) {
-			cn_a = 12;
-			cn_b = (8400 - val)/187;
-		} else if (val > 5450) {
-			cn_a = 13;
-			cn_b = (6720 - val)/141;
-		} else if (val > 4380) {
-			cn_a = 14;
-			cn_b = (5450 - val)/119;
-		} else if (val > 3520) {
-			cn_a = 15;
-			cn_b = (4380 - val)/95;
-		} else if (val > 2850) {
-			cn_a = 16;
-			cn_b = (3520 - val)/74;
-		} else if (val > 2340) {
-			cn_a = 17;
-			cn_b = (2850 - val)/56;
-		} else if (val > 1940) {
-			cn_a = 18;
-			cn_b = (2340 - val)/44;
-		} else if (val > 1600) {
-			cn_a = 19;
-			cn_b = (1940 - val)/37;
-		} else if (val > 1370) {
-			cn_a = 20;
-			cn_b = (1600 - val)/25;
-		} else if (val > 1160) {
-			cn_a = 21;
-			cn_b = (1370 - val)/23;
-		} else if (val > 980) {
-			cn_a = 22;
-			cn_b = (1160 - val)/20;
-		} else if (val > 830) {
-			cn_a = 23;
-			cn_b = (980 - val)/16;
-		} else if (val > 720) {
-			cn_a = 24;
-			cn_b = (830 - val)/12;
-		} else if (val > 640) {
-			cn_a = 25;
-			cn_b = (720 - val)/9;
-		} else if (val > 570) {
-			cn_a = 26;
-			cn_b = (640 - val)/8;
-		} else if (val > 520) {
-			cn_a = 27;
-			cn_b = (570 - val)/6;
-		} else if (val > 480) {
-			cn_a = 28;
-			cn_b = (520 - val)/5;
-		} else if (val > 450) {
-			cn_a = 29;
-			cn_b = (480 - val)/3;
-		} else if (val > 0) {
-			cn_a = 30;
-			cn_b = 0;
-		}
-	}else if (mod == 2) {
-		/* 16 QAM */
-		if (val > 53000) { 
-			cn_a = 0;
-			cn_b = 0;
-		} else if (val > 51200) {	// 0~
-			cn_a = 0;
-			cn_b = (53000 - val)/200;
-		} else if (val > 49600) {	// 1~
-			cn_a = 1;
-			cn_b = (51200 - val)/178;
-		} else if (val > 48300) {	// 2~
-			cn_a = 2;
-			cn_b = (49600 - val)/144;
-		} else if (val > 46850) {	// 3~
-			cn_a = 3;
-			cn_b = (48300 - val)/161;
-		} else if (val > 45500) {	// 4~
-			cn_a = 4;
-			cn_b = (46850 - val)/150;
-		} else if (val > 44300) {	// 5~
-			cn_a = 5;
-			cn_b = (45500 - val)/133;
-		} else if (val > 43100) {	// 6~
-			cn_a = 6;
-			cn_b = (44300 - val)/133;
-		} else if (val > 41800) {	// 7~
-			cn_a = 7;
-			cn_b = (43100 - val)/144;
-		} else if (val > 40000) {	// 8~
-			cn_a = 8;
-			cn_b = (41800 - val)/200;
-		} else if (val > 38000) {
-			cn_a = 9;
-			cn_b = (40000 - val)/222;
-		} else if (val > 34800) {
-			cn_a = 10;
-			cn_b = (38000 - val)/356;
-		} else if (val > 31600) {
-			cn_a = 11;
-			cn_b = (34800 - val)/356;
-		} else if (val > 28100) {
-			cn_a = 12;
-			cn_b = (31600 - val)/389;
-		} else if (val > 24300) {
-			cn_a = 13;
-			cn_b = (28100 - val)/422;
-		} else if (val > 20800) {
-			cn_a = 14;
-			cn_b = (24300 - val)/389;
-		} else if (val > 17500) {
-			cn_a = 15;
-			cn_b = (20800 - val)/367;
-		} else if (val > 14500) {
-			cn_a = 16;
-			cn_b = (17500 - val)/333;
-		} else if (val > 12100) {
-			cn_a = 17;
-			cn_b = (14500 - val)/267;
-		} else if (val > 10000) {
-			cn_a = 18;
-			cn_b = (12100 - val)/233;
-		} else if (val > 8300) {
-			cn_a = 19;
-			cn_b = (10000 - val)/189;
-		} else if (val > 7050) {
-			cn_a = 20;
-			cn_b = (8300 - val)/139;
-		} else if (val > 6000) {
-			cn_a = 21;
-			cn_b = (7050 - val)/117;
-		} else if (val > 5200) {
-			cn_a = 22;
-			cn_b = (6000 - val)/89;
-		} else if (val > 4450) {
-			cn_a = 23;
-			cn_b = (5200 - val)/83;
-		} else if (val > 3950) {
-			cn_a = 24;
-			cn_b = (4450 - val)/56;
-		} else if (val > 3600) {
-			cn_a = 25;
-			cn_b = (3950 - val)/39;
-		} else if (val > 3100) {
-			cn_a = 26;
-			cn_b = (3600 - val)/56;
-		} else if (val > 2900) {
-			cn_a = 27;
-			cn_b = (3100 - val)/22;
-		} else if (val > 2650) {
-			cn_a = 28;
-			cn_b = (2900 - val)/28;
-		} else if (val > 2500) {
-			cn_a = 29;
-			cn_b = (2650 - val)/17;
-		} else if (val > 0) {
-			cn_a = 30;
-			cn_b = 0;
-		}
-	}else if (mod == 3) { 
-	/* 64 QAM */
-		if (val > 53300) { 
-			cn_a = 0;
-			cn_b = 0;
-		} else if (val > 52000) {	// 0~
-			cn_a = 0;
-			cn_b = (53300 - val)/144;
-		} else if (val > 50500) {	// 1~
-			cn_a = 1;
-			cn_b = (52000 - val)/166;
-		} else if (val > 49200) {	// 2~
-			cn_a = 2;
-			cn_b = (50500 - val)/144;
-		} else if (val > 47900) {	// 3~
-			cn_a = 3;
-			cn_b = (49200 - val)/144;
-		} else if (val > 46700) {	// 4~
-			cn_a = 4;
-			cn_b = (47900 - val)/133;
-		} else if (val > 45800) {	// 5~
-			cn_a = 5;
-			cn_b = (46700 - val)/100;
-		} else if (val > 44700) {	// 6~
-			cn_a = 6;
-			cn_b = (45800 - val)/122;
-		}else if (val > 43800) {	// 7~
-			cn_a = 7;
-			cn_b = (44700 - val)/100;
-		} else if (val > 43000) {	// 8~
-			cn_a = 8;
-			cn_b = (43800 - val)/89;
-		} else if (val > 42100) {
-			cn_a = 9;
-			cn_b = (43000 - val)/100;
-		} else if (val > 41500) {
-			cn_a = 10;
-			cn_b = (42100 - val)/66;
-		} else if (val > 40700) {
-			cn_a = 11;
-			cn_b = (41500 - val)/89;
-		} else if (val > 40200) {
-			cn_a = 12;
-			cn_b = (40700 - val)/55;
-		} else if (val > 39300) {
-			cn_a = 13;
-			cn_b = (40200 - val)/100;
-		} else if (val > 38400) {
-			cn_a = 14;
-			cn_b = (39300 - val)/100;
-		} else if (val > 37100) {
-			cn_a = 15;
-			cn_b = (38400 - val)/144;
-		} else if (val > 35400) {
-			cn_a = 16;
-			cn_b = (37100 - val)/189;
-		} else if (val > 33200) {
-			cn_a = 17;
-			cn_b = (35400 - val)/244;
-		} else if (val > 30500) {
-			cn_a = 18;
-			cn_b = (33200 - val)/300;
-		} else if (val > 27200) {
-			cn_a = 19;
-			cn_b = (30500 - val)/366;
-		} else if (val > 24000) {
-			cn_a = 20;
-			cn_b = (27200 - val)/355;
-		} else if (val > 21000) {
-			cn_a = 21;
-			cn_b = (24000 - val)/333;
-		} else if (val > 19000) {
-			cn_a = 22;
-			cn_b = (21000 - val)/222;
-		} else if (val > 16500) {
-			cn_a = 23;
-			cn_b = (19000 - val)/278;
-		} else if (val > 14800) {
-			cn_a = 24;
-			cn_b = (16500 - val)/189;
-		}else if (val > 13000) {
-			cn_a = 25;
-			cn_b = (14800 - val)/200;
-		} else if (val > 11700) {
-			cn_a = 26;
-			cn_b = (13000 - val)/144;
-		} else if (val > 10800) {
-			cn_a = 27;
-			cn_b = (11700 - val)/100;
-		}else if (val > 10000) {
-			cn_a = 28;
-			cn_b = (10800 - val)/89;
-		} else if (val > 9200) {
-			cn_a = 29;
-			cn_b = (10000 - val)/89;
-		} else if (val > 0) {
-			cn_a = 30;
-			cn_b = 0;
-		}
-	}	else {	
-		cn_a = 0;
-		cn_b = 0;
-		return 0;
-	}
-
-	if (cn_b > 1000)
-		return (cn_a*1000) + cn_b;
-	else if (cn_b > 100)
-		return (cn_a*1000) + (cn_b*10);
-	else
-		return (cn_a*1000) + (cn_b*100);
-}
 
 static int mtv_rf_init(struct mtv23x_dev*dev)
 {
@@ -1271,35 +955,6 @@ static int rtvRF_SetOfdmPara(struct mtv23x_dev*dev,enum E_RTV_SERVICE_TYPE eServ
 	/*20.0*/ {0x08, 0x05, 0x4B, 0x2E, 0x29,0x8AB355E0,0x00000000,0x11566A,0x22},
 	/*20.48*/{0x08, 0x19, 0x80, 0x6E, 0x29,0x877321DC,0x00000000,0x10EE64,0x21} 
 	};
-	struct RTV_ADC_CFG_INFO g_atAdcCfgTbl_DVBT_5MHz[] = {
-	/*8*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*9*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*19.2*/ {0x08, 0x05, 0x48, 0x2E, 0x29,0x4C30C30C,0x00000000,0x098618,0x13},
-	/*20.0*/ {0x08, 0x05, 0x4B, 0x2E, 0x29,0x49249249,0x00000000,0x092492,0x12},
-	/*20.48*/{0x08, 0x19, 0x80, 0x6E, 0x29,0x476DB6DB,0x00000000,0x08EDB6,0x11} 
-	};
-	struct RTV_ADC_CFG_INFO g_atAdcCfgTbl_DVBT_6MHz[] = {
-	/*8*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*9*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*19.2*/ {0x08, 0x05, 0x48, 0x2E, 0x29,0x5B6DB6DB,0x00000000,0x0B6DB6,0x16},
-	/*20.0*/ {0x08, 0x05, 0x4B, 0x2E, 0x29,0x57C57C57,0x00000000,0x0AF8AF,0x15},
-	/*20.48*/{0x08, 0x19, 0x80, 0x6E, 0x29,0x55B6DB6D,0x00000000,0x0AB6DB,0x15} 
-	};
-	struct RTV_ADC_CFG_INFO g_atAdcCfgTbl_DVBT_7MHz[] = {
-	/*8*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*9*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*19.2*/ {0x08, 0x05, 0x48, 0x2E, 0x29,0x6AAAAAAA,0x00000000,0x0D5555,0x1A},
-	/*20.0*/ {0x08, 0x05, 0x4B, 0x2E, 0x29,0x66666666,0x00000000,0x0CCCCC,0x19},
-	/*20.48*/{0x08, 0x19, 0x80, 0x6E, 0x29,0x64000000,0x00000000,0x0C8000,0x19} 
-	};
-	struct RTV_ADC_CFG_INFO g_atAdcCfgTbl_DVBT_8MHz[] = {
-	/*8*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*9*/	 {0x00, 0x00, 0x00, 0x00, 0x00,0x00000000,0x00000000,0x000000,0x00},
-	/*19.2*/ {0x08, 0x05, 0x48, 0x2E, 0x29,0x79E79E79,0x00000000,0x0F3CF3,0x1E},
-	/*20.0*/ {0x08, 0x05, 0x4B, 0x2E, 0x29,0x75075075,0x00000000,0x0EA0EA,0x1D},
-	/*20.48*/{0x08, 0x19, 0x80, 0x6E, 0x29,0x72492492,0x00000000,0x0E4924,0x1C} 
-	};
-
 	switch (eServiceType) {
 	case RTV_SERVICE_UHF_ISDBT_1seg:
 		nNumAdcType = 1; /* ADC 9MHz */
@@ -1389,33 +1044,6 @@ static int rtvRF_SetOfdmPara(struct mtv23x_dev*dev,enum E_RTV_SERVICE_TYPE eServ
 			break;
 		default:
 			printk("[rtvRF_SetOfdmPara] Unsupport 13seg\n");
-			return -9;
-		}
-		break;
-	case RTV_SERVICE_DVBT:
-		if ((dwChFreqKHz == 184500) || (dwChFreqKHz == 490000) ||
-		(dwChFreqKHz == 554000) || (dwChFreqKHz == 618000) ||
-		(dwChFreqKHz == 674000) || (dwChFreqKHz == 738000) ||
-		(dwChFreqKHz == 858000))
-			nNumAdcType = 2; /* ADC 19.2MHz */
-		else
-			nNumAdcType = 4; /* ADC 20.48MHz */
-
-		switch (eLpfBwType) {
-		case RTV_BW_MODE_5MHZ:
-			ptOfdmCfgTbl = &g_atAdcCfgTbl_DVBT_5MHz[nNumAdcType];
-			break;
-		case RTV_BW_MODE_6MHZ:
-			ptOfdmCfgTbl = &g_atAdcCfgTbl_DVBT_6MHz[nNumAdcType];
-			break;
-		case RTV_BW_MODE_7MHZ:
-			ptOfdmCfgTbl = &g_atAdcCfgTbl_DVBT_7MHz[nNumAdcType];
-			break;
-		case RTV_BW_MODE_8MHZ:
-			ptOfdmCfgTbl = &g_atAdcCfgTbl_DVBT_8MHz[nNumAdcType];
-			break;
-		default:
-			printk("[rtvRF_SetOfdmPara] Unsupport DVB-T\n");
 			return -9;
 		}
 		break;
@@ -2267,7 +1895,7 @@ static int mtv23x_set_frontend(struct dvb_frontend *fe)
 	struct mtv23x_dev*dev = i2c_get_clientdata(client);
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	enum E_RTV_BANDWIDTH_TYPE bandwidth ;
-	enum E_RTV_SERVICE_TYPE svc_type = RTV_SERVICE_INVALID;
+	enum E_RTV_SERVICE_TYPE svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
 	int ret;
 
 	const u8 g_atSubChNum[] = {
@@ -2317,21 +1945,6 @@ static int mtv23x_set_frontend(struct dvb_frontend *fe)
 	else
 		bandwidth = RTV_BW_MODE_6MHZ;
 	
-	if(svc_type==RTV_SERVICE_INVALID)
-	{
-		switch(c->delivery_system)
-		{	
-			default:
-			case SYS_ISDBT:
-				svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
-				break;
-			case SYS_DVBT:
-				 svc_type = RTV_SERVICE_DVBT;
-				//svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
-				break;
-		
-		}
-	}
 		
 	rtvRF_SetFrequency(dev,svc_type,bandwidth,c->frequency/1000);
 
@@ -2351,16 +1964,10 @@ static int mtv23x_set_frontend(struct dvb_frontend *fe)
 
 	msleep(20);
 	rtv_softReset(dev);
+	msleep(20);
 
 	regmap_write(dev->regmap,MAP_SEL_REG,FEC_PAGE);
 	regmap_write(dev->regmap,0xA8, 0x87);
-	regmap_write(dev->regmap,0xAA, 0x87);
-	regmap_write(dev->regmap,MAP_SEL_REG,FEC_PAGE);
-	regmap_write(dev->regmap,0xA8, 0x87);
-
-//	#if defined(RTV_IF_TSIF_0)
-//	RTV_REG_SET(0xAA, 0x87);
-//	#if defined(RTV_IF_TSIF_1)
 	regmap_write(dev->regmap,0xAB, 0x87);
 
 	dev->svc_type = svc_type;
@@ -2486,10 +2093,6 @@ static u32 rtvMTV23x_GetCNR(struct mtv23x_dev*dev)
 			     | (temp1 << 8)
 			     | (temp2 << 0));
 
-
-		if (dev->svc_type == RTV_SERVICE_DVBT)
-		cnr = GetSNR_DVBT_Mode(Mod, data);
-		else
 		cnr = GetSNR_FULL_Mode(Mod, data);
 	}
 
@@ -2572,7 +2175,7 @@ static int mtv23x_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 }
 
 static struct dvb_frontend_ops mtv23x_ops = {
-	.delsys = {SYS_ISDBT,SYS_DVBT},
+	.delsys = {SYS_ISDBT},
 	.info 	= {
 		.name = "RAONTECH MTV23X",
 		.type = FE_OFDM,
@@ -2686,6 +2289,6 @@ module_i2c_driver(mtv23x_driver);
 
 
 MODULE_AUTHOR("Davin <smiledavin@gmail.com>");
-MODULE_DESCRIPTION(" ATSC/QAMB demodulator driver");
+MODULE_DESCRIPTION(" ISDB-T Demodulator driver");
 MODULE_LICENSE("GPL");
 

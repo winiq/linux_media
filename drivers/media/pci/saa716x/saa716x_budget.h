@@ -61,4 +61,7 @@
 #define TURBOSIGHT_TBS7220	0x7220
 #define TBS7220 		0x0001
 
+#define TURBOSIGHT_TBS6290  0x6290
+#define TBS6290			0x0001
+
 #endif /* __SAA716x_BUDGET_H */

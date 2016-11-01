@@ -2760,8 +2760,118 @@ static struct saa716x_config saa716x_tbs6983_config = {
 		},
 	}
 };
+#define SAA716x_MODEL_TBS6290 "TurboSight TBS 6290 "
+#define SAA716x_DEV_TBS6290 "DVB-T/T2/C+2xCI"
+
+static int saa716x_tbs6290_frontend_attach(struct saa716x_adapter *adapter, int count)
+{	
+	struct saa716x_dev *dev = adapter->saa716x;
+	struct i2c_adapter *i2cadapter;
+	struct i2c_client *client;
+	struct i2c_board_info info;
+	struct si2168_config si2168_config;
+	struct si2157_config si2157_config;
+	u8 mac[6];
+	int ret;
+	if (count > 1)
+		goto err;
+
+	/* attach demod */
+	memset(&si2168_config, 0, sizeof(si2168_config));
+	si2168_config.i2c_adapter = &i2cadapter;
+	si2168_config.fe = &adapter->fe;
+	si2168_config.ts_mode = SI2168_TS_PARALLEL;
+	si2168_config.ts_clock_gapped = true;
+	memset(&info, 0, sizeof(struct i2c_board_info));
+	strlcpy(info.type, "si2168", I2C_NAME_SIZE);
+	info.addr = 0x64;
+	info.platform_data = &si2168_config;
+	request_module(info.type);
+	client = i2c_new_device(&dev->i2c[1 - count].i2c_adapter, &info);
+	if (client == NULL || client->dev.driver == NULL) {
+		goto err;
+	}
+	if (!try_module_get(client->dev.driver->owner)) {
+		i2c_unregister_device(client);
+		goto err;
+	}
+	adapter->i2c_client_demod = client;
+
+	/* attach tuner */
+	memset(&si2157_config, 0, sizeof(si2157_config));
+	si2157_config.fe = adapter->fe;
+	si2157_config.if_port = 1;
+	memset(&info, 0, sizeof(struct i2c_board_info));
+	strlcpy(info.type, "si2157", I2C_NAME_SIZE);
+	info.addr = 0x60;
+	info.platform_data = &si2157_config;
+	request_module(info.type);
+	client = i2c_new_device(i2cadapter, &info);
+	if (client == NULL || client->dev.driver == NULL) {
+		module_put(adapter->i2c_client_demod->dev.driver->owner);
+		i2c_unregister_device(adapter->i2c_client_demod);
+		goto err;
+	}
+	if (!try_module_get(client->dev.driver->owner)) {
+		i2c_unregister_device(client);
+		module_put(adapter->i2c_client_demod->dev.driver->owner);
+		i2c_unregister_device(adapter->i2c_client_demod);
+		goto err;
+	}
+	adapter->i2c_client_tuner = client;
+
+	saa716x_gpio_set_input(dev,count?2:6);
+	msleep(1);
+	saa716x_gpio_set_input(dev,count?14:3);
+	msleep(1);
+	saa716x_gpio_set_input(dev,count?20:14);
+	msleep(1);
+	ret = tbsci_i2c_probe(adapter,count?4:3);
+	if(!ret)
+		tbsci_init(adapter,count,9);
+
+	strlcpy(adapter->fe->ops.info.name,dev->config->model_name,52);
+	strlcat(adapter->fe->ops.info.name,dev->config->dev_type,52);
+
+	dev_dbg(&dev->pdev->dev, "%s frontend %d attached\n",
+		dev->config->model_name, count);
+
+	if (!saa716x_tbs_read_mac(dev,count,mac)) {
+		memcpy(adapter->dvb_adapter.proposed_mac, mac, 6);
+		dev_notice(&dev->pdev->dev, "%s MAC[%d]=%pM\n", dev->config->model_name, count, adapter->dvb_adapter.proposed_mac);
+	}
+
+	return 0;
+err:
+	dev_err(&dev->pdev->dev, "%s frontend %d attach failed\n",
+		dev->config->model_name, count);
+	return -ENODEV;
 
 
+}
+
+static struct saa716x_config saa716x_tbs6290_config = {
+	.model_name		 = SAA716x_MODEL_TBS6290,
+	.dev_type		 = SAA716x_DEV_TBS6290,
+	.boot_mode 		 = SAA716x_EXT_BOOT,
+	.adapters		 = 2,
+	.frontend_attach = saa716x_tbs6290_frontend_attach,
+	.irq_handler	 = saa716x_budget_pci_irq,
+	.i2c_rate		 = SAA716x_I2C_RATE_100,
+	.i2c_mode		 = SAA716x_I2C_MODE_POLLING,
+	.adap_config	 ={
+		{
+			.ts_port = 1,
+			.worker  = demux_worker
+		},
+		{
+			.ts_port = 3,
+			.worker	 = demux_worker
+		},
+
+	}
+	
+};
 static struct pci_device_id saa716x_budget_pci_table[] = {
 	MAKE_ENTRY(TWINHAN_TECHNOLOGIES, TWINHAN_VP_1028, SAA7160, &saa716x_vp1028_config), /* VP-1028 */
 	MAKE_ENTRY(TWINHAN_TECHNOLOGIES, TWINHAN_VP_3071, SAA7160, &saa716x_vp3071_config), /* VP-3071 */
@@ -2788,6 +2898,7 @@ static struct pci_device_id saa716x_budget_pci_table[] = {
 	MAKE_ENTRY(TURBOSIGHT_TBS6983, TBS6983, SAA7160, &saa716x_tbs6983_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS6983, TBS6983+1, SAA7160, &saa716x_tbs6983_config),
 	MAKE_ENTRY(TURBOSIGHT_TBS7220, TBS7220, SAA7160, &saa716x_tbs7220_config),
+	MAKE_ENTRY(TURBOSIGHT_TBS6290, TBS6290, SAA7160, &saa716x_tbs6290_config),
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, saa716x_budget_pci_table);
