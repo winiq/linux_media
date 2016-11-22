@@ -478,7 +478,7 @@ static int si2183_set_mcns(struct dvb_frontend *fe)
 	struct si2183_dev *dev = i2c_get_clientdata(client);
 	struct si2183_cmd cmd;
 	int ret;
-	u16 prop;
+	u16 prop,symb;
 
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
@@ -489,7 +489,7 @@ static int si2183_set_mcns(struct dvb_frontend *fe)
  		dev_err(&client->dev, "err set agc mode\n");
  	}
 	/* mcns mode */
-	prop = 0x16;
+	prop = 0x18;
 	ret = si2183_set_prop(client, SI2183_PROP_MODE, &prop);
 	if (ret) {
 		dev_err(&client->dev, "err set mcns mode\n");
@@ -498,23 +498,13 @@ static int si2183_set_mcns(struct dvb_frontend *fe)
 
 	switch (c->modulation) {
 	default:
-	case QAM_AUTO:
-		prop = 0;
-		break;
-	case QAM_16:
-		prop = 7;
-		break;
-	case QAM_32:
-		prop = 8;
-		break;
 	case QAM_64:
 		prop = 9;
-		break;
-	case QAM_128:
-		prop = 10;
+		symb = 5057;
 		break;
 	case QAM_256:
 		prop = 11;
+		symb = 5361;
 		break;
 	}
 	ret = si2183_set_prop(client, SI2183_PROP_MCNS_CONST, &prop);
@@ -524,8 +514,7 @@ static int si2183_set_mcns(struct dvb_frontend *fe)
 	}
 
 	/* symbol rate */
-	prop = c->symbol_rate / 1000;
-	ret = si2183_set_prop(client, SI2183_PROP_MCNS_SR, &prop);
+	ret = si2183_set_prop(client, SI2183_PROP_MCNS_SR, &symb);
 	if (ret) {
 		dev_err(&client->dev, "err set mcns symbol rate\n");
 		return ret;
