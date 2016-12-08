@@ -86,6 +86,8 @@ struct mxl {
 	struct dvb_frontend  fe;
 	u32                  demod;
 	u32                  rf_in;
+	bool			diseqcsign; //
+	MXL_HYDRA_DISEQC_TX_MSG_T diseqcMsg;
 };
 
 static void convert_endian(u8 flag, u32 size, u8 *d)
@@ -350,8 +352,6 @@ static int send_master_cmd(struct dvb_frontend *fe,
 	u8 cmdBuff[MXL_HYDRA_OEM_MAX_CMD_BUFF_LEN];
 	int i = 0,ret = 0;
 	
-//	if (!mode)
-//		return 0;
 
 	diseqcMsgPtr.diseqcId = state->rf_in;
 	diseqcMsgPtr.nbyte	= cmd->msg_len;
@@ -359,6 +359,13 @@ static int send_master_cmd(struct dvb_frontend *fe,
 
 	for( i =0;i < cmd->msg_len;i++)
 		diseqcMsgPtr.bufMsg[i] = cmd->msg[i];
+
+	if(!mode){
+		state->diseqcsign= true;
+		memcpy(&state->diseqcMsg,&diseqcMsgPtr,sizeof(MXL_HYDRA_DISEQC_TX_MSG_T));
+	  return 0;
+
+	}
 
 	BUILD_HYDRA_CMD(MXL_HYDRA_DISEQC_MSG_CMD, MXL_CMD_WRITE, cmdSize, &diseqcMsgPtr, cmdBuff);
 	mutex_lock(&state->base->status_lock);
@@ -377,12 +384,17 @@ static int send_burst(struct dvb_frontend *fe,
 	u8 cmdBuff[MXL_HYDRA_OEM_MAX_CMD_BUFF_LEN];
 	int i = 0,ret = 0;
 
-//	if (!mode)
-//		return 0;
 
 	diseqcMsgPtr.diseqcId = state->rf_in;
 	diseqcMsgPtr.nbyte	= 0;
 	diseqcMsgPtr.toneBurst = burst == SEC_MINI_B ? MXL_HYDRA_DISEQC_TONE_SB : MXL_HYDRA_DISEQC_TONE_SA;
+
+	if(!mode){
+		state->diseqcsign= true;
+		memcpy(&state->diseqcMsg,&diseqcMsgPtr,sizeof(MXL_HYDRA_DISEQC_TX_MSG_T));
+	  return 0;
+
+	}
 
 	BUILD_HYDRA_CMD(MXL_HYDRA_DISEQC_MSG_CMD, MXL_CMD_WRITE, cmdSize, &diseqcMsgPtr, cmdBuff);
 	mutex_lock(&state->base->status_lock);
@@ -390,6 +402,25 @@ static int send_burst(struct dvb_frontend *fe,
 	mutex_unlock(&state->base->status_lock);
 
 	return ret;
+}
+
+static void senddiseqcAbortTune(struct dvb_frontend *fe)
+{
+	struct mxl *state = fe->demodulator_priv;
+	u8 cmdSize = sizeof(MXL_HYDRA_DISEQC_TX_MSG_T);
+	u8 cmdBuff[MXL_HYDRA_OEM_MAX_CMD_BUFF_LEN];
+
+	if(state->diseqcsign){
+	state->diseqcMsg.diseqcId = state->rf_in;
+	state->diseqcMsg.bufMsg[0] = 0xe0;
+	BUILD_HYDRA_CMD(MXL_HYDRA_DISEQC_MSG_CMD, MXL_CMD_WRITE, cmdSize, &state->diseqcMsg, cmdBuff);
+	mutex_lock(&state->base->status_lock);
+	send_command(state, cmdSize + MXL_HYDRA_CMD_HEADER_SIZE, &cmdBuff[0]);
+	mutex_unlock(&state->base->status_lock);
+
+	state->diseqcsign = false;
+	}
+	msleep(100);
 }
 
 static int set_parameters(struct dvb_frontend *fe)
@@ -415,6 +446,9 @@ static int set_parameters(struct dvb_frontend *fe)
 	if (p->symbol_rate < 1000000 || p->symbol_rate > 45000000)
 		return -EINVAL;
 
+	if(!mode)
+		 senddiseqcAbortTune(fe);
+	
 	//CfgDemodAbortTune(state);
 	
 	switch (p->delivery_system) {
