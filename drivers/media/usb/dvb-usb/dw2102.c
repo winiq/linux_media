@@ -88,8 +88,7 @@ MODULE_PARM_DESC(debug, "set debugging level (1=info 2=xfer 4=rc(or-able))."
 /* demod probe */
 static int demod_probe = 1;
 module_param_named(demod, demod_probe, int, 0644);
-MODULE_PARM_DESC(demod, "demod to probe (1=cx24116 2=stv0903+stv6110 "
-			"4=stv0903+stb6100(or-able)).");
+MODULE_PARM_DESC(demod, "demod to probe (1=cx24116 2=stv0903+stv6110 4=stv0903+stb6100(or-able)).");
 
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
@@ -854,7 +853,7 @@ static int su3000_power_ctrl(struct dvb_usb_device *d, int i)
 	if (i && !state->initialized) {
 		state->initialized = 1;
 		/* reset board */
-		dvb_usb_generic_rw(d, obuf, 2, NULL, 0, 0);
+		return dvb_usb_generic_rw(d, obuf, 2, NULL, 0, 0);
 	}
 
 	return 0;
@@ -1694,6 +1693,7 @@ enum dw2102_table_entry {
 	TEVII_S632,
 	TERRATEC_CINERGY_S2_R2,
 	TERRATEC_CINERGY_S2_R3,
+	TERRATEC_CINERGY_S2_R4,
 	GOTVIEW_SAT_HD,
 	GENIATECH_T220,
 	GENIATECH_T220A,
@@ -1724,6 +1724,7 @@ static struct usb_device_id dw2102_table[] = {
 	[TEVII_S632] = {USB_DEVICE(0x9022, USB_PID_TEVII_S632)},
 	[TERRATEC_CINERGY_S2_R2] = {USB_DEVICE(USB_VID_TERRATEC, USB_PID_TERRATEC_CINERGY_S2_R2)},
 	[TERRATEC_CINERGY_S2_R3] = {USB_DEVICE(USB_VID_TERRATEC, USB_PID_TERRATEC_CINERGY_S2_R3)},
+	[TERRATEC_CINERGY_S2_R4] = {USB_DEVICE(USB_VID_TERRATEC, USB_PID_TERRATEC_CINERGY_S2_R4)},
 	[GOTVIEW_SAT_HD] = {USB_DEVICE(0x1FE1, USB_PID_GOTVIEW_SAT_HD)},
 	[GENIATECH_T220] = {USB_DEVICE(0x1f4d, 0xD220)},
 	[GENIATECH_T220A] = {USB_DEVICE(0x0572, 0xC686)},
@@ -2455,9 +2456,6 @@ MODULE_DESCRIPTION("Driver for DVBWorld DVB-S 2101, 2102, DVB-S2 2104,"
 			" Prof 1100, 7500 USB2.0,"
 			" Geniatech SU3000, T220, T220A,"
 			" TechnoTrend S2-4600, Terratec Cinergy S2 devices");
-
-
-
 MODULE_VERSION("0.1");
 MODULE_LICENSE("GPL");
 MODULE_FIRMWARE(DW2101_FIRMWARE);
