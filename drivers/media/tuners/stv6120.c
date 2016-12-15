@@ -351,7 +351,7 @@ static int init(struct dvb_frontend *fe)
 	return 0;
 }
 
-static int release(struct dvb_frontend *fe)
+static void release(struct dvb_frontend *fe)
 {
 	struct stv *state = fe->tuner_priv;
 
@@ -363,7 +363,6 @@ static int release(struct dvb_frontend *fe)
 	}
 	kfree(state);
 	fe->tuner_priv = NULL;
-	return 0;
 }
 #if 0
 static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
