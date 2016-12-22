@@ -34,6 +34,7 @@
 #include "mxl603.h"
 
 #include "mtv23x.h"
+#include "gx1503.h"
 
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
@@ -366,6 +367,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	struct mxl603_config mxl603_config;
 	struct mtv23x_config mtv23x_config;
 	//struct av201x_config av201x_config;
+	struct gx1503_config gx1503_config;
 
 	struct i2c_board_info info;
 	struct i2c_adapter *i2c = &adapter->i2c->i2c_adap;
@@ -381,6 +383,52 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	set_mac_address(adapter);
 
 	switch (pci->subsystem_vendor) {
+	case 0x6514:
+		 memset(&gx1503_config,0,sizeof(gx1503_config));
+		 gx1503_config.i2c_adapter =&i2c;
+		 gx1503_config.fe = &adapter->fe;
+		 gx1503_config.clk_freq = 30400;//KHZ
+		 gx1503_config.ts_mode = 1;
+		 gx1503_config.i2c_wr_max = 8;
+
+		 memset(&info, 0, sizeof(struct i2c_board_info));
+		 strlcpy(info.type, "gx1503", I2C_NAME_SIZE);
+		 info.addr = 0x30;
+		 info.platform_data = &gx1503_config;
+		 request_module(info.type);
+		 client_demod = i2c_new_device(i2c,&info);
+		 if(client_demod == NULL||
+		 	client_demod->dev.driver == NULL)
+		 	goto frontend_atach_fail;
+		 
+		if (!try_module_get(client_demod->dev.driver->owner)) {
+			i2c_unregister_device(client_demod);
+			goto frontend_atach_fail;
+		}
+		
+		adapter->i2c_client_demod = client_demod;
+
+		/*attach tuner*/
+		memset(&si2157_config, 0, sizeof(si2157_config));
+		si2157_config.fe = adapter->fe;
+		si2157_config.if_port = 0;
+
+		memset(&info, 0, sizeof(struct i2c_board_info));
+		strlcpy(info.type, "si2157", I2C_NAME_SIZE);
+		info.addr = 0x60;
+		info.platform_data = &si2157_config;
+		request_module(info.type);
+		client_tuner = i2c_new_device(i2c, &info);
+		if (client_tuner == NULL ||
+				client_tuner->dev.driver == NULL)
+			goto frontend_atach_fail;
+
+		if (!try_module_get(client_tuner->dev.driver->owner)) {
+			i2c_unregister_device(client_tuner);
+			goto frontend_atach_fail;
+		}
+		adapter->i2c_client_tuner = client_tuner;
+		 break;
 	case 0x6814:
 		 memset(&mtv23x_config, 0, sizeof(mtv23x_config));
 		 mtv23x_config.fe = &adapter->fe;
