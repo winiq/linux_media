@@ -303,7 +303,10 @@ static int si2157_set_params(struct dvb_frontend *fe)
 		break;
 	case SYS_ISDBT:
 		delivery_system = 0x40;
-			break;
+		break;
+	case SYS_DTMB:
+		delivery_system = 0x60;
+		break;
 	default:
 		ret = -EINVAL;
 		goto err;
