@@ -204,9 +204,7 @@ static int gx1503_set_frontend(struct dvb_frontend *fe)
 			" modulation=%u frequency=%u bandwidth_hz=%u \n",
 			 c->modulation, c->frequency,c->bandwidth_hz);
 
-	printk(
-			" modulation=%u frequency=%u bandwidth_hz=%u \n",
-			 c->modulation, c->frequency,c->bandwidth_hz);			 
+	 
 			
 	if(!dev->active){
 		ret = -EAGAIN;
@@ -222,7 +220,7 @@ static int gx1503_set_frontend(struct dvb_frontend *fe)
 
 	bandwidth = c->bandwidth_hz/1000;
 	bandwidth = bandwidth/1000;
-	printk("band %d \n",bandwidth);
+
 	GX1503_WriteRegWithMask(client,0xF5,1,6,6); 
 	GX1503_WriteRegWithMask(client,0xF5,0,6,6);
 	msleep(50);
@@ -345,13 +343,13 @@ static int gx1503_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if(ret)
 		goto err;
 
-	printk("lock info temp = %x \n",temp);
 	if((temp & 0x02)==0x02)
 		*status = FE_HAS_SIGNAL | FE_HAS_CARRIER | FE_HAS_VITERBI |
 				FE_HAS_SYNC | FE_HAS_LOCK;
 	else
 		*status = FE_HAS_SIGNAL | FE_HAS_CARRIER;
-	
+
+	return 0;
 err:
 	dev_dbg(&client->dev,"failed = %d\n",ret);
 	return ret;	
@@ -390,11 +388,10 @@ static int gx1503_read_snr(struct dvb_frontend * fe,u16 * snr)
 	   Noise_pow = 1;
 	
 	log_data = H_pow * 2048 / gi_len[gi_mode] * 64 / Noise_pow ;
-	printk("log_data %d\n",log_data);
 	SNR = GX1503_100Log(log_data)/10 - snr_mod[gi_mode] - 10;	
 	if(SNR <= 0)
 		SNR = 0;
-	printk("SNR %d \n",SNR);
+
 	*snr = SNR;
 
 	return 0;
