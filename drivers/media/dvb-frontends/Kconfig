@@ -518,6 +518,16 @@ config DVB_GP8PSK_FE
 	depends on DVB_CORE
 	default DVB_USB_GP8PSK
 
+comment "DTMB(DTMB) frontends"
+	depends on DVB_CORE
+
+config DVB_GX1503
+	tristate "national chip gx1503b"
+	depends on DVB_CORE && I2C && I2C_MUX
+	default m if !MEDIA_SUBDRV_AUTOSELECT
+	help
+	  Say Y when you want to support this frontend.
+
 comment "DVB-C (cable) frontends"
 	depends on DVB_CORE
 
