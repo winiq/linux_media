@@ -523,12 +523,12 @@ static int gx1503_probe( struct i2c_client *client,
 		ret = -ENOMEM;
 		goto err_regmap_exit;
 	}
-	dev->muxc->priv = client;
+	//dev->muxc->priv = client;
 #endif
 	/*create dvb frontend*/
 	memcpy(&dev->fe.ops,&gx1503_ops,sizeof(struct dvb_frontend_ops));
 	dev->fe.demodulator_priv = client;
-	*cfg->i2c_adapter = dev->muxc->adapter[0];
+	*cfg->i2c_adapter = client->adapter;
 	*cfg->fe = &dev->fe;
 	dev->ts_mode = cfg->ts_mode;
 	dev->clk_freq = cfg->clk_freq;
