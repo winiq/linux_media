@@ -396,9 +396,15 @@ static int gx1503_read_snr(struct dvb_frontend * fe,u16 * snr)
 
 	return 0;
 }
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 static int gx1503_select(struct i2c_mux_core *muxc,u32 chan)
 {
 	struct i2c_client *client = i2c_mux_priv(muxc);
+#else
+static int gx1503_select(struct i2c_adapter *dap,void *mux_priv,u32 chan)
+{
+	struct i2c_client *client = mux_priv;
+#endif
 	struct gx1503_dev *dev = i2c_get_clientdata(client);
 	int ret,temp;
 	ret = regmap_read(dev->regmap,I2C_RPT,&temp);
@@ -413,10 +419,15 @@ err:
 	return ret;
 
 }
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 static int gx1503_deselect(struct i2c_mux_core *muxc,u32 chan)
 {
 	struct i2c_client *client = i2c_mux_priv(muxc);
+#else
+static int gx1503_deselect(struct i2c_adapter *dap,void *mux_priv,u32 chan)
+{
+	struct i2c_client *client = mux_priv;
+#endif
 	struct gx1503_dev *dev = i2c_get_clientdata(client);
 	int ret,temp;
 	ret = regmap_read(dev->regmap,I2C_RPT,&temp);
@@ -492,6 +503,7 @@ static int gx1503_probe( struct i2c_client *client,
 		dev_info(&client->dev,"Deceted the gx1503 chip");
 	
 	mutex_init(&dev->i2c_mutex);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	dev->muxc = i2c_mux_alloc(client->adapter,&client->dev,
 		1,0,I2C_MUX_LOCKED,
 	    gx1503_select, gx1503_deselect);
@@ -503,7 +515,16 @@ static int gx1503_probe( struct i2c_client *client,
 	ret = i2c_mux_add_adapter(dev->muxc,0,0,0);
 	if(ret)
 		goto err_regmap_exit;
-
+#else
+	dev->muxc = i2c_add_mux_adapter(client->adapter,&client->dev,
+							client,0,0,0,
+							gx1503_select, gx1503_deselect);
+	if(!dev->muxc){
+		ret = -ENOMEM;
+		goto err_regmap_exit;
+	}
+	dev->muxc->priv = client;
+#endif
 	/*create dvb frontend*/
 	memcpy(&dev->fe.ops,&gx1503_ops,sizeof(struct dvb_frontend_ops));
 	dev->fe.demodulator_priv = client;
@@ -529,7 +550,16 @@ err:
 static int gx1503_remove(struct i2c_client *client)
 {
 	struct gx1503_dev*dev = i2c_get_clientdata(client);
+	
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+	i2c_mux_del_adapters(dev->muxc);
+#else	
+	i2c_del_mux_adapter(dev->muxc);
+#endif
 	regmap_exit(dev->regmap);
+	
+	dev->fe.ops.release = NULL;
+	dev->fe.demodulator_priv = NULL;
 	kfree(dev);
 
 	return 0;
