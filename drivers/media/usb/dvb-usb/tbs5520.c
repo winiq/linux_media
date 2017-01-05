@@ -365,7 +365,6 @@ static int tbs5520_rc_query(struct dvb_usb_device *d, u32 *event, int *state)
 
 static struct usb_device_id tbs5520_table[] = {
 	{USB_DEVICE(0x734c, 0x5520)},
-	{USB_DEVICE(0x734c, 0x5922)},
 	{ }
 };
 

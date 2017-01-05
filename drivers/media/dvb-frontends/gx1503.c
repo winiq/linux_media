@@ -361,8 +361,6 @@ static int gx1503_read_snr(struct dvb_frontend * fe,u16 * snr)
 	struct gx1503_dev *dev = i2c_get_clientdata(client);
 	unsigned int Hl,Hh;
 	unsigned int Nl,Nh;
-	unsigned int tmp0,tmp1;
-	unsigned int tmp	;
 	unsigned int	log_data=0	;
 	int SNR = 0;
 	int H_pow;
@@ -370,7 +368,7 @@ static int gx1503_read_snr(struct dvb_frontend * fe,u16 * snr)
 	int gi_mode;
 	int gi_len[3]   = {420,595,945};
 	int snr_mod[3]  = {2.6,0,2.2};
-	int ret,temp;
+	int temp;
 
 	regmap_read(dev->regmap,H_POW_L,&Hl);
 	regmap_read(dev->regmap,H_POW_H,&Hh);
@@ -546,6 +544,7 @@ err_free:
 	kfree(dev);
 err:
 	dev_dbg(&client->dev,"failed = %d\n",ret);
+	return ret;
 }
 static int gx1503_remove(struct i2c_client *client)
 {
