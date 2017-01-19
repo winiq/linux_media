@@ -28,6 +28,11 @@
 
 #include <linux/types.h>
 
+struct ecp3_info
+{
+	__u8 reg;
+	__u32 data;
+};
 enum fe_type {
 	FE_QPSK,
 	FE_QAM,
@@ -601,5 +606,9 @@ struct dvb_frontend_event {
 #define FE_GET_EVENT		   _IOR('o', 78, struct dvb_frontend_event)
 
 #define FE_DISHNETWORK_SEND_LEGACY_CMD _IO('o', 80) /* unsigned int */
+
+#define FE_ECP3FW_READ    _IOR('o', 90, struct ecp3_info)
+#define FE_ECP3FW_WRITE   _IOW('o', 91, struct ecp3_info)
+
 
 #endif /*_DVBFRONTEND_H_*/

@@ -98,6 +98,9 @@ struct stv_base {
 	
 	/* Hook for Lock LED */
 	void (*set_lock_led) (struct dvb_frontend *fe, int offon);
+	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);  
+	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);	
+
 };
 
 struct stv {
@@ -1528,7 +1531,23 @@ static int read_ucblocks(struct dvb_frontend *fe, u32 *ucblocks)
 	*ucblocks = 0;
 	return 0;
 }
+static void stv0910_spi_read(struct dvb_frontend *fe, struct ecp3_info *ecp3inf)
+{
+	struct stv *state = fe->demodulator_priv;
+	struct i2c_adapter *adapter = state->base->i2c;
 
+	state->base->read_properties(adapter,ecp3inf->reg, &(ecp3inf->data));
+//printk(" stv 0910 : stv0910_spi_read **********%x=%x*******\n",ecp3inf->reg,ecp3inf->data);
+	return ;
+}
+static void stv0910_spi_write(struct dvb_frontend *fe,struct ecp3_info *ecp3inf)
+{
+	struct stv *state = fe->demodulator_priv;
+	struct i2c_adapter *adapter = state->base->i2c;
+//printk(" stv 0910 : stv0910_spi_write ********%x == %x *********\n",ecp3inf->reg, ecp3inf->data);
+	state->base->write_properties(adapter,ecp3inf->reg, ecp3inf->data);
+	return ;
+}
 static struct dvb_frontend_ops stv0910_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2, SYS_DSS },
 	.info = {
@@ -1563,6 +1582,8 @@ static struct dvb_frontend_ops stv0910_ops = {
 	.read_snr			= read_snr,
 	.read_ber			= read_ber,
 	.read_ucblocks			= read_ucblocks,
+	.spi_read			= stv0910_spi_read,
+	.spi_write			= stv0910_spi_write,	
 };
 
 static struct stv_base *match_base(struct i2c_adapter  *i2c, u8 adr)
@@ -1610,6 +1631,9 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 		base->extclk = cfg->clk ? cfg->clk : 30000000;
 		base->dual_tuner = cfg->dual_tuner;
 		base->set_lock_led = cfg->set_lock_led;
+
+		base->write_properties = cfg->write_properties;
+		base->read_properties = cfg->read_properties;
 
 		mutex_init(&base->i2c_lock);
 		mutex_init(&base->reg_lock);

@@ -20,6 +20,7 @@
 
 /* GPIO */
 #define TBSECP3_GPIO_BASE	0x0000
+
 #define TBSECP3_GPIO_PIN(_bank, _pin)	(((_bank) << 5) + _pin)
 
 /* I2C */
@@ -49,5 +50,13 @@
 #define TBSECP3_DMA_IE(_n)	(0x0018 + 4 * _n)
 #define TBSECP3_I2C_IF(_n)	(0x0001 << _n)
 #define TBSECP3_DMA_IF(_n)	(0x0010 << _n)
+
+//spi flash
+#define SPI_CONFIG      	 0x10
+#define SPI_STATUS      	 0x10
+#define SPI_COMMAND     	 0x14
+#define SPI_WT_DATA     	 0x18
+#define SPI_RD_DATA     	 0x1c
+#define SPI_ENABLE       	 0x1c
 
 #endif

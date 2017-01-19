@@ -36,6 +36,7 @@ struct tas2101_priv {
 
 	struct dvb_frontend fe;
 	const struct tas2101_config *cfg;
+
 };
 
 /* demod registers */

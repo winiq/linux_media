@@ -43,7 +43,25 @@ struct sec_priv {
 	int (*set_voltage)(struct dvb_frontend *fe,
 			   enum fe_sec_voltage voltage);
 };
+static void ecp3_spi_read(struct i2c_adapter *i2c,u8 reg, u32 *buf)
+{	
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+	*buf = tbs_read(TBSECP3_GPIO_BASE,reg );
 
+	//printk(" tbsecp3-dvb : ecp3_spi_read **********%x = %x*******\n",reg,*buf);
+
+	return ;
+}
+static void ecp3_spi_write(struct i2c_adapter *i2c,u8 reg, u32 buf)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+	//printk(" tbsecp3-dvb : ecp3_spi_write **********%x = %x*******\n",reg,buf);
+	tbs_write(TBSECP3_GPIO_BASE, reg, buf);
+
+	return ;
+}
 static int tbsecp3_set_voltage(struct dvb_frontend* fe,
 		enum fe_sec_voltage voltage)
 {
@@ -184,12 +202,17 @@ static struct tas2101_config tbs6902_demod_cfg[] = {
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,	
+
 	},
 	{
 		.i2c_address   = 0x68,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
 	}
 };
 
@@ -205,24 +228,32 @@ static struct tas2101_config tbs6904_demod_cfg[] = {
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
 	},
 	{
 		.i2c_address   = 0x68,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
 	},
 	{
 		.i2c_address   = 0x60,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
 	},
 	{
 		.i2c_address   = 0x68,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33},
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
 	}
 };
 
@@ -239,12 +270,16 @@ static struct tas2101_config tbs6910_demod_cfg[] = {
 		.id            = ID_TAS2101,
 		.init          = {0x21, 0x43, 0x65, 0xb0, 0xa8, 0x97, 0xb1},
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
 	},
 	{
 		.i2c_address   = 0x60,
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0xa8, 0x21, 0x43, 0x65, 0x97, 0xb1},
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
 	},
 };
 
@@ -331,6 +366,8 @@ static struct stv0910_cfg tbs6903_stv0910_cfg = {
 	.rptlvl   = 3,
 	.clk      = 30000000,
 	.dual_tuner = 1,
+	.write_properties = ecp3_spi_write, 
+	.read_properties = ecp3_spi_read,
 };
 
 struct stv6120_cfg tbs6903_stv6120_cfg = {

@@ -41,6 +41,10 @@ struct tas2101_config {
 	/* lnb power */
 	void (*lnb_power)(struct dvb_frontend *fe, int onoff);
 
+	//spi flash op
+	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);  
+	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);	
+
 	/* frontend gpio/tuner init */
 	u8 init[7];
 	u8 init2;
