@@ -907,6 +907,13 @@ config DVB_TAS2101
 	help
 	Say Y when you want to support this frontend.
 
+config DVB_TAS2971
+	tristate "Tmax TAS2971 based"
+	depends on DVB_CORE && I2C
+	default m if !MEDIA_SUBDRV_AUTOSELECT
+	help
+	Say Y when you want to support this frontend.
+
 config DVB_MXL5XX
 	tristate "MaxLinear MXL5XX based"
 	depends on DVB_CORE && I2C

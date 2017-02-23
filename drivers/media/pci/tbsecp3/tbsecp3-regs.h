@@ -59,4 +59,15 @@
 #define SPI_RD_DATA     	 0x1c
 #define SPI_ENABLE       	 0x1c
 
+/* ASI */ 
+#define ASI0_BASEADDRESS  0x4000
+#define ASI_CHIP_RST  	0x00
+#define ASI_SPI_CONFIG  0x04
+#define ASI_SPI_CMD  	0x08
+#define ASI_SPI_WT_32  	0x0c
+#define ASI_SPI_ENABLE  0x10
+
+#define ASI_STATUS  	0x00
+#define ASI_SPI_RD_32   0x04
+
 #endif

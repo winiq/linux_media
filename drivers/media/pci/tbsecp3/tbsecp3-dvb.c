@@ -35,6 +35,7 @@
 
 #include "mtv23x.h"
 #include "gx1503.h"
+#include "tas2971.h"
 
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
@@ -420,6 +421,35 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	set_mac_address(adapter);
 
 	switch (pci->subsystem_vendor) {
+	case 0x690a:
+		adapter->fe = dvb_attach(tas2971_attach, &tbs6904_demod_cfg[adapter->nr], i2c);
+		if (adapter->fe == NULL)
+			goto frontend_atach_fail;
+		
+		// init asi
+		int regdata;
+		u8 mpbuf[4];
+		mpbuf[0] = adapter->nr; //0--3 select value
+		tbs_write( TBSECP3_GPIO_BASE, 0x34 , *(u32 *)&mpbuf[0]); // select chip : 13*8 =104=0x68 select address
+		//u32 mpbuf = adapter->nr;
+		//tbs_write( TBSECP3_GPIO_BASE, 0x34 , mpbuf); // select chip : 13*8 =104=0x68 select address
+		// ==***********************************************************************
+
+		asi_chip_reset(dev,ASI0_BASEADDRESS);  //asi chip reset;
+
+		mpbuf[0] = 1; //active spi bus from "z"
+		tbs_write( ASI0_BASEADDRESS, ASI_SPI_ENABLE, *(u32 *)&mpbuf[0]);
+
+		regdata = asi_read16bit(dev,ASI0_BASEADDRESS,0x24);
+		asi_write16bit(dev,ASI0_BASEADDRESS,0x24,3);	 
+		regdata = asi_read16bit(dev,ASI0_BASEADDRESS, 0x24);
+
+		mpbuf[0] = 0; //spi disable, enter "z" state;
+		tbs_write( ASI0_BASEADDRESS, ASI_SPI_ENABLE, *(u32 *)&mpbuf[0]);
+
+		//==****************************************************************************************
+		// ~~init asi
+		break;
 	case 0x6514:
 		 memset(&gx1503_config,0,sizeof(gx1503_config));
 		 gx1503_config.i2c_adapter =&i2c;

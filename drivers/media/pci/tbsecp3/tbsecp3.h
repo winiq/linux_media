@@ -58,6 +58,7 @@
 #define TBSECP3_BOARD_TBS6209	0x6209
 #define TBSECP3_BOARD_TBS6814	0x6814
 #define TBSECP3_BOARD_TBS6514	0x6514
+#define TBSECP3_BOARD_TBS690a	0x690a
 
 
 #define TBSECP3_MAX_ADAPTERS	(8)
@@ -197,6 +198,12 @@ extern struct tbsecp3_board tbsecp3_boards[];
 /* tbspcie-dvb.c */
 extern int tbsecp3_dvb_init(struct tbsecp3_adapter *adapter);
 extern void tbsecp3_dvb_exit(struct tbsecp3_adapter *adapter);
+
+/* tbsecp3-asi.c */
+extern u8 asi_CheckFree(struct tbsecp3_dev *dev,int asi_base_addr, unsigned char OpbyteNum);
+extern bool asi_chip_reset(struct tbsecp3_dev *dev,int asi_base_addr);
+extern int asi_read16bit(struct tbsecp3_dev *dev,int asi_base_addr,int reg_addr);
+extern bool asi_write16bit(struct tbsecp3_dev *dev,int asi_base_addr, int reg_addr, int data16bit);
 
 /* tbsecp3-dma.c */
 extern int tbsecp3_dma_init(struct tbsecp3_dev *dev);
