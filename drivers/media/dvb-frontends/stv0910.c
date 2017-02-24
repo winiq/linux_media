@@ -1240,9 +1240,12 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 	/*pr_warn("%s: power = %d  Padc = %d\n", __func__, power, Padc);*/
 	
-	p->strength.len = 1;
+	p->strength.len = 2;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].svalue = Padc - agc;
+	p->strength.stat[0].svalue = (Padc - agc)*10;
+
+	p->strength.stat[1].scale = FE_SCALE_RELATIVE;
+	p->strength.stat[1].uvalue = (100+(Padc - agc)/100) *656;
 	
 	*status = FE_HAS_SIGNAL;
 
@@ -1358,9 +1361,14 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (GetSignalToNoise(state, &snr))
 		return -EIO;
 
-	p->cnr.len = 1;
+	p->cnr.len = 2;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
 	p->cnr.stat[0].svalue = snr * 100;
+
+	p->cnr.stat[1].scale = FE_SCALE_RELATIVE;
+	p->cnr.stat[1].uvalue = snr *328;
+	if(p->cnr.stat[1].uvalue > 0xffff)
+			p->cnr.stat[1].uvalue = 0xffff;
 
 	if (GetBitErrorRate(state, &n, &d))
 		return -EIO;
@@ -1494,8 +1502,17 @@ static int sleep(struct dvb_frontend *fe)
 static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-
-	*strength = p->strength.stat[0].scale == FE_SCALE_DECIBEL ? ((100000 + (s32)p->strength.stat[0].svalue) / 1000) * 656 : 0;
+	int i;
+	
+	*strength = 0;
+	for(i = 0; i < p->strength.len; i++){
+		if(p->strength.stat[i].scale == FE_SCALE_DECIBEL)
+				*strength = ((100000 + (s32)p->strength.stat[i].svalue)/1000) * 656;
+			
+		else if(p->strength.stat[i].scale == FE_SCALE_RELATIVE)
+					*strength = (u16)p->strength.stat[i].uvalue;
+			
+	}
 
 	return 0;
 }
@@ -1503,14 +1520,16 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 static int read_snr(struct dvb_frontend *fe, u16 *snr)
 {
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	int i;
 
-	if (p->cnr.stat[0].scale == FE_SCALE_DECIBEL) {
-		 *snr = (s32)p->cnr.stat[0].svalue / 100;
-		 if (*snr > 200)
-			  *snr = 0xffff;
-		 else
-			  *snr *= 328;
-	} else *snr = 0;
+	*snr = 0;
+	for(i = 0; i < p->cnr.len; i++ ){
+		if(p->cnr.stat[i].scale == FE_SCALE_RELATIVE)
+				*snr = (u16)p->cnr.stat[i].uvalue;
+		else if(p->cnr.stat[i].scale == FE_SCALE_DECIBEL)
+				*snr = p->cnr.stat[i].svalue;
+	}
+
 
 	return 0;
 }
