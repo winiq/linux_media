@@ -78,9 +78,10 @@
 #define CX231XX_BOARD_HAUPPAUGE_930C_HD_1114xx 20
 #define CX231XX_BOARD_HAUPPAUGE_955Q 21
 #define CX231XX_BOARD_TERRATEC_GRABBY 22
-#define CX231XX_BOARD_TBS_5280 23
-#define CX231XX_BOARD_TBS_5281 24
-#define CX231XX_BOARD_TBS_5990 25
+#define CX231XX_BOARD_EVROMEDIA_FULL_HYBRID_FULLHD 23
+#define CX231XX_BOARD_TBS_5280 24
+#define CX231XX_BOARD_TBS_5281 25
+#define CX231XX_BOARD_TBS_5990 26
 
 /* Limits minimum and default number of buffers */
 #define CX231XX_MIN_BUF                 4
@@ -375,6 +376,7 @@ struct cx231xx_board {
 	unsigned int valid:1;
 	unsigned int no_alt_vanc:1;
 	unsigned int external_av:1;
+	unsigned int no_audio:1;
 
 	unsigned char xclk, i2c_speed;
 
