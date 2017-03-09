@@ -1381,6 +1381,8 @@ static int dvb_init(struct cx231xx *dev)
 		goto out_free;
 	}
 
+	strlcpy(dev->dvb[i]->frontend->ops.info.name,dev->board.name,52);
+
 	/* register everything */
 	result = register_dvb(dvb, THIS_MODULE, dev, dev->dev);
 
