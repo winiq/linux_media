@@ -85,7 +85,7 @@ static int tbsecp3_set_voltage(struct dvb_frontend* fe,
 			tbsecp3_gpio_set_pin(dev, &cfg->lnb_voltage, 1);
 			break;
 		default: /* OFF */
-			//tbsecp3_gpio_set_pin(dev, &cfg->lnb_power, 0);
+			tbsecp3_gpio_set_pin(dev, &cfg->lnb_power, 0);
 			break;
 	}
 
@@ -339,7 +339,7 @@ static void RF_switch(struct i2c_adapter *i2c,u8 rf_in,u8 flag)//flag : 0: dvbs/
 	struct tbsecp3_dev *dev = i2c_adap->dev;
 	u32 val ,reg;
 	
-	reg = 0xc-rf_in*4;
+	reg = 0x8+rf_in*4;
 	
 	val = tbs_read(TBSECP3_GPIO_BASE, reg);
 	if(flag)
@@ -798,23 +798,15 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		break;
 	case 0x6528:
 	case 0x6590:
-			/* attach demod */
+		/* attach demod */
 		memset(&si2183_config, 0, sizeof(si2183_config));
 		si2183_config.i2c_adapter = &i2c;
 		si2183_config.fe = &adapter->fe;
+		si2183_config.ts_mode = pci->subsystem_vendor==0x6528 ? SI2183_TS_PARALLEL : SI2183_TS_SERIAL;
 		si2183_config.ts_clock_gapped = true;
+		si2183_config.rf_in = adapter->nr;
 		si2183_config.RF_switch = RF_switch;
-		if(pci->subsystem_vendor==0x6528)
-		{
-			si2183_config.rf_in = 1;
-			si2183_config.ts_mode = SI2183_TS_PARALLEL;
-		}
-		else
-		{
-			si2183_config.rf_in = adapter->nr;
-			si2183_config.ts_mode = SI2183_TS_SERIAL;
-		}
-		
+
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "si2183", I2C_NAME_SIZE);
 		if(pci->subsystem_vendor==0x6528)
