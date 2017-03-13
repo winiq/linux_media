@@ -94,7 +94,7 @@ static int cx231xx_i2c_send_bytes(struct i2c_adapter *i2c_adap,
 	u8 *buf_ptr = NULL;
 	u16 saddr = 0;
 	u8 need_gpio = 0;
-	
+
 	if (is_tuner(dev, bus, msg, TUNER_XC5000)) {
 		size = msg->len;
 
@@ -171,7 +171,7 @@ static int cx231xx_i2c_send_bytes(struct i2c_adapter *i2c_adap,
 		bus->i2c_nostop = 0;
 		bus->i2c_reserve = 0;
 
-	} else {		/* regular case */
+	} else {	/* regular case */
 
 		if (bus->nr == 2) {
 			size = msg->len;
@@ -202,18 +202,18 @@ static int cx231xx_i2c_send_bytes(struct i2c_adapter *i2c_adap,
 			bus->i2c_nostop = 0;
 			bus->i2c_reserve = 0;
 			
-		}else{
+		} else {
 
-		/* prepare xfer_data struct */
-		req_data.dev_addr = msg->addr;
-		req_data.direction = msg->flags;
-		req_data.saddr_len = 0;
-		req_data.saddr_dat = 0;
-		req_data.buf_size = msg->len;
-		req_data.p_buffer = msg->buf;
+			/* prepare xfer_data struct */
+			req_data.dev_addr = msg->addr;
+			req_data.direction = msg->flags;
+			req_data.saddr_len = 0;
+			req_data.saddr_dat = 0;
+			req_data.buf_size = msg->len;
+			req_data.p_buffer = msg->buf;
 
-		/* usb send command */
-		status = dev->cx231xx_send_usb_command(bus, &req_data);
+			/* usb send command */
+			status = dev->cx231xx_send_usb_command(bus, &req_data);
 		}
 	}
 
@@ -385,11 +385,11 @@ static int cx231xx_i2c_check_for_device(struct i2c_adapter *i2c_adap,
 
 	/* prepare xfer_data struct */
 	req_data.dev_addr = msg->addr;
-	req_data.direction = msg->flags;
+	req_data.direction = I2C_M_RD;
 	req_data.saddr_len = 0;
 	req_data.saddr_dat = 0;
-	req_data.buf_size = 0;
-	req_data.p_buffer = NULL;
+	req_data.buf_size = 1;
+	req_data.p_buffer = buf;
 
 	/* usb send command */
 	status = dev->cx231xx_send_usb_command(bus, &req_data);
@@ -407,7 +407,6 @@ static int cx231xx_i2c_xfer(struct i2c_adapter *i2c_adap,
 	struct cx231xx_i2c *bus = i2c_adap->algo_data;
 	struct cx231xx *dev = bus->dev;
 	int addr, rc, i, byte;
-
 
 	if (num <= 0)
 		return 0;
@@ -505,6 +504,7 @@ static struct i2c_adapter cx231xx_adap_template = {
  * incomplete list of known devices
  */
 static const char *i2c_devs[128] = {
+	[0x20 >> 1] = "demod",
 	[0x60 >> 1] = "colibri",
 	[0x88 >> 1] = "hammerhead",
 	[0x8e >> 1] = "CIR",
@@ -524,7 +524,6 @@ void cx231xx_do_i2c_scan(struct cx231xx *dev, int i2c_port)
 	unsigned char buf;
 	int i, rc;
 	struct i2c_client client;
-	i2c_scan=1;
 
 	if (!i2c_scan)
 		return;

@@ -2670,7 +2670,7 @@ EXPORT_SYMBOL_GPL(cx231xx_capture_start);
 /*****************************************************************************
 *                   G P I O   B I T control functions                        *
 ******************************************************************************/
- int cx231xx_set_gpio_bit(struct cx231xx *dev, u32 gpio_bit, u32 gpio_val)
+int cx231xx_set_gpio_bit(struct cx231xx *dev, u32 gpio_bit, u32 gpio_val)
 {
 	int status = 0;
 
@@ -2679,11 +2679,9 @@ EXPORT_SYMBOL_GPL(cx231xx_capture_start);
 
 	return status;
 }
-
-
 EXPORT_SYMBOL_GPL(cx231xx_set_gpio_bit);
 
- int cx231xx_get_gpio_bit(struct cx231xx *dev, u32 gpio_bit, u32 *gpio_val)
+int cx231xx_get_gpio_bit(struct cx231xx *dev, u32 gpio_bit, u32 *gpio_val)
 {
 	__le32 tmp;
 	int status = 0;
@@ -2693,7 +2691,6 @@ EXPORT_SYMBOL_GPL(cx231xx_set_gpio_bit);
 
 	return status;
 }
-
 EXPORT_SYMBOL_GPL(cx231xx_get_gpio_bit);
 
 /*
@@ -2730,7 +2727,6 @@ int cx231xx_set_gpio_direction(struct cx231xx *dev,
 
 	return status;
 }
-
 EXPORT_SYMBOL_GPL(cx231xx_set_gpio_direction);
 
 /*
@@ -2776,10 +2772,7 @@ int cx231xx_set_gpio_value(struct cx231xx *dev, int pin_number, int pin_value)
 
 	return status;
 }
-
 EXPORT_SYMBOL_GPL(cx231xx_set_gpio_value);
-
-
 
 /*****************************************************************************
 *                      G P I O I2C related functions                         *
