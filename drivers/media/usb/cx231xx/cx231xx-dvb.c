@@ -1271,6 +1271,8 @@ static int dvb_init(struct cx231xx *dev)
 		}
 		dev->dvb[i]->i2c_client_tuner = client;
 
+		strlcpy(dev->dvb[i]->frontend->ops.info.name,dev->board.name,52);
+
 		break;
 	}
 	case CX231XX_BOARD_TBS_5281:
@@ -1337,6 +1339,8 @@ static int dvb_init(struct cx231xx *dev)
 		dev->dvb[i]->i2c_client_demod = client_demod;
 		dev->dvb[i]->i2c_client_tuner = client_tuner;
 
+		strlcpy(dev->dvb[i]->frontend->ops.info.name,dev->board.name,52);
+
 		break;
 	}
 	case CX231XX_BOARD_TBS_5990:
@@ -1356,6 +1360,9 @@ static int dvb_init(struct cx231xx *dev)
 		if (dvb_attach(av201x_attach, dev->dvb[i]->frontend, &tbs5990_av201x_cfg,
 			tas2101_get_i2c_adapter(dev->dvb[i]->frontend, 2)) == NULL) {
 			dvb_frontend_detach(dev->dvb[i]->frontend);
+			result = -EINVAL;
+			goto out_free;
+		}
 
 		msleep(100);
 
@@ -1366,6 +1373,8 @@ static int dvb_init(struct cx231xx *dev)
 		/* define general-purpose callback pointer */
 		dvb->frontend->callback = cx231xx_tuner_callback;
 
+		strlcpy(dev->dvb[i]->frontend->ops.info.name,dev->board.name,52);
+
 		break;
 	}
 	default:
@@ -1374,6 +1383,7 @@ static int dvb_init(struct cx231xx *dev)
 			dev->name);
 		break;
 	}
+
 	if (NULL == dvb->frontend) {
 		dev_err(dev->dev,
 		       "%s/2: frontend initialization failed\n", dev->name);
@@ -1381,15 +1391,12 @@ static int dvb_init(struct cx231xx *dev)
 		goto out_free;
 	}
 
-	strlcpy(dev->dvb[i]->frontend->ops.info.name,dev->board.name,52);
-
 	/* register everything */
 	result = register_dvb(dvb, THIS_MODULE, dev, dev->dev);
 
 	mutex_unlock(&dev->lock);
 	if (result < 0)
 		goto out_free;
-	}
 	}
 
 	dev_info(dev->dev, "Successfully loaded cx231xx-dvb\n");
