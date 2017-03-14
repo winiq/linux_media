@@ -421,6 +421,14 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	set_mac_address(adapter);
 
 	switch (pci->subsystem_vendor) {
+	case 0x6301:
+		adapter->fe = dvb_attach(tas2971_attach, &tbs6904_demod_cfg[adapter->nr], i2c);
+		if (adapter->fe == NULL)
+			goto frontend_atach_fail;
+		
+
+		break;
+
 	case 0x690a:
 		adapter->fe = dvb_attach(tas2971_attach, &tbs6904_demod_cfg[adapter->nr], i2c);
 		if (adapter->fe == NULL)

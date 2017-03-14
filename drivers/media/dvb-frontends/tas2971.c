@@ -135,7 +135,7 @@ static int tas2101_wrtable(struct tas2101_priv *priv,
 static int tas2101_read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 
-*ber = 67108863;
+*ber = 0;
 return 0;
 	struct tas2101_priv *priv = fe->demodulator_priv;
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
@@ -175,7 +175,7 @@ static int tas2101_read_signal_strength(struct dvb_frontend *fe,
 	u16 *signal_strength)
 {
 
-	*signal_strength = 67089532;
+	*signal_strength = 62940;
 return 0;
 	struct tas2101_priv *priv = fe->demodulator_priv;
 	int ret, i;
@@ -212,8 +212,8 @@ return 0;
 static int tas2101_read_snr(struct dvb_frontend *fe, u16 *snr)
 {
  
-	*snr = 67085640;
-return 0;
+	*snr = 26896;
+	return 0;
 
 	struct tas2101_priv *priv = fe->demodulator_priv;
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
@@ -297,7 +297,23 @@ return 0;
 	dev_dbg(&priv->i2c->dev, "%s() status = 0x%02x\n", __func__, *status);
 	return ret;
 }
+static void tas2101_spi_read(struct dvb_frontend *fe, struct ecp3_info *ecp3inf)
+{
 
+	struct tas2101_priv *priv = fe->demodulator_priv;
+	struct i2c_adapter *adapter = priv->i2c;
+	if (priv->cfg->read_properties)
+		priv->cfg->read_properties(adapter,ecp3inf->reg, &(ecp3inf->data));
+	return;
+}
+static void tas2101_spi_write(struct dvb_frontend *fe,struct ecp3_info *ecp3inf)
+{
+	struct tas2101_priv *priv = fe->demodulator_priv;
+	struct i2c_adapter *adapter = priv->i2c;
+	if (priv->cfg->write_properties)
+		priv->cfg->write_properties(adapter,ecp3inf->reg, ecp3inf->data);
+	return ;
+}
 static int tas2101_set_voltage(struct dvb_frontend *fe,
 	enum fe_sec_voltage voltage)
 {
@@ -909,13 +925,16 @@ static struct dvb_frontend_ops tas2101_ops = {
 	.set_frontend = tas2101_set_frontend,
 	.get_frontend = tas2101_get_frontend,
 
+	.spi_read			= tas2101_spi_read,
+	.spi_write			= tas2101_spi_write,
+
 };
 
 //
 //lock status: 1
-//debug: - Bit error rate: 67108863
-//debug: - Signal strength: 67089532
-//debug: - SNR: 67085640
+//debug: - Bit error rate: 0
+//debug: - Signal strength: 62940
+//debug: - SNR: 26896
 
 
 MODULE_DESCRIPTION("DVB Frontend module for Tmax TAS2101");
