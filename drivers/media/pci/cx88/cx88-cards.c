@@ -2055,7 +2055,7 @@ static const struct cx88_board cx88_boards[] = {
 		.mpeg           = CX88_MPEG_DVB,
 	},
 	[CX88_BOARD_TBS_8910] = {
-		.name           = "TBS 8910 DVB-S",
+		.name           = "TurboSight TBS 8910 DVB-S",
 		.tuner_type     = UNSET,
 		.radio_type     = UNSET,
 		.tuner_addr     = ADDR_UNSET,
@@ -2067,7 +2067,7 @@ static const struct cx88_board cx88_boards[] = {
 		.mpeg           = CX88_MPEG_DVB,
 	},
 	[CX88_BOARD_TBS_8920] = {
-		.name           = "TBS 8920 DVB-S/S2",
+		.name           = "TurboSight TBS 8920 DVB-S/S2",
 		.tuner_type     = UNSET,
 		.radio_type     = UNSET,
 		.tuner_addr     = ADDR_UNSET,
@@ -2080,7 +2080,7 @@ static const struct cx88_board cx88_boards[] = {
 		.mpeg           = CX88_MPEG_DVB,
 	},
 	[CX88_BOARD_TBS_8922] = {
-		.name           = "TBS 8922 DVB-S/S2",
+		.name           = "TurboSight TBS 8922 DVB-S/S2",
 		.tuner_type     = UNSET,
 		.radio_type     = UNSET,
 		.tuner_addr     = ADDR_UNSET,

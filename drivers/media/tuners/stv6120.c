@@ -127,6 +127,9 @@ static struct SLookup Gain_RFAGC_LookUp[] = {
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #endif
 
+static unsigned int rfsource;
+module_param(rfsource, int, 0644);
+MODULE_PARM_DESC(rfsource, "RF source selection  (default:0 - auto)");
 
 static const u8 tuner_init[25] = {
  0x77,
@@ -207,6 +210,7 @@ static int write_regs(struct stv *state, int reg, int len)
 	return i2c_write(state->base->i2c, state->base->adr, d, len + 1);
 }
 #endif
+
 static int write_tuner_regs(struct stv *state)
 {
 	u8 d[8];
@@ -215,17 +219,18 @@ static int write_tuner_regs(struct stv *state)
 	return i2c_write(state->base->i2c, state->base->adr, d, 8);
 }
 
+
 static int read_reg(struct stv *state, u8 reg, u8 *val)
 {
 	return i2c_read(state->base->i2c, state->base->adr, &reg, 1, val, 1);
 }
 
+#if 0
 static int read_regs(struct stv *state, u8 reg, u8 *val, int len)
 {
 	return i2c_read(state->base->i2c, state->base->adr, &reg, 1, val, len);
 }
 
-#if 0
 static void dump_regs(struct stv *state)
 {
 	u8 d[25], *c = &state->reg[0];
@@ -264,50 +269,6 @@ static int wait_for_call_done(struct stv *state, u8 mask)
 	return status;
 }
 
-static void init_regs(struct stv *state)
-{
-	u32 clkdiv = 0;
-	u32 agcmode = 0;
-	u32 agcref = 2;
-	u32 agcset = 0xffffffff;
-	u32 bbmode = 0xffffffff;
-
-/*
- 0f40 00770133 02ce0354 0455050d 06320744  .w.3...T.U...2.D
- 0f50 080e09f9 0a030b33 0cce0d54 0e550f0d  .......3...T.U..
-
- 0f60 10321144 120e1300 1400154c 16001700  .2.D.......L....
- 0f70 184c0000 00000000 00000000 00000000  .L..............
-*/
-
-//i = 0
-// rd(i) != (i+1) ?
-//	wr(i, i+1)
-// repeat until 32
-// 
-// wr(0xa, 0x1b)
-
-	//memcpy(state->base->reg, tuner_init, 25);
-/*
-	state->ref_freq = 16000;
-
-
-	if (clkdiv <= 3)
-		state->reg[0x00] |= (clkdiv & 0x03);
-	if (agcmode <= 3) {
-		state->reg[0x03] |= (agcmode << 5);
-		if (agcmode == 0x01)
-			state->reg[0x01] |= 0x30;
-	}
-	if (bbmode <= 3)
-		state->reg[0x01] = (state->reg[0x01] & ~0x30) | (bbmode << 4);
-	if (agcref <= 7)
-		state->reg[0x03] |= agcref;
-	if (agcset <= 31)
-		state->reg[0x02] = (state->reg[0x02] & ~0x1F) | agcset | 0x40;
-*/
-}
-
 static int probe(struct stv *state)
 {
 	struct dvb_frontend *fe = state->fe;
@@ -315,11 +276,20 @@ static int probe(struct stv *state)
 
 	u8 d[26];
 
-	init_regs(state);
 	if (fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 1);
 
 	memcpy(&d[1], tuner_init, 25);
+	switch (rfsource) {
+	case 1:
+		d[10] = 0xFA; /* RF C */
+		d[11] = 0x13; /* LNAC ON */
+		break;	    
+	case 2:
+		d[10] = 0xF5; /* RF B */
+		d[11] = 0x0B; /* LNAB ON */
+		break;	    
+	}
 	d[0] = 0;
 	ret = i2c_write(state->base->i2c, state->base->adr, d, 25 + 1);
 
@@ -364,6 +334,7 @@ static void release(struct dvb_frontend *fe)
 	kfree(state);
 	fe->tuner_priv = NULL;
 }
+
 #if 0
 static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
 {
@@ -390,16 +361,13 @@ static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
 
 #endif
 
-
-
 static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
 {
 	int cf_index = (CutOffFrequency / 1000000) - 5;
 	u32 Frequency = (LocalFrequency + 500) / 1000; // Hz -> kHz
-	u32 p = 1, psel = 0, fvco, div, frac;
+	u32 fvco, div, frac;
 	u8 Icp, tmp;
 
-	u32 freq = Frequency;
 	u8 PDIV, P;
 
 	//pr_info("F = %u, CutOff = %u\n", Frequency, CutOffFrequency);
@@ -445,10 +413,6 @@ static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
 		Icp = 6;
 	else
 		Icp = 7;
-
-
-
-
 
 	frac = (fvco * state->cfg->Rdiv) % state->cfg->xtal;
 	frac = MulDiv32(frac, 0x40000, state->cfg->xtal);
@@ -520,45 +484,6 @@ static int set_params(struct dvb_frontend *fe)
 	return status;
 }
 
-static int get_frequency(struct dvb_frontend *fe, u32 *frequency)
-{
-	*frequency = 0;
-	return 0;
-}
-
-static u32 AGC_Gain[] = {
-	000, /* 0.0 */
-	000, /* 0.1 */
-	1000, /* 0.2 */
-	2000, /* 0.3 */
-	3000, /* 0.4 */
-	4000, /* 0.5 */
-	5000, /* 0.6 */
-	6000, /* 0.7 */
-	7000, /* 0.8 */
-	14000, /* 0.9 */
-	20000, /* 1.0 */
-	27000, /* 1.1 */
-	32000, /* 1.2 */
-	37000, /* 1.3 */
-	42000, /* 1.4 */
-	47000, /* 1.5 */
-	50000, /* 1.6 */
-	53000, /* 1.7 */
-	56000, /* 1.8 */
-	58000, /* 1.9 */
-	60000, /* 2.0 */
-	62000, /* 2.1 */
-	63000, /* 2.2 */
-	64000, /* 2.3 */
-	64500, /* 2.4 */
-	65000, /* 2.5 */
-	65500, /* 2.6 */
-	66000, /* 2.7 */
-	66500, /* 2.8 */
-	67000, /* 2.9 */
-};
-
 static s32 TableLookup(struct SLookup *Table, int TableSize, u16 RegValue)
 {
 	s32 Gain;
@@ -590,37 +515,26 @@ static s32 TableLookup(struct SLookup *Table, int TableSize, u16 RegValue)
 	return Gain;
 }
 
-static int get_rf_strength(struct dvb_frontend *fe, u16 *st)
+static int get_rf_strength(struct dvb_frontend *fe, u16 *agc)
 {
-	struct stv *state = fe->tuner_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
 	s32 gain = 1, ref_bbgain = 12, tilt = 6;
-	u32 freq;
+	s32 freq;
 
-	gain = TableLookup(Gain_RFAGC_LookUp, ARRAY_SIZE(Gain_RFAGC_LookUp), *st);
+	gain = TableLookup(Gain_RFAGC_LookUp, ARRAY_SIZE(Gain_RFAGC_LookUp), *agc);
 
 	gain += 100 * (6 - ref_bbgain); 	
-	
+
 	freq = p->frequency / 10000;
-	
+
 	if (freq<159)
 		gain -= 200; /* HMR filter 2dB gain compensation below freq=1590MHz */	
 	
-	gain-=(((freq-155)*tilt)/12)*10; 
-	//pr_warn("%s: str = %u\n", __func__, *st);
+	gain -= (((freq-155)*tilt)/12)*10;
+	
+	*agc = gain;
 
-	return 0;
-}
-
-static int get_if(struct dvb_frontend *fe, u32 *frequency)
-{
-	*frequency = 0;
-	return 0;
-}
-
-static int get_bandwidth(struct dvb_frontend *fe, u32 *bandwidth)
-{
 	return 0;
 }
 
@@ -635,11 +549,7 @@ static struct dvb_tuner_ops tuner_ops = {
 	.sleep             = sleep,
 	.set_params        = set_params,
 	.release           = release,
-//	.get_frequency     = get_frequency,
-//	.get_if_frequency  = get_if,
-//	.get_bandwidth     = get_bandwidth,
 	.get_rf_strength   = get_rf_strength,
-//	.set_bandwidth     = set_bandwidth,
 };
 
 static struct stv_base *match_base(struct i2c_adapter  *i2c, u8 adr)
@@ -652,13 +562,11 @@ static struct stv_base *match_base(struct i2c_adapter  *i2c, u8 adr)
 	return NULL;
 }
 
-
 struct dvb_frontend *stv6120_attach(struct dvb_frontend *fe,
 		    struct i2c_adapter *i2c, struct stv6120_cfg *cfg, int nr)
 {
 	struct stv *state;
 	struct stv_base *base;
-	int stat = 0;
 
 	state = kzalloc(sizeof(struct stv), GFP_KERNEL);
 	if (!state)
