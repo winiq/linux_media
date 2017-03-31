@@ -2001,7 +2001,8 @@ static int mtv23x_read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 	int  OFDMREG = 0, TMCCL = 0, OFDML = 0;
 	int lock_st = 0;
-	
+
+	rtv_UpdateMon(dev);
 	if (dev->rtv_1seglpmode) {
 		regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
 		regmap_read(dev->regmap,0xC0,&OFDMREG);
@@ -2021,7 +2022,7 @@ static int mtv23x_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (TMCCL & 0x01)
 		lock_st |= RTV_ISDBT_TMCC_LOCK_MASK;
 
-	printk("DVB: lock status is 0%x\n",lock_st);
+//	printk("DVB: lock status is 0%x\n",lock_st);
 
 	if (RTV_ISDBT_CHANNEL_LOCK_OK == lock_st) {
 		*status = FE_HAS_LOCK|FE_HAS_SIGNAL|FE_HAS_CARRIER|FE_HAS_VITERBI|FE_HAS_SYNC;
@@ -2101,16 +2102,17 @@ static u32 rtvMTV23x_GetCNR(struct mtv23x_dev*dev)
 
 static s32 rtvMTV23x_GetRSSI(struct mtv23x_dev*dev)
 {
-	u8 RD11 = 0, GVBB = 0, LNAGAIN = 0, RFAGC = 0, CH_FLAG = 0;
+	u8  LNAGAIN = 0, RFAGC = 0, CH_FLAG = 0;
 	s32 nRssi = 0;
 	s32 nRssiAppDelta = 4*10;
-
+	int RD11 = 0, GVBB = 0;
+	
 	if (dev->rtv_1seglpmode)
 		nRssiAppDelta = 0;
 
 	regmap_write(dev->regmap,MAP_SEL_REG,RF_PAGE);
-	regmap_read(dev->regmap,0x11,(int)&RD11);
-	regmap_read(dev->regmap,0x14,(int)&GVBB);
+	regmap_read(dev->regmap,0x11,&RD11);
+	regmap_read(dev->regmap,0x14,&GVBB);
 //	RD11 = RTV_REG_GET(0x11);
 //	GVBB = RTV_REG_GET(0x14);
 
@@ -2174,6 +2176,37 @@ static int mtv23x_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	return 0;
 }
 
+static int mtv23x_read_ber(struct dvb_frontend *fe,u32 *ber)
+{
+	struct i2c_client * client = fe->demodulator_priv;
+	struct mtv23x_dev * dev = i2c_get_clientdata(client);
+	int FECL = 0, prd0 = 0, prd1 = 0, cnt0 = 0, cnt1 = 0, cnt2 = 0;
+	u32 count, period,ber_temp=10000;
+
+
+	regmap_write(dev->regmap,MAP_SEL_REG,FEC_PAGE);
+	regmap_read(dev->regmap,0x10,&FECL);
+
+	if (FECL & 0x20) {
+		regmap_read(dev->regmap,0x28,&prd0);
+		regmap_read(dev->regmap,0x29,&prd1);
+		period = (prd0<<8) | prd1;
+
+		regmap_read(dev->regmap,0x31,&cnt0);
+		regmap_read(dev->regmap,0x32,&cnt1);
+		regmap_read(dev->regmap,0x33,&cnt2);
+		count = ((cnt0&0x7f)<<16) | (cnt1<<8) | cnt2;
+	} else
+		period = 0;
+
+	if (period)
+		ber_temp= (count * 100000) / (period*8*204);
+	
+	*ber = ber_temp/1000;
+	return 0;
+
+}
+
 static struct dvb_frontend_ops mtv23x_ops = {
 	.delsys = {SYS_ISDBT},
 	.info 	= {
@@ -2199,7 +2232,7 @@ static struct dvb_frontend_ops mtv23x_ops = {
 	.read_status  = mtv23x_read_status,
 	.read_signal_strength = mtv23x_read_signal_strength,
 	.read_snr = mtv23x_read_snr,
-
+	.read_ber = mtv23x_read_ber,
 };
 static int mtv23x_probe(struct i2c_client*client,
 						const struct i2c_device_id *id)
