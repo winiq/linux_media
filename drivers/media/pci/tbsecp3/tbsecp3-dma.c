@@ -36,9 +36,9 @@ static void tbsecp3_dma_tasklet(unsigned long adap)
 	read_buffer = (tbs_read(adapter->dma.base, TBSECP3_DMA_STAT) - 2) & 7;
 	data = adapter->dma.buf[read_buffer];
 
-	if (data[adapter->dma.offset] != 0x47) {
+	if ((adapter->dma.offset == 0) || (data[adapter->dma.offset] != 0x47)) {
 		/* find sync byte offset */
-		for (i = 0; i < TS_PACKET_SIZE; i++)
+		for (i = 0; i < 256; i++)
 			if ((data[i] == 0x47) &&
 			    (data[i + TS_PACKET_SIZE] == 0x47) &&
 		 	    (data[i + 2 * TS_PACKET_SIZE] == 0x47)) {
