@@ -12,16 +12,16 @@
 struct gx1503_dev {
 	/*for i2c repeater*/
 	struct mutex i2c_mutex;
+#if	LINUX_VERSION_CODE >= KERNEL_VERSION(4,7,0)
 	struct i2c_mux_core *muxc;
-
-	struct i2c_client *client;
+#endif
+	struct i2c_adapter *tuner_adapter;
 	struct regmap *regmap;
 	u16 i2c_wr_max;
 	
 	struct dvb_frontend fe;
 	int ts_mode;	
 	int clk_freq;
-
 	bool fw_loaded;
 	bool active;
 	

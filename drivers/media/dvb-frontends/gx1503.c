@@ -480,9 +480,8 @@ static int gx1503_probe( struct i2c_client *client,
 		goto err;
 	}
 	dev->i2c_wr_max = cfg->i2c_wr_max ? cfg->i2c_wr_max:~0;
-	dev->client = client;
 
-	dev->regmap = regmap_init_i2c(dev->client,&regmap_config);
+	dev->regmap = regmap_init_i2c(client,&regmap_config);
 	if(IS_ERR(dev->regmap)){
 		ret = PTR_ERR(dev->regmap);
 		goto err_free;
@@ -500,6 +499,7 @@ static int gx1503_probe( struct i2c_client *client,
 	else
 		dev_info(&client->dev,"Deceted the gx1503 chip");
 	
+	i2c_set_clientdata(client,dev);
 	mutex_init(&dev->i2c_mutex);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	dev->muxc = i2c_mux_alloc(client->adapter,&client->dev,
@@ -513,28 +513,28 @@ static int gx1503_probe( struct i2c_client *client,
 	ret = i2c_mux_add_adapter(dev->muxc,0,0,0);
 	if(ret)
 		goto err_regmap_exit;
+	
+	*cfg->i2c_adapter = dev->muxc->adapter[0];
 #else
-	dev->muxc = i2c_add_mux_adapter(client->adapter,&client->dev,
+	dev->tuner_adapter = i2c_add_mux_adapter(client->adapter,&client->dev,
 							client,0,0,0,
 							gx1503_select, gx1503_deselect);
-	if(!dev->muxc){
+	if(!dev->tuner_adapter){
 		ret = -ENOMEM;
 		goto err_regmap_exit;
 	}
-	//dev->muxc->priv = client;
+	*cfg->i2c_adapter = dev->tuner_adapter;
+
 #endif
 	/*create dvb frontend*/
 	memcpy(&dev->fe.ops,&gx1503_ops,sizeof(struct dvb_frontend_ops));
 	dev->fe.demodulator_priv = client;
-	*cfg->i2c_adapter = client->adapter;
 	*cfg->fe = &dev->fe;
 	dev->ts_mode = cfg->ts_mode;
 	dev->clk_freq = cfg->clk_freq;
 	dev->fw_loaded = false;
 	dev->active = false;
-	
-	i2c_set_clientdata(client,dev);
-	
+		
 	return 0;
 	
 	
