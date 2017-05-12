@@ -553,7 +553,7 @@ static int gx1503_remove(struct i2c_client *client)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 	i2c_mux_del_adapters(dev->muxc);
 #else	
-	i2c_del_mux_adapter(dev->muxc);
+	i2c_del_mux_adapter(dev->tuner_adapter);
 #endif
 	regmap_exit(dev->regmap);
 	
