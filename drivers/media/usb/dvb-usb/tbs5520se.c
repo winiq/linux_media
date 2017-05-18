@@ -290,22 +290,19 @@ static int tbs5520se_frontend_attach(struct dvb_usb_adapter *adap)
 	adap->fe_adap[0].fe2->id = 1;
 
 	if (dvb_attach(av201x_attach, adap->fe_adap[0].fe2, &tbs5520se_av201x_cfg,
-				adapter) == NULL) {
-			err("attach av201x fail");
-			return -ENODEV;
-		}
-	else
-		{
-			buf[0] = 1;
-			buf[1] = 0;
-			tbs5520se_op_rw(d->udev, 0x8a, 0, 0,
-						buf, 2, TBS5520se_WRITE_MSG);
-			
-			adap->fe_adap[0].fe2->ops.set_voltage = tbs5520se_set_voltage;
-			
-
-		}
-	
+			adapter) == NULL) {
+		err("attach av201x fail");
+		return -ENODEV;
+	}
+	else {
+		buf[0] = 1;
+		buf[1] = 0;
+		tbs5520se_op_rw(d->udev, 0x8a, 0, 0,
+					buf, 2, TBS5520se_WRITE_MSG);
+		
+		adap->fe_adap[0].fe2->ops.set_voltage = tbs5520se_set_voltage;
+		
+	}
 
 	buf[0] = 0;
 	buf[1] = 0;
@@ -316,8 +313,8 @@ static int tbs5520se_frontend_attach(struct dvb_usb_adapter *adap)
 	tbs5520se_op_rw(d->udev, 0x8a, 0, 0,
 			buf, 2, TBS5520se_WRITE_MSG);
 
-	
 	strlcpy(adap->fe_adap[0].fe->ops.info.name,d->props.devices[0].name,52);
+	strlcpy(adap->fe_adap[0].fe2->ops.info.name,d->props.devices[0].name,52);
 
 	return 0;
 }
@@ -440,7 +437,7 @@ static struct dvb_usb_device_properties tbs5520se_properties = {
 
 	.num_device_descs = 1,
 	.devices = {
-		{"TBS 5520se USB2.0",
+		{"TurboSight TBS 5520 DVB-S/S2/T/T2/C/C2/ISDB-T",
 			{&tbs5520se_table[0], NULL},
 			{NULL},
 		}

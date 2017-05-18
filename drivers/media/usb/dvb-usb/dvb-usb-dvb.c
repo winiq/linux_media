@@ -9,6 +9,8 @@
 #include "dvb-usb-common.h"
 #include <media/media-device.h>
 
+#undef CONFIG_MEDIA_CONTROLLER_DVB
+
 /* does the complete input transfer handling */
 static int dvb_usb_ctrl_feed(struct dvb_demux_feed *dvbdmxfeed, int onoff)
 {
