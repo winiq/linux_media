@@ -291,7 +291,6 @@ static int tbs5520se_frontend_attach(struct dvb_usb_adapter *adap)
 
 	if (dvb_attach(av201x_attach, adap->fe_adap[0].fe2, &tbs5520se_av201x_cfg,
 			adapter) == NULL) {
-		err("attach av201x fail");
 		return -ENODEV;
 	}
 	else {
@@ -314,7 +313,9 @@ static int tbs5520se_frontend_attach(struct dvb_usb_adapter *adap)
 			buf, 2, TBS5520se_WRITE_MSG);
 
 	strlcpy(adap->fe_adap[0].fe->ops.info.name,d->props.devices[0].name,52);
+	strcat(adap->fe_adap[0].fe->ops.info.name," DVB-T/T2/C/C2/ISDB-T");
 	strlcpy(adap->fe_adap[0].fe2->ops.info.name,d->props.devices[0].name,52);
+	strcat(adap->fe_adap[0].fe2->ops.info.name," DVB-S/S2/S2X");
 
 	return 0;
 }
@@ -437,7 +438,7 @@ static struct dvb_usb_device_properties tbs5520se_properties = {
 
 	.num_device_descs = 1,
 	.devices = {
-		{"TurboSight TBS 5520 DVB-S/S2/T/T2/C/C2/ISDB-T",
+		{"TurboSight TBS 5520SE",
 			{&tbs5520se_table[0], NULL},
 			{NULL},
 		}
@@ -503,6 +504,6 @@ module_init(tbs5520se_module_init);
 module_exit(tbs5520se_module_exit);
 
 MODULE_AUTHOR("Davin  <smiledavin@hotmail.com>");
-MODULE_DESCRIPTION("TurboSight TBS 5520se driver");
+MODULE_DESCRIPTION("TurboSight TBS 5520SE driver");
 MODULE_VERSION("1.0");
 MODULE_LICENSE("GPL");
