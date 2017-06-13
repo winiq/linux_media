@@ -63,6 +63,27 @@ static void ecp3_spi_write(struct i2c_adapter *i2c,u8 reg, u32 buf)
 
 	return ;
 }
+
+static void mcu_24cxx_read(struct i2c_adapter *i2c,u32 bassaddr, u8 reg, u32 *buf)
+	{	
+		struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+		struct tbsecp3_dev *dev = i2c_adap->dev;
+		*buf = tbs_read(bassaddr,reg );
+
+		printk(" tbsecp3-dvb : mcu_24cxx_read *****bassaddr: %x,  %x = %x*******\n",bassaddr,reg,*buf);
+
+		return ;
+	}
+static void mcu_24cxx_write(struct i2c_adapter *i2c,u32 bassaddr,u8 reg, u32 buf)
+	{
+		struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+		struct tbsecp3_dev *dev = i2c_adap->dev;
+		printk(" tbsecp3-dvb : mcu_24cxx_write ****bassaddr: %x,***%x = %x*******\n",bassaddr,reg,buf);
+		tbs_write(bassaddr, reg, buf);
+	
+		return ;
+	}
+
 static int tbsecp3_set_voltage(struct dvb_frontend* fe,
 		enum fe_sec_voltage voltage)
 {
@@ -223,6 +244,18 @@ static struct av201x_config tbs6902_av201x_cfg = {
 		.xtal_freq	 = 27000,		/* kHz */
 };
 
+static struct tas2101_config tbs6301_demod_cfg = {
+		.i2c_address   = 0x60,
+		.id            = ID_TAS2101,
+		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
+		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
+
+		.mcuWrite_properties = mcu_24cxx_write,  
+		.mcuRead_properties = mcu_24cxx_read,
+
+};
 static struct tas2101_config tbs6904_demod_cfg[] = {
 	{
 		.i2c_address   = 0x60,
@@ -422,7 +455,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 
 	switch (pci->subsystem_vendor) {
 	case 0x6301:
-		adapter->fe = dvb_attach(tas2971_attach, &tbs6904_demod_cfg[adapter->nr], i2c);
+		adapter->fe = dvb_attach(tas2971_attach, &tbs6301_demod_cfg, i2c);
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
 		

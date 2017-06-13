@@ -2200,6 +2200,25 @@ static int dvb_frontend_ioctl_legacy(struct file *file,
 		}
 		err = 0;
 		break;
+
+	case FE_24CXX_READ:
+		//printk("FE_24CXX_READ *****************");
+		if (fe->ops.mcu_read) {
+			struct mcu24cxx_info *info = parg;	
+			fe->ops.mcu_read(fe, info);
+		}
+		err = 0;
+		break;
+	case FE_24CXX_WRITE:
+		//printk("FE_24CXX_WRITE *****************");
+		if (fe->ops.mcu_write) {
+			struct mcu24cxx_info *info = parg;	
+			fe->ops.mcu_write(fe, info);
+		
+		}
+		err = 0;
+		break;
+
 	case FE_GET_INFO: {
 		struct dvb_frontend_info* info = parg;
 
