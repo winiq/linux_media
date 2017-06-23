@@ -1994,49 +1994,6 @@ static  void rtv_UpdateMon(struct mtv23x_dev*dev)
 	regmap_update_bits(dev->regmap,0x11, 0x04, 0x00);
 }
 
-static int mtv23x_read_status(struct dvb_frontend *fe, enum fe_status *status) 
-{
-	struct i2c_client*client = fe->demodulator_priv;
-	struct mtv23x_dev*dev = i2c_get_clientdata(client);
-
-	int  OFDMREG = 0, TMCCL = 0, OFDML = 0;
-	int lock_st = 0;
-
-	rtv_UpdateMon(dev);
-	if (dev->rtv_1seglpmode) {
-		regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
-		regmap_read(dev->regmap,0xC0,&OFDMREG);
-		OFDML = OFDMREG & 0x07;
-	} else {
-		regmap_write(dev->regmap,MAP_SEL_REG,SHAD_PAGE);
-		regmap_read(dev->regmap,0x81,&OFDMREG);
-		OFDML = (OFDMREG & 0x04) >> 2;
-	}
-
-	if (OFDML & 0x01)
-		lock_st = RTV_ISDBT_OFDM_LOCK_MASK;
-
-	regmap_write(dev->regmap,MAP_SEL_REG,FEC_PAGE);
-	regmap_read(dev->regmap,0x10,&TMCCL);
-	
-	if (TMCCL & 0x01)
-		lock_st |= RTV_ISDBT_TMCC_LOCK_MASK;
-
-//	printk("DVB: lock status is 0%x\n",lock_st);
-
-	if (RTV_ISDBT_CHANNEL_LOCK_OK == lock_st) {
-		*status = FE_HAS_LOCK|FE_HAS_SIGNAL|FE_HAS_CARRIER|FE_HAS_VITERBI|FE_HAS_SYNC;
-	} else if (lock_st & RTV_ISDBT_TMCC_LOCK_MASK) {
-		printk("TMCC lock \n");
-	} else if (lock_st & RTV_ISDBT_OFDM_LOCK_MASK) {
-		printk("OFDM lock \n");
-	} else {
-		*status = FE_TIMEDOUT;
-	}
-
-	return  0;
-}
-
 static u32 rtvMTV23x_GetCNR(struct mtv23x_dev*dev)
 {
 	u32 data = 0, cnr = 0;
@@ -2160,19 +2117,99 @@ static s32 rtvMTV23x_GetRSSI(struct mtv23x_dev*dev)
 	return nRssi + nRssiAppDelta;
 }
 
-static int mtv23x_read_snr(struct dvb_frontend *fe, u16 *snr) 
+static int mtv23x_read_status(struct dvb_frontend *fe, enum fe_status *status) 
 {
 	struct i2c_client*client = fe->demodulator_priv;
 	struct mtv23x_dev*dev = i2c_get_clientdata(client);
-	*snr = (u16)rtvMTV23x_GetCNR(dev);
-	return 0;
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
+
+	int  OFDMREG = 0, TMCCL = 0, OFDML = 0;
+	int lock_st = 0, rssi = 0, cnr = 0;
+
+	rssi = rtvMTV23x_GetRSSI(dev);
+	
+	c->strength.len = 2;
+	c->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	c->strength.stat[0].svalue = rssi * 100;
+	
+	c->strength.stat[1].scale = FE_SCALE_RELATIVE;
+	c->strength.stat[1].uvalue = (1000 + rssi) * 65;
+
+
+	rtv_UpdateMon(dev);
+	if (dev->rtv_1seglpmode) {
+		regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
+		regmap_read(dev->regmap,0xC0,&OFDMREG);
+		OFDML = OFDMREG & 0x07;
+	} else {
+		regmap_write(dev->regmap,MAP_SEL_REG,SHAD_PAGE);
+		regmap_read(dev->regmap,0x81,&OFDMREG);
+		OFDML = (OFDMREG & 0x04) >> 2;
+	}
+
+	if (OFDML & 0x01)
+		lock_st = RTV_ISDBT_OFDM_LOCK_MASK;
+
+	regmap_write(dev->regmap,MAP_SEL_REG,FEC_PAGE);
+	regmap_read(dev->regmap,0x10,&TMCCL);
+	
+	if (TMCCL & 0x01)
+		lock_st |= RTV_ISDBT_TMCC_LOCK_MASK;
+
+//	printk("DVB: lock status is 0%x\n",lock_st);
+
+	c->cnr.len =  1;
+	c->cnr.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+
+	if (RTV_ISDBT_CHANNEL_LOCK_OK == lock_st) {
+		*status = FE_HAS_LOCK|FE_HAS_SIGNAL|FE_HAS_CARRIER|FE_HAS_VITERBI|FE_HAS_SYNC;
+
+		cnr = rtvMTV23x_GetCNR(dev);
+		c->cnr.len = 2;
+		c->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+		c->cnr.stat[0].svalue = cnr;
+
+		c->cnr.stat[1].scale = FE_SCALE_RELATIVE;
+		c->cnr.stat[1].uvalue = (cnr/500) * 656;
+		if (c->cnr.stat[1].uvalue > 0xffff)
+			c->cnr.stat[1].uvalue = 0xffff;
+	} else if (lock_st & RTV_ISDBT_TMCC_LOCK_MASK) {
+		printk("TMCC lock \n");
+	} else if (lock_st & RTV_ISDBT_OFDM_LOCK_MASK) {
+		printk("OFDM lock \n");
+	} else {
+		*status = FE_TIMEDOUT;
+	}
+
+	return  0;
 }
+
 static int mtv23x_read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
-	struct i2c_client*client = fe->demodulator_priv;
-	struct mtv23x_dev*dev = i2c_get_clientdata(client);
-	
-	*strength = (u16)rtvMTV23x_GetRSSI(dev);
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
+	int i;
+
+	*strength = 0;
+	for (i=0; i < c->strength.len; i++)
+	{
+		if (c->strength.stat[i].scale == FE_SCALE_RELATIVE)
+			*strength = (u16)c->strength.stat[i].uvalue;
+		else if (c->strength.stat[i].scale == FE_SCALE_DECIBEL)
+			*strength = ((100000 + (s32)c->strength.stat[i].svalue)/1000) * 656;
+	}
+
+	return 0;
+}
+
+static int mtv23x_read_snr(struct dvb_frontend *fe, u16 *snr)
+{
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
+	int i;
+
+	*snr = 0;
+	for (i=0; i < c->cnr.len; i++)
+		if (c->cnr.stat[i].scale == FE_SCALE_RELATIVE)
+		  *snr = (u16)c->cnr.stat[i].uvalue;
 	return 0;
 }
 
@@ -2180,6 +2217,7 @@ static int mtv23x_read_ber(struct dvb_frontend *fe,u32 *ber)
 {
 	struct i2c_client * client = fe->demodulator_priv;
 	struct mtv23x_dev * dev = i2c_get_clientdata(client);
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int FECL = 0, prd0 = 0, prd1 = 0, cnt0 = 0, cnt1 = 0, cnt2 = 0;
 	u32 count, period,ber_temp=10000;
 
@@ -2199,8 +2237,17 @@ static int mtv23x_read_ber(struct dvb_frontend *fe,u32 *ber)
 	} else
 		period = 0;
 
-	if (period)
+	c->post_bit_error.len = c->post_bit_count.len = 1;
+	c->post_bit_error.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+	c->post_bit_count.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+
+	if (period) {
 		ber_temp= (count * 100000) / (period*8*204);
+		c->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
+		c->post_bit_error.stat[0].uvalue = count;
+		c->post_bit_count.stat[0].scale = FE_SCALE_COUNTER;
+		c->post_bit_count.stat[0].uvalue = period*8*204;
+	}
 	
 	*ber = ber_temp/1000;
 	return 0;
