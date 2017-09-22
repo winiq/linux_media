@@ -932,8 +932,8 @@ config DVB_SI2183
 	  Say Y when you want to support this frontend.
 comment "Tools to develop new frontends"
 
-config DVB_STV0910
-	tristate "STV0910 based"
+config DVB_STV091X
+	tristate "STV091x based"
 	depends on DVB_CORE && I2C
 	default m if !MEDIA_SUBDRV_AUTOSELECT
 	help
