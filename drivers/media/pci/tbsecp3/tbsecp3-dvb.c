@@ -23,7 +23,7 @@
 #include "si2168.h"
 #include "si2157.h"
 
-#include "mxl5xx.h"
+#include "mxl58x.h"
 
 #include "si2183.h"
 
@@ -444,7 +444,7 @@ static void RF_switch(struct i2c_adapter *i2c,u8 rf_in,u8 flag)//flag : 0: dvbs/
 
 }
 
-static struct mxl5xx_cfg tbs6909_mxl5xx_cfg = {
+static struct mxl58x_cfg tbs6909_mxl58x_cfg = {
 	.adr		= 0x60,
 	.type		= 0x01,
 	.clk		= 24000000,
@@ -1115,8 +1115,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		printk("RD 0x24 = %x\n", tmp);
 */
 
-		adapter->fe = dvb_attach(mxl5xx_attach, i2c,
-				&tbs6909_mxl5xx_cfg, adapter->nr);
+		adapter->fe = dvb_attach(mxl58x_attach, i2c,
+				&tbs6909_mxl58x_cfg, adapter->nr);
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
 

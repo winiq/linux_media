@@ -22,8 +22,8 @@
 * source code package.
 */
 
-#ifndef __MXL58X_REGISTERS_H__
-#define __MXL58X_REGISTERS_H__
+#ifndef _MXL58X_REGS_H_
+#define _MXL58X_REGS_H_
 
 #ifdef __cplusplus
 extern "C" {
