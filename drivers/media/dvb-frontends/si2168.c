@@ -444,6 +444,8 @@ static int si2168_set_frontend(struct dvb_frontend *fe)
 
 
 	memcpy(cmd.args, "\x14\x00\x08\x10\xcf\x33", 6);
+	cmd.args[4] = (dev->ts_mode==3)?0xd7:0xcf;
+	cmd.args[5] = (dev->ts_mode==3)?0x05:0x33;
     	cmd.wlen = 6;
     	cmd.rlen = 4;
     	ret = si2168_cmd_execute(client, &cmd);
