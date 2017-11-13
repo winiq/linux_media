@@ -356,6 +356,8 @@ int dvb_usb_adapter_frontend_exit(struct dvb_usb_adapter *adap)
 		if (adap->fe_adap[i].fe != NULL) {
 			dvb_unregister_frontend(adap->fe_adap[i].fe);
 			dvb_frontend_detach(adap->fe_adap[i].fe);
+		}
+		if (adap->fe_adap[i].fe2 != NULL) {
 			dvb_unregister_frontend(adap->fe_adap[i].fe2);
 			dvb_frontend_detach(adap->fe_adap[i].fe2);
 		}
