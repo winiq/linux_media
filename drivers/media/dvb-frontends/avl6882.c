@@ -1300,18 +1300,18 @@ static int avl6882_get_frontend(struct dvb_frontend *fe,
 }
 
 static int avl6882_set_property(struct dvb_frontend *fe,
-		struct dtv_property *p)
+		u32 cmd, u32 data)
 {
 	int ret = 0;
 
-	switch (p->cmd) {
+	switch (cmd) {
 	case DTV_DELIVERY_SYSTEM:
-		//printk("DTV_set_prop delsys %d\n", p->u.data);
-		ret = avl6882_set_dvbmode(fe, p->u.data);
+		//printk("DTV_set_prop delsys %d\n", data);
+		ret = avl6882_set_dvbmode(fe, data);
 		if (ret) {
 			printk("error set_dvbmode\n");
 		}
-		switch (p->u.data) {
+		switch (data) {
 		case SYS_DVBC_ANNEX_A:
 			fe->ops.info.frequency_min = 47000000;
 			fe->ops.info.frequency_max = 862000000;
@@ -1332,34 +1332,6 @@ static int avl6882_set_property(struct dvb_frontend *fe,
 			break;
 		}
 
-		break;
-	default:
-		break;
-	}
-
-	return ret;
-}
-
-static int avl6882_get_property(struct dvb_frontend *fe,
-		struct dtv_property *p)
-{
-	int ret = 0;
-	u16 tmp;
-	u32 tmp2;
-
-	switch (p->cmd) {
-	case DTV_STAT_CNR:
-		ret |= avl6882fe_snr(fe, &tmp);
-		p->u.st.stat[0].scale = FE_SCALE_DECIBEL;
-		p->u.st.stat[0].svalue = tmp;
-
-		if (tmp > 25000)
-			tmp2 = 0xffff;
-		else
-			tmp2 = (tmp * 0xffff) / 25000;
-		p->u.st.stat[1].scale = FE_SCALE_RELATIVE;
-		p->u.st.stat[1].svalue = (u16) tmp2;
-		p->u.st.len = 2;
 		break;
 	default:
 		break;
@@ -1421,7 +1393,6 @@ static struct dvb_frontend_ops avl6882_ops = {
 	.tune				= avl6882_tune,
 
 	.set_property			= avl6882_set_property,
-	.get_property			= avl6882_get_property,
 	.set_frontend			= avl6882_set_frontend,
 	.get_frontend = avl6882_get_frontend,
 };

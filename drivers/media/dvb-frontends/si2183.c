@@ -1183,13 +1183,13 @@ static int si2183_get_algo(struct dvb_frontend *fe)
 }
 
 static int si2183_set_property(struct dvb_frontend *fe,
-		struct dtv_property *p)
+		u32 cmd, u32 data)
 {
 	int ret = 0;
 
-	switch (p->cmd) {
+	switch (cmd) {
 	case DTV_DELIVERY_SYSTEM:
-		switch (p->u.data) {
+		switch (data) {
 		case SYS_DVBS:
 		case SYS_DVBS2:
 		case SYS_DSS:

@@ -1763,7 +1763,15 @@ static int dtv_property_process_set(struct dvb_frontend *fe,
 		dev_dbg(fe->dvb->device,
 				"%s: SET cmd 0x%08x (%s) to 0x%08x\n",
 				__func__, cmd, dtv_cmds[cmd].name, data);
-	switch (cmd) {
+
+	/* Allow the frontend to validate incoming properties */
+	if (fe->ops.set_property) {
+		r = fe->ops.set_property(fe, cmd, data);
+		if (r < 0)
+			return r;
+	}
+
+	switch(cmd) {
 	case DTV_CLEAR:
 		/*
 		 * Reset a cache of data specific to the frontend here. This does

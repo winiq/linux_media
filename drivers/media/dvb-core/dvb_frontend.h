@@ -399,10 +399,13 @@ struct dtv_frontend_properties;
  * @ts_bus_ctrl:	callback function used to take control of the TS bus.
  * @set_lna:		callback function to power on/off/auto the LNA.
  * @search:		callback function used on some custom algo search algos.
- * @tuner_ops:		pointer to &struct dvb_tuner_ops
- * @analog_ops:		pointer to &struct analog_demod_ops
+ * @tuner_ops:		pointer to struct dvb_tuner_ops
+ * @analog_ops:		pointer to struct analog_demod_ops
+ * @set_property:	callback function to allow the frontend to validade
+ *			incoming properties. Should not be used on new drivers.
  */
 struct dvb_frontend_ops {
+
 	struct dvb_frontend_info info;
 
 	u8 delsys[MAX_DELSYS];
@@ -462,8 +465,7 @@ struct dvb_frontend_ops {
 	struct dvb_tuner_ops tuner_ops;
 	struct analog_demod_ops analog_ops;
 
-	int (*set_property)(struct dvb_frontend* fe, struct dtv_property* tvp);
-	int (*get_property)(struct dvb_frontend* fe, struct dtv_property* tvp);
+	int (*set_property)(struct dvb_frontend* fe, u32 cmd, u32 data);
 
 	void(*spi_read)( struct dvb_frontend *fe,struct ecp3_info *ecp3inf);
 	void(*spi_write)( struct dvb_frontend *fe,struct ecp3_info *ecp3inf);
