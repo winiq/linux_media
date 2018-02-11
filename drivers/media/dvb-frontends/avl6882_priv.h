@@ -1,9 +1,6 @@
 #ifndef AVL6882_PRIV_H
 #define AVL6882_PRIV_H
 
-#include "dvb_frontend.h"
-
-
 #define MAX_CHANNEL_INFO 256
 
 typedef struct s_DVBTx_Channel_TS

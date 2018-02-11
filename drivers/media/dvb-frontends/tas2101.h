@@ -56,7 +56,7 @@ struct tas2101_config {
 
 
 
-#if IS_ENABLED(CONFIG_DVB_TAS2101)
+#if IS_REACHABLE(CONFIG_DVB_TAS2101)
 extern struct dvb_frontend *tas2101_attach(
 	const struct tas2101_config *cfg,
 	struct i2c_adapter *i2c);

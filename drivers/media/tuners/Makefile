@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0
 #
 # Makefile for common V4L/DVB tuners
 #
@@ -46,6 +47,6 @@ obj-$(CONFIG_MEDIA_TUNER_AV201X) += av201x.o
 obj-$(CONFIG_MEDIA_TUNER_STV6120) += stv6120.o
 obj-$(CONFIG_MEDIA_TUNER_R848) += r848.o
 obj-$(CONFIG_MEDIA_TUNER_MXL603) += mxl603.o
+obj-$(CONFIG_MEDIA_TUNER_TDA18250) += tda18250.o
 
-ccflags-y += -I$(srctree)/drivers/media/dvb-core
 ccflags-y += -I$(srctree)/drivers/media/dvb-frontends

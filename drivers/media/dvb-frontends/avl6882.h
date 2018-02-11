@@ -26,8 +26,7 @@ struct avl6882_config {
 };
 
 
-#if defined(CONFIG_DVB_AVL6882) || (defined(CONFIG_DVB_AVL6882_MODULE) && \
-							defined(MODULE))
+#if IS_REACHABLE(CONFIG_DVB_AVL6882)
 extern struct dvb_frontend *avl6882_attach(struct avl6882_config *config,
 					   struct i2c_adapter *i2c);
 #else
