@@ -50,7 +50,9 @@ struct si2183_config {
 	void (*RF_switch)(struct i2c_adapter * i2c,u8 rf_in,u8 flag);
 	/*rf no.*/
 	u8 rf_in;
-	
+
+	void (*TS_switch)(struct i2c_adapter * i2c,u8 flag);
+	void (*LED_switch)(struct i2c_adapter * i2c,u8 flag);
 	//update the FW.
 	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
 	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
