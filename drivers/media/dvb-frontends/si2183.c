@@ -78,6 +78,8 @@ struct si2183_dev {
 	void (*RF_switch)(struct i2c_adapter * i2c,u8 rf_in,u8 flag);
 	u8 rf_in;
 	u8 active_fe;
+	void (*TS_switch)(struct i2c_adapter * i2c,u8 flag);
+	void (*LED_switch)(struct i2c_adapter * i2c,u8 flag);
 
 	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
 	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
@@ -315,7 +317,7 @@ static int si2183_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	dev->fe_status = *status;
 
 	dev_dbg(&client->dev, "status=%02x args=%*ph\n",
-			*status, cmd.rlen, cmd.args);
+			*status, cmd.rlen, cmd.args); 
 
 	if (fe->ops.tuner_ops.get_rf_strength)
 	{
@@ -419,6 +421,9 @@ static int si2183_set_dvbc(struct dvb_frontend *fe)
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
+	
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,6);
 
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
@@ -482,6 +487,9 @@ static int si2183_set_mcns(struct dvb_frontend *fe)
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop,symb;
+
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,6);
 
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
@@ -551,6 +559,9 @@ static int si2183_set_dvbs(struct dvb_frontend *fe)
 	int ret;
 	u16 prop;
 	u32 pls_mode, pls_code;
+	
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,2);
 
 	/*set SAT agc*/
 	memcpy(cmd.args, "\x8a\x1d\x12\x0\x0\x0", 6);
@@ -635,6 +646,9 @@ static int si2183_set_dvbt(struct dvb_frontend *fe)
 	int ret;
 	u16 prop;
 
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,1);
+
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1;  
  	cmd.wlen = 6;
@@ -713,6 +727,10 @@ static int si2183_set_isdbt(struct dvb_frontend *fe)
 	struct si2183_cmd cmd;
 	int ret;
 	u16 prop;
+	
+	if(dev->LED_switch)
+		dev->LED_switch(dev->base->i2c,5);
+
 
 	memcpy(cmd.args, "\x89\x41\x06\x12\x0\x0", 6);
 	cmd.args[1]= (dev->agc_mode &0x07)<<4 |0x1; 
@@ -790,6 +808,9 @@ static int si2183_set_frontend(struct dvb_frontend *fe)
 		
 		}
 	}
+
+	if(dev->TS_switch)
+		dev->TS_switch(dev->base->i2c,1);
 		
 	if (fe->ops.tuner_ops.set_params) {
 #ifndef SI2183_USE_I2C_MUX
@@ -1498,9 +1519,11 @@ static int si2183_probe(struct i2c_client *client,
 	dev->fw_loaded = false;
 	dev->snr = 0;
 	dev->stat_resp = 0;
-
 	dev->active_fe = 0;
 
+	dev->TS_switch = config->TS_switch;
+	dev->LED_switch = config->LED_switch;
+	
 	dev->write_properties = config->write_properties;
 	dev->read_properties = config->read_properties;
 	

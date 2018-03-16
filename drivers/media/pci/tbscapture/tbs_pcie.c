@@ -754,6 +754,15 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 	
 	tbs_adap = &dev->tbs_pcie_adap[index];
 
+	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0x98, 0x6f,tmp,1);
+	if((tmp[0]&0x01)==0)
+	{
+		printk("HDMI cable is not connect! \n");
+
+		dev->video[index].width = 1280;		
+		dev->video[index].height = 720;
+		return;
+	}
 	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0x68, 0x07,tmp, 2);
 	dev->video[index].width = (tmp[0]&0x1f)*256+tmp[1];		
 	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0x68, 0x09,tmp, 2);
@@ -788,7 +797,7 @@ static void tbs_adapters_init(struct tbs_pcie_dev *dev)
 {
 	struct tbs_adapter *tbs_adap;
 	int i;
-	u8 tmp[2];
+	u8 tmp[8];
 
 	/* disable all interrupts */
 	TBS_PCIE_WRITE(TBS_INT_BASE, TBS_INT_ENABLE, 0x00000001); 
@@ -819,6 +828,15 @@ static void tbs_adapters_init(struct tbs_pcie_dev *dev)
 
 		tbs_get_video_param(dev,i);
 	}
+	//read mac address:
+	tbs_adap = &dev->tbs_pcie_adap[1];
+	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0xa0, 0xa0,tmp, 4);
+	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0xa0, 0xa4,tmp+4, 2);
+	printk("mac address : %x, %x, %x, %x, %x, %x\n", tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
+	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0xa0, 0xb0,tmp, 4);
+	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0xa0, 0xb4,tmp+4, 2);
+	printk("mac address : %x, %x, %x, %x, %x, %x\n", tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);	
+
 }
 
 int tbs_video_register(struct tbs_pcie_dev *dev)

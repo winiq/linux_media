@@ -148,6 +148,14 @@ config DVB_MXL58X
 	  A DVB-S demod and tuner module.
 	  Say Y when you want to support this frontend.
 
+config DVB_TBSPRIV
+	tristate "TBS private virtual demodulator "
+	depends on DVB_CORE && I2C
+	default m if !MEDIA_SUBDRV_AUTOSELECT
+	help
+	  A DVB-S demod and tuner module.
+	  Say Y when you want to support this frontend.
+
 comment "Multistandard (cable + terrestrial) frontends"
 	depends on DVB_CORE
 
