@@ -91,7 +91,7 @@ static int tbs5520_i2c_transfer(struct i2c_adapter *adap,
 			/* read */
 			txbuf[0] = msg[i].len;
 			txbuf[1] = (msg[i].addr << 1) | 1;
-			tbs5520_op_rw(d->udev, 0x93, 0, 0, txbuf, 2, TBS5520_RC_QUERY);
+			tbs5520_op_rw(d->udev, 0x93, 0, 0, txbuf, 2, TBS5520_WRITE_MSG);
 			tbs5520_op_rw(d->udev, 0x91, 0, 0, msg[i].buf, msg[i].len, TBS5520_READ_MSG);
 			//for (j = 0; j < msg[i].len; j++)
 			//	printk(" %02x", msg[i].buf[j]);
@@ -137,7 +137,7 @@ static int tbs5520_i2c_transfer(struct i2c_adapter *adap,
 
 		/* tbs5520_op_rw(struct usb_device *dev, u8 request, u16 value, u16 index, u8 * data, u16 len, int flags) */
 
-		tbs5520_op_rw(d->udev, 0x93, 0, 0, buf6, 2, TBS5520_RC_QUERY);
+		tbs5520_op_rw(d->udev, 0x93, 0, 0, buf6, 2, TBS5520_WRITE_MSG);
 		//msleep(5);
 		tbs5520_op_rw(d->udev, 0x91, 0, 0, inbuf, buf6[0], TBS5520_READ_MSG);
 		memcpy(msg[1].buf, inbuf, msg[1].len);
@@ -160,12 +160,12 @@ static int tbs5520_i2c_transfer(struct i2c_adapter *adap,
 				printk("wr_0:");
 				for (i = 0; i < msg[0].len+2; i++)
 					printk(" %02x", buf6[i]);
-				tbs5520_op_rw(d->udev, 0x80, 0, 0, buf6, msg[0].len+2, TBS5520_RC_QUERY);
+				tbs5520_op_rw(d->udev, 0x80, 0, 0, buf6, msg[0].len+2, TBS5520_WRITE_MSG);
 			} else {
 				printk("wr_1:");
 				for (i = 0; i < msg[0].len; i++)
 					printk(" %02x", msg[0].buf[i]);
-				tbs5520_op_rw(d->udev, 0x82, 0, 0, msg[0].buf, 64, TBS5520_RC_QUERY);
+				tbs5520_op_rw(d->udev, 0x82, 0, 0, msg[0].buf, 64, TBS5520_WRITE_MSG);
 			}
 	printk("\n");
 
