@@ -616,7 +616,6 @@ void video_data_process(struct work_struct *p_work)
 	list_del(&buf->queue);	
 	buf->vb.vb2_buf.timestamp = ktime_get_ns();
 	buf->vb.field = videodev->pixfmt;
-	buf->vb.sequence = videodev->seqnr++;
 	if(videodev->Interlaced){
 		int i;
 		for(i=0;i<videodev->height;i+=2){
@@ -625,7 +624,9 @@ void video_data_process(struct work_struct *p_work)
 			memcpy(buf->mem+(i)*videodev->width*2,
 				(u8*)videodev->dmabuf[videodev->seqnr&1].cpu+(i>>1)*videodev->width*2,videodev->width*2);
 		}
+	buf->vb.sequence = videodev->seqnr++;
 	}else{
+		buf->vb.sequence = videodev->seqnr++;
 		memcpy(buf->mem,(u8*)videodev->dmabuf[videodev->seqnr&1].cpu,videodev->dmabuf[videodev->seqnr&1].size);
 	}
 	vb2_buffer_done(&buf->vb.vb2_buf, VB2_BUF_STATE_DONE);
@@ -752,7 +753,11 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 	u8 tmp[2];
 	u32 tmp_B,v_refq=0;
 	int regval;
-	
+	int offset;
+	if(index)
+		offset = 32;
+	else
+		offset = 8;
 	tbs_adap = &dev->tbs_pcie_adap[index];
 
 	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0x98, 0x6f,tmp,1);
@@ -781,15 +786,15 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 		dev->video[index].Interlaced = 1;
 		
 		//enable PtoI: bit24 set to 1 by gpio offset address 8
-		regval  = TBS_PCIE_READ(0x0, 8);
+		regval  = TBS_PCIE_READ(0x0, offset);
 		regval |=0x1;
-		TBS_PCIE_WRITE(0x0, 8, regval);
+		TBS_PCIE_WRITE(0x0, offset, regval);
 
 	}else{
 		//disable PtoI: bit24 set to default value 0
-		regval  = TBS_PCIE_READ(0x0, 8);
+		regval  = TBS_PCIE_READ(0x0, offset);
 		regval &=0x0;
-		TBS_PCIE_WRITE(0x0, 8, regval);
+		TBS_PCIE_WRITE(0x0, offset, regval);
 
 		i2c_read_reg(&tbs_adap->i2c->i2c_adap,0x68,0x0b,tmp,1);
 		if (tmp[0]&0x20){
@@ -1315,6 +1320,7 @@ fail0:
 
 static const struct pci_device_id tbs_pci_table[] = {
 	MAKE_ENTRY(0x544d, 0x6178, 0x6312, 0x0002, NULL),
+	MAKE_ENTRY(0x544d, 0x6178, 0x6312, 0x2000, NULL),
 	MAKE_ENTRY(0x544d, 0x6178, 0x6314, 0x1000, NULL),
 	{ }
 };
