@@ -533,6 +533,8 @@ static void determine_valid_ioctls(struct video_device *vdev)
 
 	bitmap_zero(valid_ioctls, BASE_VIDIOC_PRIVATE);
 
+	set_bit(_IOC_NR(VIDIOC_TBS_G_CTL), valid_ioctls);
+	set_bit(_IOC_NR(VIDIOC_TBS_S_CTL), valid_ioctls);
 	/* vfl_type and vfl_dir independent ioctls */
 
 	SET_VALID_IOCTL(ops, VIDIOC_QUERYCAP, vidioc_querycap);

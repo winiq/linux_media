@@ -234,6 +234,25 @@ static int tbs_open(struct file *file)
 		
 }
 
+static int tbs_vidioc_get_ctrl(struct file *file, void *fh,
+			        struct v4l2_tbs_data * data)
+{
+	struct tbs_video *videodev = video_drvdata(file);
+	struct tbs_pcie_dev *dev = videodev->dev;
+	data->value  = TBS_PCIE_READ(data->baseaddr, data->reg);
+	printk("read :baseaddr=0x%x, reg=0x%x, value=0x%x\n", data->baseaddr, data->reg, data->value);
+	return 0;
+}
+static int tbs_vidioc_set_ctrl(struct file *file, void *fh,
+			        struct v4l2_tbs_data * data)
+{
+	struct tbs_video *videodev = video_drvdata(file);
+	struct tbs_pcie_dev *dev = videodev->dev;
+	printk("write: baseaddr=0x%x, reg=0x%x, value=0x%x\n", data->baseaddr, data->reg, data->value);
+	TBS_PCIE_WRITE(data->baseaddr,data->reg,data->value);
+	return 0;
+}
+
 static const struct v4l2_file_operations tbs_fops = {
 	.owner		= THIS_MODULE,
 	.open		= tbs_open,//v4l2_fh_open,
@@ -268,8 +287,11 @@ static const struct v4l2_ioctl_ops tbs_ioctl_fops = {
 	.vidioc_subscribe_event = v4l2_ctrl_subscribe_event,
 	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
 	.vidioc_g_parm = tbs_vidioc_g_parm,
+	.vidioc_tbs_g_ctrls = tbs_vidioc_get_ctrl,
+	.vidioc_tbs_s_ctrls = tbs_vidioc_set_ctrl,
 };
-
+//long (*vidioc_default)(struct file *file, void *fh,
+//			       bool valid_prio, unsigned int cmd, void *arg);
 /* calc max # of buffers from size (must not exceed the 4MB virtual
  * address space per DMA channel) */
 static int tbs_buffer_count(unsigned int size, unsigned int count)
@@ -685,8 +707,10 @@ static irqreturn_t tbs_pcie_irq(int irq, void *dev_id)
 
 	if (stat & 0x00000020){//video 0
 		ret = TBS_PCIE_READ(TBS_DMA_BASE_1, 0);
+//printk("video 0 ret: %8x\n",ret);
 		if(dev->video[0].Interlaced){
-			if(ret == 0x1010100){
+		//	if(ret == 0x1010100){
+			if((ret & 0x1010000)==0x1010000){
 				next_video_dma_transfer(&dev->video[0],0);
 				queue_work(wq,&dev->video[0].videowork);
 			}else{
@@ -707,8 +731,10 @@ static irqreturn_t tbs_pcie_irq(int irq, void *dev_id)
 
 	if (stat & 0x00000080){//video 1
 		ret = TBS_PCIE_READ(TBS_DMA_BASE_3, 0);
+//printk("video 1 ret: %8x\n",ret);
 		if(dev->video[1].Interlaced){
-			if(ret == 0x1010100){
+		//	if(ret == 0x1010100){
+			if((ret & 0x1010000)==0x1010000){
 				next_video_dma_transfer(&dev->video[1],0);
 				queue_work(wq,&dev->video[1].videowork);
 			}else{
@@ -782,7 +808,7 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 
 	if(v_refq>30 && dev->video[index].width==1920 && dev->video[index].height==1080) 		
 	{
-		printk("HDMI Progressive change to Interlaced Input  \n");
+		printk("HDMI 1080 50/60 Progressive change to Interlaced Input  \n");
 		dev->video[index].Interlaced = 1;
 		
 		//enable PtoI: bit24 set to 1 by gpio offset address 8
@@ -790,7 +816,8 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 		regval |=0x1;
 		TBS_PCIE_WRITE(0x0, offset, regval);
 
-	}else{
+	}
+	else{
 		//disable PtoI: bit24 set to default value 0
 		regval  = TBS_PCIE_READ(0x0, offset);
 		regval &=0x0;
