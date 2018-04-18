@@ -419,7 +419,6 @@ static int tbs_start_streaming(struct vb2_queue *q, unsigned int count)
 {
 	struct tbs_video *videodev = q->drv_priv;
 	start_video_dma_transfer(videodev);
-
 	videodev->seqnr = 0;	
 	return 0;
 }
@@ -428,6 +427,18 @@ static void tbs_stop_streaming(struct vb2_queue *q)
 {
 	struct tbs_video *videodev = q->drv_priv;
 	unsigned long flags;
+	int offset,regval;
+	int index = videodev->index>>1;
+	struct tbs_pcie_dev *dev = videodev->dev;
+
+	if(index)
+		offset = 32;//video1 read address
+	else
+		offset = 8;//video0 read and write address
+
+	//disable PtoI: bit24 set to default value 0
+	regval =0x0;
+	TBS_PCIE_WRITE(0x0, offset, regval);
 
 	if(videodev->seqnr){
 		//vb2_wait_for_all_buffers(q);		
@@ -780,10 +791,9 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 	u32 tmp_B,v_refq=0;
 	int regval;
 	int offset;
-	if(index)
-		offset = 32;
-	else
-		offset = 8;
+	int ptoi = 0;
+	int itoi = 0;
+
 	tbs_adap = &dev->tbs_pcie_adap[index];
 
 	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0x98, 0x6f,tmp,1);
@@ -806,29 +816,48 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 		v_refq = (unsigned char) ((103663 + (tmp_B -1)) / tmp_B);	
 	dev->video[index].fps=v_refq;
 
+	if(index)
+		offset = 20;//video1 read address
+	else
+		offset = 8;//video0 read and write address
+	ptoi  = TBS_PCIE_READ(0x0, offset);
+	
+	if(index)
+		offset = 32;//video1 write address
+	else
+		offset = 8;
+
 	if(v_refq>30 && dev->video[index].width==1920 && dev->video[index].height==1080) 		
 	{
 		printk("HDMI 1080 50/60 Progressive change to Interlaced Input  \n");
 		dev->video[index].Interlaced = 1;
 		
 		//enable PtoI: bit24 set to 1 by gpio offset address 8
-		regval  = TBS_PCIE_READ(0x0, offset);
-		regval |=0x1;
+		regval =0x1;
 		TBS_PCIE_WRITE(0x0, offset, regval);
 
 	}
 	else{
 		//disable PtoI: bit24 set to default value 0
-		regval  = TBS_PCIE_READ(0x0, offset);
-		regval &=0x0;
-		TBS_PCIE_WRITE(0x0, offset, regval);
+		//regval =0x0;
+		//TBS_PCIE_WRITE(0x0, offset, regval);
 
 		i2c_read_reg(&tbs_adap->i2c->i2c_adap,0x68,0x0b,tmp,1);
 		if (tmp[0]&0x20){
 			printk("HDMI Interlaced Input  \n");
 			dev->video[index].Interlaced = 1;
 			dev->video[index].height<<=1;
-		}else{
+
+			//disable PtoI: bit24 set to default value 0
+			regval =0x0;
+			TBS_PCIE_WRITE(0x0, offset, regval);
+		}
+		else if(ptoi ==1) // deal to ptoi 
+		{
+			printk("HDMI Progressive change to Interlaced Input  \n");
+			dev->video[index].Interlaced = 1;
+		}
+		else{
 			printk("HDMI Progressive Input  \n");
 			dev->video[index].Interlaced = 0;
 		}
