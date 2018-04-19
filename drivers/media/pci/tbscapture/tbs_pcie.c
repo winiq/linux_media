@@ -837,6 +837,16 @@ static void tbs_get_video_param(struct tbs_pcie_dev *dev,int index)
 		TBS_PCIE_WRITE(0x0, offset, regval);
 
 	}
+	else if((v_refq>50) && (dev->video[index].width==1280) && (dev->video[index].height==720)) 		
+	{
+		printk("HDMI 720 60 Progressive change to Interlaced Input  \n");
+		dev->video[index].Interlaced = 1;
+		
+		//enable PtoI: bit24 set to 1 by gpio offset address 8
+		regval =0x1;
+		TBS_PCIE_WRITE(0x0, offset, regval);
+
+	}
 	else{
 		//disable PtoI: bit24 set to default value 0
 		//regval =0x0;
