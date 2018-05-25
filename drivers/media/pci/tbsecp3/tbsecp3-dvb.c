@@ -141,7 +141,8 @@ static void tbs6304_read_mac(struct tbsecp3_adapter *adap)
 	//read back to host;
 	*(u32 *)rdbuffer = tbs_read(  BASE_ADDRESS_24CXX, DATA0_24CXX );
 	*(u32 *)&rdbuffer[4] = tbs_read(  BASE_ADDRESS_24CXX, DATA1_24CXX );
-
+	
+	memcpy(adap->dvb_adapter.proposed_mac, rdbuffer,6);
 	printk(" tbs6304 adapter %d ,mac address: %x,%x,%x,%x,%x,%x \n",adap->dvb_adapter.num,rdbuffer[0],rdbuffer[1],rdbuffer[2],rdbuffer[3],rdbuffer[4],rdbuffer[5]);
 
 	return ;
@@ -201,7 +202,7 @@ static void tbs6301_read_mac(struct tbsecp3_adapter *adap)
 	//read back to host;
 	*(u32 *)rdbuffer = tbs_read(  BASE_ADDRESS_24CXX, DATA0_24CXX );
 	*(u32 *)&rdbuffer[4] = tbs_read(  BASE_ADDRESS_24CXX, DATA1_24CXX );
-
+	memcpy(adap->dvb_adapter.proposed_mac, rdbuffer,6);
 	printk(" tbs6301 mac address: %x,%x,%x,%x,%x,%x \n",rdbuffer[0],rdbuffer[1],rdbuffer[2],rdbuffer[3],rdbuffer[4],rdbuffer[5]);
 
 	return ;
