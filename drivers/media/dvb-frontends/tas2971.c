@@ -36,6 +36,7 @@
 #endif
 #endif
 
+LIST_HEAD(stvlist);
 
 /* write multiple (continuous) registers */
 /* the first value is the starting address */
@@ -535,7 +536,12 @@ static void tas2101_release(struct dvb_frontend *fe)
 	i2c_del_mux_adapter(priv->i2c_tuner);
 #endif
 #endif
+	
+	priv->count--;
+	if(priv->count == 0){
+	list_del(&priv->stvlist);
 	kfree(priv);
+	}
 }
 
 #ifdef TAS2971_USE_I2C_MUX
@@ -597,6 +603,16 @@ err:
 
 static struct dvb_frontend_ops tas2101_ops;
 
+static struct tas2101_priv *match_base(struct i2c_adapter  *i2c)
+{
+	struct tas2101_priv *p;
+
+	list_for_each_entry(p, &stvlist, stvlist)
+		if (p->i2c == i2c)
+			return p;
+	return NULL;
+}
+
 struct dvb_frontend *tas2971_attach(const struct tas2101_config *cfg,
 	struct i2c_adapter *i2c)
 {
@@ -606,11 +622,16 @@ struct dvb_frontend *tas2971_attach(const struct tas2101_config *cfg,
 	printk(KERN_INFO "begin Attaching frontend\n");
 	dev_dbg(&i2c->dev, "%s: Attaching frontend\n", KBUILD_MODNAME);
 
+	priv = match_base(i2c);
+	if(priv)
+		priv->count++;
+	else{
 	/* allocate memory for the priv data */
 	priv = kzalloc(sizeof(struct tas2101_priv), GFP_KERNEL);
 	if (priv == NULL)
 		goto err;
-
+	priv->count =1;
+	list_add(&priv->stvlist, &stvlist);
 	priv->cfg = cfg;
 	priv->i2c = i2c;
 	priv->i2c_ch = 0;
@@ -668,6 +689,8 @@ struct dvb_frontend *tas2971_attach(const struct tas2101_config *cfg,
 	//	ret |= -EIO;
 	//if (ret)
 		//goto err3;
+	}
+
 	printk(KERN_INFO "end Attaching frontend\n");
 	return &priv->fe;
 
