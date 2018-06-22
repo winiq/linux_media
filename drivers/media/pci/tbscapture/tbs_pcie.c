@@ -721,7 +721,7 @@ static irqreturn_t tbs_pcie_irq(int irq, void *dev_id)
 //printk("video 0 ret: %8x\n",ret);
 		if(dev->video[0].Interlaced){
 		//	if(ret == 0x1010100){
-			if((ret & 0x1010000)==0x1010000){
+			if((ret & 0x1000000)==0x1000000){
 				next_video_dma_transfer(&dev->video[0],0);
 				queue_work(wq,&dev->video[0].videowork);
 			}else{
@@ -745,13 +745,12 @@ static irqreturn_t tbs_pcie_irq(int irq, void *dev_id)
 //printk("video 1 ret: %8x\n",ret);
 		if(dev->video[1].Interlaced){
 		//	if(ret == 0x1010100){
-			if((ret & 0x1010000)==0x1010000){
+			if((ret & 0x1000000)==0x1000000){
 				next_video_dma_transfer(&dev->video[1],0);
 				queue_work(wq,&dev->video[1].videowork);
 			}else{
 				next_video_dma_transfer(&dev->video[1],1);
 			}
-
 		}else{
 			next_video_dma_transfer(&dev->video[1],1);
 			queue_work(wq,&dev->video[1].videowork);
@@ -1038,7 +1037,7 @@ int tbs_video_register(struct tbs_pcie_dev *dev)
 			printk(KERN_ERR " v4l2_device_register failed!\n");
 			goto fail;
 		}else{
-			printk(" TBS 6312 HDMI Capture %d register OK! \n",i);
+			printk(" TBS HDMI Capture %d register OK! \n",i);
 		}
 	}
 	return 0;

@@ -205,22 +205,22 @@ static int tbs6308_read_mac_ext(struct tbsecp3_adapter *adap)
 	
 	tbs_write_ext( adap, BASE_ADDRESS_24CXX, CMD_24CXX, *(u32 *)&tmpbuf[0] );
 	//wait... until the data are received correctly;
-	for(i=0;i<1000;i++)
+	for(i=0;i<200;i++)
 	{
 		msleep(1);
 		*(u32 *)tmpbuf = tbs_read_ext( adap, BASE_ADDRESS_24CXX, STATUS_MAC16_24CXX );
 		if((tmpbuf[0]&1) == 0)
 			break;
 	}
-	if(i==1000)
+	if(i==200)
 	{
-		printk(" the receiver always busy !\n");
+		//printk(" the receiver always busy !\n");
 		ret = 0;
 		//check mcu status
 		*(u32 *)tmpbuf = tbs_read_ext(adap, BASE_ADDRESS_24CXX,  STATUS_MAC16_24CXX );
 		if((tmpbuf[0]&0x4) == 1) // bit2==1 mcu busy
 		{
-			printk("MCU status is busy!!!\n" );
+			//printk("MCU status is busy!!!\n" );
 			// release cs;
 			tbs_write_ext( adap,BASE_ADDRESS_24CXX,  CS_RELEASE, *(u32 *)&tmpbuf[0] );
 			ret = 0;
@@ -230,16 +230,16 @@ static int tbs6308_read_mac_ext(struct tbsecp3_adapter *adap)
 	// release cs;
 	tbs_write_ext( adap, BASE_ADDRESS_24CXX, CS_RELEASE, *(u32 *)&tmpbuf[0] );
 	//check the write finished;
-	for(i=0;i<1000;i++)
+	for(i=0;i<200;i++)
 	{
 		msleep(1);
 		*(u32 *)tmpbuf = tbs_read_ext( adap, BASE_ADDRESS_24CXX, STATUS_MAC16_24CXX );
 		if((tmpbuf[0]&1) == 1)
 			break;
 	}
-	if(i==1000)
+	if(i==200)
 	{
-		printk(" wait wt_24cxx_done timeout! \n");
+		//printk(" wait wt_24cxx_done timeout! \n");
 		ret=0;
 	}
 	//read back to host;
