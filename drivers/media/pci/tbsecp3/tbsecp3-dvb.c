@@ -84,10 +84,10 @@ static void mcu_24cxx_write(struct i2c_adapter *i2c,u32 bassaddr,u8 reg, u32 buf
 	return ;
 }
 
-static void tbs6304_read_mac(struct tbsecp3_adapter *adap)
+static int tbs6304_read_mac(struct tbsecp3_adapter *adap)
 {
 	struct tbsecp3_dev *dev = adap->dev;
-
+	int ret = 1;
 	int i =0;
 	u32 postaddr;
 	unsigned char tmpbuf[4]={0};
@@ -112,15 +112,16 @@ static void tbs6304_read_mac(struct tbsecp3_adapter *adap)
 	}
 	if(i==100)
 	{
-		printk(" the receiver always busy !\n");
+		ret = 0;
+		//printk(" the receiver always busy !\n");
 		//check mcu status
 		*(u32 *)tmpbuf = tbs_read( BASE_ADDRESS_24CXX,  STATUS_MAC16_24CXX );
 		if((tmpbuf[0]&0x4) == 1) // bit2==1 mcu busy
 		{
-			printk("MCU status is busy!!!\n" );
+			//printk("MCU status is busy!!!\n" );
 			// release cs;
 			tbs_write( BASE_ADDRESS_24CXX,  CS_RELEASE, *(u32 *)&tmpbuf[0] );
-			return;
+			ret = 0;
 		}
 		
 	}
@@ -136,16 +137,19 @@ static void tbs6304_read_mac(struct tbsecp3_adapter *adap)
 	}
 	if(i==100)
 	{
-		printk(" wait wt_24cxx_done timeout! \n");
+		ret = 0;
+		//printk(" wait wt_24cxx_done timeout! \n");
 	}
 	//read back to host;
 	*(u32 *)rdbuffer = tbs_read(  BASE_ADDRESS_24CXX, DATA0_24CXX );
 	*(u32 *)&rdbuffer[4] = tbs_read(  BASE_ADDRESS_24CXX, DATA1_24CXX );
-	
-	memcpy(adap->dvb_adapter.proposed_mac, rdbuffer,6);
-	printk("adapter %d ,mac address: %x,%x,%x,%x,%x,%x \n",adap->dvb_adapter.num,rdbuffer[0],rdbuffer[1],rdbuffer[2],rdbuffer[3],rdbuffer[4],rdbuffer[5]);
+	if(ret!=0)
+	{
+		memcpy(adap->dvb_adapter.proposed_mac, rdbuffer,6);
+		printk("adapter %d ,mac address: %x,%x,%x,%x,%x,%x \n",adap->dvb_adapter.num,rdbuffer[0],rdbuffer[1],rdbuffer[2],rdbuffer[3],rdbuffer[4],rdbuffer[5]);
+	}
 
-	return ;
+	return ret;
 };
 static void tbs_write_ext(struct tbsecp3_adapter *adap, u32 baseaddr, u8 address, u32 data)
 {
@@ -400,6 +404,7 @@ static int set_mac_address(struct tbsecp3_adapter *adap)
 	else
 		eep_addr = 0xa0;
 	eep_addr += 0x10 * adap->nr;
+	ret = i2c_transfer(i2c, msg, 2);
 	ret = i2c_transfer(i2c, msg, 2);
 	if (ret != 2) {
 		dev_warn(&dev->pci_dev->dev,
@@ -749,7 +754,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
                 goto frontend_atach_fail;
 		if(adapter->nr <4)
 		{
-			tbs6304_read_mac(adapter);
+			if(tbs6304_read_mac(adapter)==0)
+	    			tbs6304_read_mac(adapter);
 		}
 		else
 		{
@@ -761,7 +767,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
             adapter->fe = dvb_attach(tas2971_attach, &tbs6304_demod_cfg[adapter->nr], i2c);
             if (adapter->fe == NULL)
                 goto frontend_atach_fail;
-	    tbs6304_read_mac(adapter);
+	    if(tbs6304_read_mac(adapter)==0)
+	    	tbs6304_read_mac(adapter);
             break;
         case 0x6301:
             adapter->fe = dvb_attach(tas2971_attach, &tbs6301_demod_cfg, i2c);
