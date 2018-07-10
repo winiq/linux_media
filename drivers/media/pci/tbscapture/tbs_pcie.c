@@ -229,7 +229,7 @@ static int tbs_open(struct file *file)
 {
 	struct tbs_video *videodev = video_drvdata(file);
 	struct pci_dev *pci = videodev->dev->pdev;
-	if((pci->subsystem_vendor == 0x6314) &&(pci->subsystem_device == 0x8000)) //tbs6314 sdi
+	if(pci->subsystem_vendor == 0x6324) //tbs6324 sdi
 	{
 		tbs_sdi_video_param(videodev->dev, videodev->index>>1);
 	}
@@ -1167,6 +1167,10 @@ static void tbs_adapters_init(struct tbs_pcie_dev *dev)
 		printk("tbs6314 card\n");
 		dev->nr = 1;
 		break;
+	case 0x6324:
+		printk("tbs6324 card\n");
+		dev->nr = 1;
+		break;
 	default:
 		printk("unknonw card\n");
 	}
@@ -1176,7 +1180,7 @@ static void tbs_adapters_init(struct tbs_pcie_dev *dev)
 	tbs_adap->dev = dev;
 	tbs_adap->count = i;
 	tbs_adap->i2c = &dev->i2c_bus[i];
-	if((pci->subsystem_vendor == 0x6314) &&(pci->subsystem_device == 0x8000)) //tbs6314 sdi
+	if(pci->subsystem_vendor == 0x6324) //tbs6324 sdi
 	{
 		// init asi
 		int regdata;
@@ -1367,10 +1371,10 @@ int tbs_pcie_audio_open(struct snd_pcm_substream *substream)
 	chip->substream = substream;
 	runtime->hw = mycard_capture_stero;
 	
-	if((pci->subsystem_vendor == 0x6314) &&(pci->subsystem_device == 0x8000)) //tbs6314 sdi
+	if(pci->subsystem_vendor == 0x6324) //tbs6324 sdi
 	{
 		setrate=48000;//sdi
-		//printk(KERN_INFO " tbs6314 sdi audio set to 48000\n");
+		//printk(KERN_INFO " tbs6324 sdi audio set to 48000\n");
 	}
 	else
 	{
@@ -1659,7 +1663,7 @@ static const struct pci_device_id tbs_pci_table[] = {
 	MAKE_ENTRY(0x544d, 0x6178, 0x6312, 0x0002, NULL),
 	MAKE_ENTRY(0x544d, 0x6178, 0x6312, 0x2000, NULL),
 	MAKE_ENTRY(0x544d, 0x6178, 0x6314, 0x1000, NULL),
-	MAKE_ENTRY(0x544d, 0x6178, 0x6314, 0x8000, NULL), // sdi
+	MAKE_ENTRY(0x544d, 0x6178, 0x6324, 0x8000, NULL), // sdi
 	{ }
 };
 MODULE_DEVICE_TABLE(pci, tbs_pci_table);
