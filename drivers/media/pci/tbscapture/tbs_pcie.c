@@ -1006,7 +1006,7 @@ static void tbs_sdi_video_param(struct tbs_pcie_dev *dev,int index)
 	{
 		printk("HDMI 1080 50/60 Progressive change to Interlaced Input  \n");
 		dev->video[index].Interlaced = 1;
-		
+		dev->video[index].fps>>=1;
 		//enable PtoI: bit24 set to 1 by gpio offset address 8
 		regval =0x1;
 		TBS_PCIE_WRITE(0x0, 8, regval);
@@ -1018,7 +1018,10 @@ static void tbs_sdi_video_param(struct tbs_pcie_dev *dev,int index)
 		TBS_PCIE_WRITE(0x0, 8, regval);
 		dev->video[index].Interlaced = v_interlaced;
 		if(v_interlaced)
+		{
+			dev->video[index].fps>>=1;
 			printk("HDMI Interlaced Input  \n");
+		}
 		else
 			printk("HDMI Progressive Input  \n");
 	}
@@ -1072,7 +1075,7 @@ static void tbs_hdmi_video_param(struct tbs_pcie_dev *dev,int index)
 	{
 		printk("HDMI 1080 50/60 Progressive change to Interlaced Input  \n");
 		dev->video[index].Interlaced = 1;
-		
+		dev->video[index].fps>>=1;
 		//enable PtoI: bit24 set to 1 by gpio offset address 8
 		regval =0x1;
 		TBS_PCIE_WRITE(0x0, offset, regval);
@@ -1082,7 +1085,7 @@ static void tbs_hdmi_video_param(struct tbs_pcie_dev *dev,int index)
 	{
 		printk("HDMI 720 60 Progressive change to Interlaced Input  \n");
 		dev->video[index].Interlaced = 1;
-		
+		dev->video[index].fps>>=1;
 		//enable PtoI: bit24 set to 1 by gpio offset address 8
 		regval =0x1;
 		TBS_PCIE_WRITE(0x0, offset, regval);
@@ -1098,7 +1101,7 @@ static void tbs_hdmi_video_param(struct tbs_pcie_dev *dev,int index)
 			printk("HDMI Interlaced Input  \n");
 			dev->video[index].Interlaced = 1;
 			dev->video[index].height<<=1;
-
+			dev->video[index].fps>>=1;
 			//disable PtoI: bit24 set to default value 0
 			regval =0x0;
 			TBS_PCIE_WRITE(0x0, offset, regval);
@@ -1107,6 +1110,7 @@ static void tbs_hdmi_video_param(struct tbs_pcie_dev *dev,int index)
 		{
 			printk("HDMI Progressive change to Interlaced Input  \n");
 			dev->video[index].Interlaced = 1;
+			dev->video[index].fps>>=1;
 		}
 		else{
 			printk("HDMI Progressive Input  \n");
