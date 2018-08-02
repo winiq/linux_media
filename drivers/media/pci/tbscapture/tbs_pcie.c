@@ -1031,6 +1031,7 @@ static void tbs_sdi_video_param(struct tbs_pcie_dev *dev,int index)
 static void tbs_hdmi_video_param(struct tbs_pcie_dev *dev,int index)
 {
 	struct tbs_adapter *tbs_adap;
+	struct pci_dev *pci = dev->pdev;
 	u8 tmp[2];
 	u32 tmp_B,v_refq=0;
 	int regval;
@@ -1081,7 +1082,7 @@ static void tbs_hdmi_video_param(struct tbs_pcie_dev *dev,int index)
 		TBS_PCIE_WRITE(0x0, offset, regval);
 
 	}
-	else if((v_refq>50) && (dev->video[index].width==1280) && (dev->video[index].height==720)) 		
+	else if((v_refq>50) && (dev->video[index].width==1280) && (dev->video[index].height==720) &&(pci->subsystem_vendor ==0x6312)) 		
 	{
 		printk("HDMI 720 60 Progressive change to Interlaced Input  \n");
 		dev->video[index].Interlaced = 1;
@@ -1129,7 +1130,7 @@ static void tbs6314_mac(struct tbs_adapter *tbs_adap)
 	tbs_adap = &dev->tbs_pcie_adap[0];
 	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0xa0, 0xa0,tmp, 4);
 	i2c_read_reg(&tbs_adap->i2c->i2c_adap,0xa0, 0xa4,tmp+4, 2);
-	printk("mac address : %x, %x, %x, %x, %x, %x\n", tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
+	//printk("mac address : %x, %x, %x, %x, %x, %x\n", tmp[0],tmp[1],tmp[2],tmp[3],tmp[4],tmp[5]);
 
 }
 static void tbs6312_mac(struct tbs_adapter *tbs_adap)
