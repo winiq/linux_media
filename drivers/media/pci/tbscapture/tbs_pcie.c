@@ -1004,7 +1004,7 @@ static void tbs_sdi_video_param(struct tbs_pcie_dev *dev,int index)
 
 	if(!v_interlaced && v_refq>30 && dev->video[index].width==1920 && dev->video[index].height==1080) 		
 	{
-		printk("HDMI 1080 50/60 Progressive change to Interlaced Input  \n");
+		printk("SDI 1080 50/60 Progressive change to Interlaced Input  \n");
 		dev->video[index].Interlaced = 1;
 		dev->video[index].fps>>=1;
 		//enable PtoI: bit24 set to 1 by gpio offset address 8
@@ -1020,10 +1020,10 @@ static void tbs_sdi_video_param(struct tbs_pcie_dev *dev,int index)
 		if(v_interlaced)
 		{
 			dev->video[index].fps>>=1;
-			printk("HDMI Interlaced Input  \n");
+			printk("SDI Interlaced Input  \n");
 		}
 		else
-			printk("HDMI Progressive Input  \n");
+			printk("SDI Progressive Input  \n");
 	}
 	printk("pix:%d line:%d frameRate:%d IorP:%d regvalue:%x\n",dev->video[index].width,dev->video[index].height,v_refq,dev->video[index].Interlaced,v_regdata );	
 
@@ -1308,7 +1308,7 @@ int tbs_video_register(struct tbs_pcie_dev *dev)
 			printk(KERN_ERR " v4l2_device_register failed!\n");
 			goto fail;
 		}else{
-			printk(" TBS HDMI Capture %d register OK! \n",i);
+			printk(" TBS video Capture %d register OK! \n",i);
 		}
 	}
 	return 0;
