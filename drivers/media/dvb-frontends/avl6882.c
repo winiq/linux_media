@@ -1313,22 +1313,22 @@ static int avl6882_set_property(struct dvb_frontend *fe,
 		}
 		switch (data) {
 		case SYS_DVBC_ANNEX_A:
-			fe->ops.info.frequency_min = 47000000;
-			fe->ops.info.frequency_max = 862000000;
-			fe->ops.info.frequency_stepsize = 62500;
+			fe->ops.info.frequency_min_hz = 470 * MHz;
+			fe->ops.info.frequency_max_hz = 862 * MHz;
+			fe->ops.info.frequency_stepsize_hz = 62500;
 			break;
 		case SYS_DVBS:
 		case SYS_DVBS2:
-			fe->ops.info.frequency_min = 950000;
-			fe->ops.info.frequency_max = 2150000;
-			fe->ops.info.frequency_stepsize = 0;
+			fe->ops.info.frequency_min_hz = 950 * MHz;
+			fe->ops.info.frequency_max_hz = 2150 * MHz;
+			fe->ops.info.frequency_stepsize_hz = 0;
 			break;
 		case SYS_DVBT:
 		case SYS_DVBT2:
 		default:
-			fe->ops.info.frequency_min = 174000000;
-			fe->ops.info.frequency_max = 862000000;
-			fe->ops.info.frequency_stepsize = 250000;
+			fe->ops.info.frequency_min_hz = 174 * MHz;
+			fe->ops.info.frequency_max_hz = 862 * MHz;
+			fe->ops.info.frequency_stepsize_hz = 250000;
 			break;
 		}
 
@@ -1344,10 +1344,10 @@ static struct dvb_frontend_ops avl6882_ops = {
 	.delsys = {SYS_DVBT, SYS_DVBT2, SYS_DVBC_ANNEX_A, SYS_DVBS, SYS_DVBS2},
 	.info = {
 		.name			= "Availink AVL6882",
-		.frequency_min		= 0,
-		.frequency_max		= 0,
-		.frequency_stepsize	= 0,
-		.frequency_tolerance	= 0,
+		.frequency_min_hz	= 0,
+		.frequency_max_hz	= 0,
+		.frequency_stepsize_hz	= 0,
+		.frequency_tolerance_hz	= 0,
 		.symbol_rate_min	= 1000000,
 		.symbol_rate_max	= 45000000,
 		.caps = FE_CAN_FEC_1_2                 |
