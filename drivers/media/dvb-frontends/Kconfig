@@ -951,6 +951,8 @@ config DVB_SI2183
 	help
 	  Say Y when you want to support this frontend.
 
+source "drivers/media/dvb-frontends/stid135/Kconfig"
+
 comment "Silicon tuners"
 	depends on DVB_CORE
 
