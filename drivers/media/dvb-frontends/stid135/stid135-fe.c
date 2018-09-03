@@ -38,7 +38,7 @@
 
 LIST_HEAD(stvlist);
 
-static int mode = 1;
+static int mode;
 module_param(mode, int, 0444);
 MODULE_PARM_DESC(mode,
 		"Multi-switch mode: 0=quattro/quad 1=normal direct connection");
