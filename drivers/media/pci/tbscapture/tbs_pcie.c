@@ -229,8 +229,22 @@ static int tbs_open(struct file *file)
 {
 	struct tbs_video *videodev = video_drvdata(file);
 	struct pci_dev *pci = videodev->dev->pdev;
+	u32 temp1,temp2;
+	u32 h_para,v_para;
+	u32 frame_ps,pori;
+	struct tbs_pcie_dev *dev = videodev->dev;
 	if(pci->subsystem_vendor == 0x6324) //tbs6324 sdi
 	{
+		temp1= TBS_PCIE_READ(0x0,40);
+		temp2 =TBS_PCIE_READ(0x0,44);
+		h_para = ((temp1 & 0xff)<<8) + ((temp1 & 0xff00)>>8);
+		v_para = ((temp1 & 0xff0000)>>8) + ((temp1 & 0xff000000)>>24);
+		frame_ps = temp2 &0xff;
+		pori = (temp2>>8) & 0xff;
+		
+
+		printk("fpga get para: %x, %x == v:%d, h:%d, frame:%d, P:%d\n", temp1,temp2,v_para,h_para,frame_ps,pori);
+
 		tbs_sdi_video_param(videodev->dev, videodev->index>>1);
 	}
 	else //hdmi
@@ -850,6 +864,7 @@ static void signaltable(u32 val, u32 *wid, u32 *high,u32 *freq, u32 *interlaced 
 			*freq = 30;
 			*interlaced = 0;
 		break;
+
 		case 0x0d:
 			// 1920*1080p @ 25hz
 			*wid = 1920;
@@ -857,6 +872,7 @@ static void signaltable(u32 val, u32 *wid, u32 *high,u32 *freq, u32 *interlaced 
 			*freq = 25;
 			*interlaced = 0; 
 		break;
+
 		case 0x30:
 		case 0x10:
 			// 1920*1080p @ 23.98/24hz
