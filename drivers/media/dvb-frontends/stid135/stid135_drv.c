@@ -4705,6 +4705,14 @@ static fe_lla_error_t fe_stid135_manage_matype_info(fe_stid135_handle_t handle,
 				if((genuine_matype >> 3) & 0x1) {
 					error |= ChipSetField(pParams->handle_demod, FLD_FC8CODEW_DVBSX_HWARE_TSPCRPID1_SOFFIFO_PCRADJ(Demod), 1);
 				}
+				else {
+					error |= ChipSetField(pParams->handle_demod, FLD_FC8CODEW_DVBSX_HWARE_TSSTATE1_TSOUT_NOSYNC(Demod), 1);
+				}
+			}
+
+			/* ACM mode trick */
+			if(!((genuine_matype >> 4) & 0x1)) {
+				error |= ChipSetField(pParams->handle_demod, FLD_FC8CODEW_DVBSX_HWARE_TSSTATE1_TSACM_MODE(Demod), 1);
 			}
 
 			/* If TS/GS = 11 (MPEG TS), reset matype force bit and do NOT load frames in MPEG packets */
