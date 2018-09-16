@@ -794,6 +794,11 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		    goto frontend_atach_fail;
 		}
 		adapter->i2c_client_demod = client_demod;
+
+		memset(adapter->fe->ops.delsys, 0, MAX_DELSYS);
+		adapter->fe->ops.delsys[0] = SYS_DVBS;
+		adapter->fe->ops.delsys[1] = SYS_DVBS2;
+		adapter->fe->ops.delsys[2] = SYS_DSS;
 		
 		if (dvb_attach(av201x_attach, adapter->fe, &tbs6522_av201x_cfg[(adapter->nr%2)],
 			    i2c) == NULL) {
