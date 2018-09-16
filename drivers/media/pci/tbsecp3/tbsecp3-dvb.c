@@ -391,7 +391,7 @@ static int set_mac_address(struct tbsecp3_adapter *adap)
 	struct tbsecp3_dev *dev = adap->dev;
 	u8 eeprom_bus_nr = dev->info->eeprom_i2c;
 	struct i2c_adapter *i2c = &dev->i2c_bus[eeprom_bus_nr].i2c_adap;
-	u8 eep_addr;
+	u8 eep_addr = 0xa0;
 	int ret;
 
 	struct i2c_msg msg[] = {
@@ -404,7 +404,7 @@ static int set_mac_address(struct tbsecp3_adapter *adap)
 	if (dev->info->eeprom_addr)
 		eep_addr = dev->info->eeprom_addr;
 	
-	eep_addr = eep_addr+ 0x10 * adap->nr;
+	eep_addr += 0x10 * adap->nr;
 	
 	ret = i2c_transfer(i2c, msg, 2);
 	ret = i2c_transfer(i2c, msg, 2);
