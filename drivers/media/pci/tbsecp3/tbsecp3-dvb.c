@@ -37,7 +37,6 @@
 #include "gx1503.h"
 #include "tas2971.h"
 
-#include "stid135.h"
 
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
@@ -721,23 +720,7 @@ static struct av201x_config tbs6522_av201x_cfg[] = {
 	},
 };
 
-static struct stid135_cfg tbs6903x_stid135_cfg = {
-	.adr		= 0x68,
-	.clk		= 27,
-	.ts_mode	= TS_2PAR,
-	.set_voltage	= NULL,
-	.write_properties = ecp3_spi_write, 
-	.read_properties = ecp3_spi_read,
-};
 
-static struct stid135_cfg tbs6909x_stid135_cfg = {
-	.adr		= 0x68,
-	.clk		= 27,
-	.ts_mode	= TS_STFE,
-	.set_voltage	= max_set_voltage,
-	.write_properties = ecp3_spi_write, 
-	.read_properties = ecp3_spi_read,
-};
 
 static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 {
@@ -1456,26 +1439,6 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		}
 
 		tbsecp3_ca_init(adapter, adapter->nr);
-		break;
-
-	case TBSECP3_BOARD_TBS6909X:
-		adapter->fe = dvb_attach(stid135_attach, i2c,
-				&tbs6909x_stid135_cfg, adapter->nr, adapter->nr/2);
-		if (adapter->fe == NULL)
-			goto frontend_atach_fail;
-		break;
-
-	case TBSECP3_BOARD_TBS6903X:
-		adapter->fe = dvb_attach(stid135_attach, i2c,
-				&tbs6903x_stid135_cfg, adapter->nr ? 2 : 0, adapter->nr ? 3 : 0);
-		if (adapter->fe == NULL)
-			goto frontend_atach_fail;
-
-		if (tbsecp3_attach_sec(adapter, adapter->fe) == NULL) {
-			dev_warn(&dev->pci_dev->dev,
-				"error attaching lnb control on adapter %d\n",
-				adapter->nr);
-		}
 		break;
 
 	default:
