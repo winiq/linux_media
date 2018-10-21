@@ -353,6 +353,19 @@ enum fe_modulation {
 	APSK_32,
 	DQPSK,
 	QAM_4_NR,
+	QAM_512,
+	QAM_1024,
+	QAM_4096,
+	APSK_64,
+	APSK_128,
+	APSK_256,
+	APSK_8L,
+	APSK_16L,
+	APSK_32L,
+	APSK_64L,
+	APSK_128L,
+	APSK_256L,
+	APSK_1024,
 };
 
 /**
@@ -584,6 +597,9 @@ enum fe_rolloff {
 	ROLLOFF_20,
 	ROLLOFF_25,
 	ROLLOFF_AUTO,
+	ROLLOFF_15,
+	ROLLOFF_10,
+	ROLLOFF_5,
 };
 
 /**
