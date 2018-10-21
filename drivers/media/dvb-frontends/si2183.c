@@ -908,6 +908,9 @@ static int si2183_init(struct dvb_frontend *fe)
 	if (dev->fw_loaded) {
 		/* resume */
 		memcpy(cmd.args, "\xc0\x06\x08\x0f\x00\x20\x21\x01", 8);
+		
+		if(dev->start_clk_mode==1)
+				cmd.args[6]=0x31;	
 		cmd.wlen = 8;
 		cmd.rlen = 1;
 		ret = si2183_cmd_execute(client, &cmd);
