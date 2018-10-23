@@ -47,6 +47,10 @@ static unsigned int ts_nosync=1;
 module_param(ts_nosync, int, 0644);
 MODULE_PARM_DESC(ts_nosync, "TS FIFO Minimum latence mode (default:on)");
 
+static unsigned int rfsource;
+module_param(rfsource, int, 0644);
+MODULE_PARM_DESC(rfsource, "RF source selection for direct connection mode (default:0 - auto)");
+
 struct stv_base {
 	struct list_head     stvlist;
 
@@ -832,6 +836,9 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 	state->fe.ops               = stid135_ops;
 	state->fe.demodulator_priv  = state;
 	state->nr = nr;
+
+	if (rfsource > 0 && rfsource < 5)
+		rf_in = rfsource - 1;
 	state->rf_in = base->mode ? rf_in : 0;
 
 	dev_info(&i2c->dev, "%s demod found at adr %02X on %s\n",
