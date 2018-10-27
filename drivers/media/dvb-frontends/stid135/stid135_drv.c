@@ -2953,7 +2953,7 @@ fe_lla_error_t fe_stid135_get_signal_info(fe_stid135_handle_t Handle,
 				
 				pInfo->locked = fld_value[0] && fld_value[1] && fld_value[2];
 			break;
-		}
+			}
 		
 
 			/* transponder_frequency = tuner +  demod carrier
