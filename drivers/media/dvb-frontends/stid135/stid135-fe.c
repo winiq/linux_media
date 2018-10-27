@@ -484,7 +484,8 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	struct stv *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	fe_lla_error_t err = FE_LLA_NO_ERROR;
-	struct fe_sat_tracking_info track_info;
+	struct fe_sat_signal_info pInfo;	
+	BOOL locked;
 
 	*status = 0;
 	p->strength.len = 1;
@@ -497,7 +498,7 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	p->pre_bit_count.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
 
 	mutex_lock(&state->base->status_lock);
-	err = fe_stid135_tracking(state->base->handle, state->nr + 1, &track_info);
+	fe_stid135_get_lock_status(state->base->handle, state->nr + 1, &locked);
 	mutex_unlock(&state->base->status_lock);
 
 	if (err != FE_LLA_NO_ERROR) {
@@ -505,31 +506,36 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		return 0;
 	}
 	
-	if (!track_info.locked)
+	if (!locked)
 		return 0;
 	  
 	*status |= FE_HAS_SIGNAL | FE_HAS_CARRIER
 		    | FE_HAS_VITERBI | FE_HAS_SYNC | FE_HAS_LOCK;
 
+	
+	mutex_lock(&state->base->status_lock);
+	fe_stid135_get_signal_info(state->base->handle, state->nr + 1,&pInfo,0);
+	mutex_unlock(&state->base->status_lock);
+
 	p->strength.len = 2;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].svalue = track_info.power;
+	p->strength.stat[0].svalue = pInfo.power;
 	
 	p->strength.stat[1].scale = FE_SCALE_RELATIVE;
-	p->strength.stat[1].uvalue = (100 + track_info.power/1000) * 656;
+	p->strength.stat[1].uvalue = (100 + pInfo.power/1000) * 656;
 
 	p->cnr.len = 2;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = track_info.C_N * 100;
+	p->cnr.stat[0].svalue = pInfo.C_N * 100;
 
 	p->cnr.stat[1].scale = FE_SCALE_RELATIVE;
-	p->cnr.stat[1].uvalue = track_info.C_N * 328;
+	p->cnr.stat[1].uvalue = pInfo.C_N * 328;
 	if (p->cnr.stat[1].uvalue > 0xffff)
 		p->cnr.stat[1].uvalue = 0xffff;
 
 	p->post_bit_error.len = 1;
 	p->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
-	p->post_bit_error.stat[0].uvalue = track_info.ber;
+	p->post_bit_error.stat[0].uvalue = pInfo.ber;
 
 	return 0;
 }
