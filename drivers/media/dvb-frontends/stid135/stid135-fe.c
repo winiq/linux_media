@@ -499,7 +499,7 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	fe_lla_error_t err = FE_LLA_NO_ERROR;
 	BOOL locked;
 	s32 pband_rf;
-	struct fe_sat_tracking_info track_info;	
+	struct fe_sat_signal_info pInfo;
 
 	*status = 0;
 	p->strength.len = 1;
@@ -542,7 +542,7 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	}
 	  
 	mutex_lock(&state->base->status_lock);
-	err = fe_stid135_tracking(state->base->handle, state->nr + 1, &track_info);
+	fe_stid135_get_signal_info(state->base->handle, state->nr + 1,&pInfo,0);
 	mutex_unlock(&state->base->status_lock);
 
 	if (err != FE_LLA_NO_ERROR) {
@@ -555,23 +555,23 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 	p->strength.len = 2;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].svalue = track_info.power;
+	p->strength.stat[0].svalue = pInfo.power;
 	
 	p->strength.stat[1].scale = FE_SCALE_RELATIVE;
-	p->strength.stat[1].uvalue = (100 + track_info.power/1000) * 656;
+	p->strength.stat[1].uvalue = (100 + pInfo.power/1000) * 656;
 
 	p->cnr.len = 2;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = track_info.C_N * 100;
+	p->cnr.stat[0].svalue = pInfo.C_N * 100;
 
 	p->cnr.stat[1].scale = FE_SCALE_RELATIVE;
-	p->cnr.stat[1].uvalue = track_info.C_N * 328;
+	p->cnr.stat[1].uvalue = pInfo.C_N * 328;
 	if (p->cnr.stat[1].uvalue > 0xffff)
 		p->cnr.stat[1].uvalue = 0xffff;
 
 	p->post_bit_error.len = 1;
 	p->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
-	p->post_bit_error.stat[0].uvalue = track_info.ber;
+	p->post_bit_error.stat[0].uvalue = pInfo.ber;
 
 	return 0;
 }
