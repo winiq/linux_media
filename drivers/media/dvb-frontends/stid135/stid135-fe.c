@@ -51,6 +51,10 @@ static unsigned int rfsource;
 module_param(rfsource, int, 0644);
 MODULE_PARM_DESC(rfsource, "RF source selection for direct connection mode (default:0 - auto)");
 
+static unsigned int mc_auto;
+module_param(mc_auto, int, 0644);
+MODULE_PARM_DESC(mc_auto, "Enable auto modcode filtering depend from current C/N (default:0 - disabled)");
+
 struct stv_base {
 	struct list_head     stvlist;
 
@@ -316,6 +320,10 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	if (err != FE_LLA_NO_ERROR)
 		dev_err(&state->base->i2c->dev, "%s: fe_stid135_set_pls error %d !\n", __func__, err);
 
+	err |= fe_stid135_reset_modcodes_filter(state->base->handle, state->nr + 1);
+	if (err != FE_LLA_NO_ERROR)
+		dev_err(&state->base->i2c->dev, "%s: fe_stid135_reset_modcodes_filter error %d !\n", __func__, err);
+
 	err |= fe_stid135_search(state->base->handle, state->nr + 1, &search_params, &search_results, 0);
 	mutex_unlock(&state->base->status_lock);
 
@@ -517,11 +525,11 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	}
 	  
 	mutex_lock(&state->base->status_lock);
-	fe_stid135_get_signal_info(state->base->handle, state->nr + 1,&state->signal_info,0);
+	err = fe_stid135_get_signal_info(state->base->handle, state->nr + 1, &state->signal_info, 0);
 	mutex_unlock(&state->base->status_lock);
 
 	if (err != FE_LLA_NO_ERROR) {
-		dev_warn(&state->base->i2c->dev, "%s: fe_stid135_tracking error %d !\n", __func__, err);
+		dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_signal_info error %d !\n", __func__, err);
 		return 0;
 	}
 
@@ -547,6 +555,15 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	p->post_bit_error.len = 1;
 	p->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
 	p->post_bit_error.stat[0].uvalue = state->signal_info.ber;
+	
+	if (mc_auto && state->signal_info.standard == FE_SAT_DVBS2_STANDARD) {
+		mutex_lock(&state->base->status_lock);
+		err = fe_stid135_filter_forbidden_modcodes(state->base->handle, state->nr + 1, state->signal_info.C_N * 10);
+		mutex_unlock(&state->base->status_lock);
+
+		if (err != FE_LLA_NO_ERROR)
+			dev_warn(&state->base->i2c->dev, "%s: fe_stid135_filter_forbidden_modcodes error %d !\n", __func__, err);
+	}
 
 	return 0;
 }
