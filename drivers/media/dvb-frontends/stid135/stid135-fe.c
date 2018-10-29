@@ -43,10 +43,6 @@ module_param(mode, int, 0444);
 MODULE_PARM_DESC(mode,
 		"Multi-switch mode: 0=quattro/quad 1=normal direct connection");
 
-static unsigned int ts_nosync=1;
-module_param(ts_nosync, int, 0644);
-MODULE_PARM_DESC(ts_nosync, "TS FIFO Minimum latence mode (default:on)");
-
 static unsigned int rfsource;
 module_param(rfsource, int, 0644);
 MODULE_PARM_DESC(rfsource, "RF source selection for direct connection mode (default:0 - auto)");
@@ -271,7 +267,6 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	search_params.modcode		= FE_SAT_DUMMY_PLF;
 	search_params.search_range	= 10000000;
 	search_params.puncture_rate	= FE_SAT_PR_UNKNOWN;
-	search_params.ts_nosync 	= ts_nosync;
 	switch (p->delivery_system)
 	{
 	  case SYS_DSS:
