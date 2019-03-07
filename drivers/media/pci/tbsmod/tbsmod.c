@@ -311,19 +311,19 @@ void AD9789_Init_Configration(struct tbs_pcie_dev *dev)
 	ad9789_wt_nBytes(dev, 1, AD9789_INTERNAL_COLCK_ADJUST, buff); 
 	ad9789_rd_nBytes(dev, 1, AD9789_INTERNAL_COLCK_ADJUST, buff);
 
-	buff[0] = 120;
+	buff[0] = 60;
 	ad9789_wt_nBytes(dev, 1, AD9789_CHANNEL_0_GAIN, buff);
 	ad9789_rd_nBytes(dev, 1, AD9789_CHANNEL_0_GAIN, buff);
 
-	buff[0] = 120;
+	buff[0] = 60;
 	ad9789_wt_nBytes(dev, 1, AD9789_CHANNEL_1_GAIN, buff);
 	ad9789_rd_nBytes(dev, 1, AD9789_CHANNEL_1_GAIN, buff);
 
-	buff[0] = 120;
+	buff[0] = 60;
 	ad9789_wt_nBytes(dev, 1, AD9789_CHANNEL_2_GAIN, buff);
 	ad9789_rd_nBytes(dev, 1, AD9789_CHANNEL_2_GAIN, buff);
 
-	buff[0] = 120;
+	buff[0] = 60;
 	ad9789_wt_nBytes(dev, 1, AD9789_CHANNEL_3_GAIN, buff);
 	ad9789_rd_nBytes(dev, 1, AD9789_CHANNEL_3_GAIN, buff);
 
@@ -416,6 +416,8 @@ BOOL ad9789_setFre(struct tbs_pcie_dev *dev, unsigned long freq)
 	ad9789_wt_nBytes(dev, 2, AD9789_CENTER_FRE_BPF, buff); 
 
 	//update
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_FRE_UPDATE, buff);
 	buff[0] = 0x00;
 	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
 	msleep(5);
@@ -441,6 +443,8 @@ void config_srate(struct tbs_pcie_dev *dev, unsigned long srate)
 	ad9789_wt_nBytes(dev, 3, AD9789_RATE_CONVERT_P, buff);
 
 	//update
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_FRE_UPDATE, buff);
 	buff[0] = 0x00;
 	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
 	msleep(5);
@@ -467,6 +471,8 @@ void config_QAM(struct tbs_pcie_dev *dev, int qam)
 	AD9789_SETMODE(dev, qam);
 
 	//update
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_FRE_UPDATE, buff);
 	buff[0] = 0x00;
 	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
 	msleep(5);
