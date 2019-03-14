@@ -163,8 +163,6 @@ static const enum gpiod_flags gpio_flags[] = {
 /* Give this long for the PHY to reset. */
 #define T_PHY_RESET_MS	50
 
-static DEFINE_MUTEX(sfp_mutex);
-
 struct sff_data {
 	unsigned int gpios;
 	bool (*module_supported)(const struct sfp_eeprom_id *id);
@@ -186,6 +184,7 @@ struct sfp {
 
 	struct gpio_desc *gpio[GPIO_MAX];
 
+	bool attached;
 	unsigned int state;
 	struct delayed_work poll;
 	struct delayed_work timeout;
@@ -398,7 +397,6 @@ static umode_t sfp_hwmon_is_visible(const void *data,
 	switch (type) {
 	case hwmon_temp:
 		switch (attr) {
-		case hwmon_temp_input:
 		case hwmon_temp_min_alarm:
 		case hwmon_temp_max_alarm:
 		case hwmon_temp_lcrit_alarm:
@@ -407,13 +405,16 @@ static umode_t sfp_hwmon_is_visible(const void *data,
 		case hwmon_temp_max:
 		case hwmon_temp_lcrit:
 		case hwmon_temp_crit:
+			if (!(sfp->id.ext.enhopts & SFP_ENHOPTS_ALARMWARN))
+				return 0;
+			/* fall through */
+		case hwmon_temp_input:
 			return 0444;
 		default:
 			return 0;
 		}
 	case hwmon_in:
 		switch (attr) {
-		case hwmon_in_input:
 		case hwmon_in_min_alarm:
 		case hwmon_in_max_alarm:
 		case hwmon_in_lcrit_alarm:
@@ -422,13 +423,16 @@ static umode_t sfp_hwmon_is_visible(const void *data,
 		case hwmon_in_max:
 		case hwmon_in_lcrit:
 		case hwmon_in_crit:
+			if (!(sfp->id.ext.enhopts & SFP_ENHOPTS_ALARMWARN))
+				return 0;
+			/* fall through */
+		case hwmon_in_input:
 			return 0444;
 		default:
 			return 0;
 		}
 	case hwmon_curr:
 		switch (attr) {
-		case hwmon_curr_input:
 		case hwmon_curr_min_alarm:
 		case hwmon_curr_max_alarm:
 		case hwmon_curr_lcrit_alarm:
@@ -437,6 +441,10 @@ static umode_t sfp_hwmon_is_visible(const void *data,
 		case hwmon_curr_max:
 		case hwmon_curr_lcrit:
 		case hwmon_curr_crit:
+			if (!(sfp->id.ext.enhopts & SFP_ENHOPTS_ALARMWARN))
+				return 0;
+			/* fall through */
+		case hwmon_curr_input:
 			return 0444;
 		default:
 			return 0;
@@ -452,7 +460,6 @@ static umode_t sfp_hwmon_is_visible(const void *data,
 		    channel == 1)
 			return 0;
 		switch (attr) {
-		case hwmon_power_input:
 		case hwmon_power_min_alarm:
 		case hwmon_power_max_alarm:
 		case hwmon_power_lcrit_alarm:
@@ -461,6 +468,10 @@ static umode_t sfp_hwmon_is_visible(const void *data,
 		case hwmon_power_max:
 		case hwmon_power_lcrit:
 		case hwmon_power_crit:
+			if (!(sfp->id.ext.enhopts & SFP_ENHOPTS_ALARMWARN))
+				return 0;
+			/* fall through */
+		case hwmon_power_input:
 			return 0444;
 		default:
 			return 0;
@@ -1086,8 +1097,11 @@ static int sfp_hwmon_insert(struct sfp *sfp)
 
 static void sfp_hwmon_remove(struct sfp *sfp)
 {
-	hwmon_device_unregister(sfp->hwmon_dev);
-	kfree(sfp->hwmon_name);
+	if (!IS_ERR_OR_NULL(sfp->hwmon_dev)) {
+		hwmon_device_unregister(sfp->hwmon_dev);
+		sfp->hwmon_dev = NULL;
+		kfree(sfp->hwmon_name);
+	}
 }
 #else
 static int sfp_hwmon_insert(struct sfp *sfp)
@@ -1462,7 +1476,7 @@ static void sfp_sm_event(struct sfp *sfp, unsigned int event)
 	 */
 	switch (sfp->sm_mod_state) {
 	default:
-		if (event == SFP_E_INSERT) {
+		if (event == SFP_E_INSERT && sfp->attached) {
 			sfp_module_tx_disable(sfp);
 			sfp_sm_ins_next(sfp, SFP_MOD_PROBE, T_PROBE_INIT);
 		}
@@ -1594,6 +1608,19 @@ static void sfp_sm_event(struct sfp *sfp, unsigned int event)
 	mutex_unlock(&sfp->sm_mutex);
 }
 
+static void sfp_attach(struct sfp *sfp)
+{
+	sfp->attached = true;
+	if (sfp->state & SFP_F_PRESENT)
+		sfp_sm_event(sfp, SFP_E_INSERT);
+}
+
+static void sfp_detach(struct sfp *sfp)
+{
+	sfp->attached = false;
+	sfp_sm_event(sfp, SFP_E_REMOVE);
+}
+
 static void sfp_start(struct sfp *sfp)
 {
 	sfp_sm_event(sfp, SFP_E_DEV_UP);
@@ -1654,6 +1681,8 @@ static int sfp_module_eeprom(struct sfp *sfp, struct ethtool_eeprom *ee,
 }
 
 static const struct sfp_socket_ops sfp_module_ops = {
+	.attach = sfp_attach,
+	.detach = sfp_detach,
 	.start = sfp_start,
 	.stop = sfp_stop,
 	.module_info = sfp_module_info,
@@ -1821,10 +1850,6 @@ static int sfp_probe(struct platform_device *pdev)
 	dev_info(sfp->dev, "Host maximum power %u.%uW\n",
 		 sfp->max_power_mW / 1000, (sfp->max_power_mW / 100) % 10);
 
-	sfp->sfp_bus = sfp_register_socket(sfp->dev, sfp, &sfp_module_ops);
-	if (!sfp->sfp_bus)
-		return -ENOMEM;
-
 	/* Get the initial state, and always signal TX disable,
 	 * since the network interface will not be up.
 	 */
@@ -1835,10 +1860,6 @@ static int sfp_probe(struct platform_device *pdev)
 		sfp->state |= SFP_F_RATE_SELECT;
 	sfp_set_state(sfp, sfp->state);
 	sfp_module_tx_disable(sfp);
-	rtnl_lock();
-	if (sfp->state & SFP_F_PRESENT)
-		sfp_sm_event(sfp, SFP_E_INSERT);
-	rtnl_unlock();
 
 	for (i = 0; i < GPIO_MAX; i++) {
 		if (gpio_flags[i] != GPIOD_IN || !sfp->gpio[i])
@@ -1870,6 +1891,10 @@ static int sfp_probe(struct platform_device *pdev)
 	if (!sfp->gpio[GPIO_TX_DISABLE])
 		dev_warn(sfp->dev,
 			 "No tx_disable pin: SFP modules will always be emitting.\n");
+
+	sfp->sfp_bus = sfp_register_socket(sfp->dev, sfp, &sfp_module_ops);
+	if (!sfp->sfp_bus)
+		return -ENOMEM;
 
 	return 0;
 }

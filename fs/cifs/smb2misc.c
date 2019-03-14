@@ -248,16 +248,20 @@ smb2_check_message(char *buf, unsigned int len, struct TCP_Server_Info *srvr)
 		 * MacOS server pads after SMB2.1 write response with 3 bytes
 		 * of junk. Other servers match RFC1001 len to actual
 		 * SMB2/SMB3 frame length (header + smb2 response specific data)
-		 * Some windows servers do too when compounding is used.
-		 * Log the server error (once), but allow it and continue
+		 * Some windows servers also pad up to 8 bytes when compounding.
+		 * If pad is longer than eight bytes, log the server behavior
+		 * (once), since may indicate a problem but allow it and continue
 		 * since the frame is parseable.
 		 */
 		if (clc_len < len) {
-			printk_once(KERN_WARNING
-				"SMB2 server sent bad RFC1001 len %d not %d\n",
-				len, clc_len);
+			pr_warn_once(
+			     "srv rsp padded more than expected. Length %d not %d for cmd:%d mid:%llu\n",
+			     len, clc_len, command, mid);
 			return 0;
 		}
+		pr_warn_once(
+			"srv rsp too short, len %d not %d. cmd:%d mid:%llu\n",
+			len, clc_len, command, mid);
 
 		return 1;
 	}
@@ -643,6 +647,13 @@ smb2_is_valid_oplock_break(char *buffer, struct TCP_Server_Info *server)
 
 	if (rsp->sync_hdr.Command != SMB2_OPLOCK_BREAK)
 		return false;
+
+	if (rsp->sync_hdr.CreditRequest) {
+		spin_lock(&server->req_lock);
+		server->credits += le16_to_cpu(rsp->sync_hdr.CreditRequest);
+		spin_unlock(&server->req_lock);
+		wake_up(&server->request_q);
+	}
 
 	if (rsp->StructureSize !=
 				smb2_rsp_struct_sizes[SMB2_OPLOCK_BREAK_HE]) {

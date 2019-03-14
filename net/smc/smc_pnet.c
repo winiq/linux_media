@@ -27,7 +27,7 @@
 static struct nla_policy smc_pnet_policy[SMC_PNETID_MAX + 1] = {
 	[SMC_PNETID_NAME] = {
 		.type = NLA_NUL_STRING,
-		.len = SMC_MAX_PNETID_LEN - 1
+		.len = SMC_MAX_PNETID_LEN
 	},
 	[SMC_PNETID_ETHNAME] = {
 		.type = NLA_NUL_STRING,
@@ -461,7 +461,7 @@ static const struct genl_ops smc_pnet_ops[] = {
 };
 
 /* SMC_PNETID family definition */
-static struct genl_family smc_pnet_nl_family = {
+static struct genl_family smc_pnet_nl_family __ro_after_init = {
 	.hdrsize = 0,
 	.name = SMCR_GENL_FAMILY_NAME,
 	.version = SMCR_GENL_FAMILY_VERSION,
