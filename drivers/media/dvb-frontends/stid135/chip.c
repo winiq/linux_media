@@ -246,7 +246,7 @@ STCHIP_Handle_t ChipOpen(STCHIP_Info_t *hChipOpenParams)
 			
 			if(hChip->pFieldMapImage != NULL)
 			{
-				if((ChipGetHandleFromName(hChipOpenParams->Name)==NULL) && (AppendNode(hChip)!=NULL)) 
+				if(AppendNode(hChip)!=NULL) 
 				{
 					hChip->pI2CHost = hChipOpenParams->pI2CHost;
 					hChip->I2cAddr = hChipOpenParams->I2cAddr;
