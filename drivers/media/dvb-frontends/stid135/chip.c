@@ -407,6 +407,62 @@ STCHIP_Error_t ChipAddField(STCHIP_Handle_t hChip,u16 RegId, u32 FieldId,char * 
 	return hChip->Error;
 }
 
+/* Dichotomy-based search function  */
+int dichotomy_search(STCHIP_Register_t tab[], s32 nbVal, u16 val)
+
+{
+
+	/* Declaration of local variables */
+
+	BOOL found; // equals false while "val" is not yet found
+
+	u32 start_index;  // start index
+
+	u32 end_index;  // end index
+
+	u32 middle_index;  // middle index
+
+	
+
+	/* Initialisation of these variables before search loop */
+
+	found = FALSE;  // value is not yet found
+
+	start_index = 0;  // search range between 0 and ...
+
+	end_index = (u32)nbVal;  //... nbVal
+
+	
+
+	/* search loop */
+
+	while(!found && ((end_index - start_index) > 1)) {
+
+	
+
+		middle_index = (start_index + end_index)/2;  // we set middle index
+
+		found = (tab[middle_index].Addr == val);  // we check if searched value is located at this index
+
+		
+
+		if(tab[middle_index].Addr > val) end_index = middle_index;  // if value which located at im index is greater to searched value, end index becomes "ifin" middle index, therefore search range is narrower for the next loop
+
+			else start_index = middle_index;  // otherwise start index becomes middle index and search range is also narrower
+
+	}
+
+	
+
+	/* test conditionnant la valeur que la fonction va renvoyer */
+
+	if(tab[start_index].Addr == val) return((s32)start_index);  // if we have found the good value, we return index
+
+	else return(-1);  // other wise we return -1
+
+}
+
+
 /*****************************************************
 **FUNCTION	::	ChipGetRegisterIndex
 **ACTION	::	Get the index of a register from the pRegMapImage table
@@ -417,8 +473,7 @@ STCHIP_Error_t ChipAddField(STCHIP_Handle_t hChip,u16 RegId, u32 FieldId,char * 
 *****************************************************/
 s32 ChipGetRegisterIndex(STCHIP_Handle_t hChip, u16 RegId)
 {
-	s32 reg=0,
-		regIndex=-1;
+	s32  regIndex=-1;
  
 	if(hChip)
 	{
@@ -428,17 +483,10 @@ s32 ChipGetRegisterIndex(STCHIP_Handle_t hChip, u16 RegId)
 	            regIndex = hChip->LastRegIndex;
 	        else
 	        {
-		while(reg < hChip->NbRegs) 
-		{
-			if(hChip->pRegMapImage[reg].Addr == RegId)
-			{
-				regIndex=reg;
-						hChip->LastRegIndex=reg;
-			}
+			regIndex=dichotomy_search(hChip->pRegMapImage,hChip->NbRegs,RegId);
+			hChip->LastRegIndex = regIndex;
 
-			reg++;
-		}
-	}
+			}
 		}
 		else
 			regIndex=0;
@@ -456,8 +504,7 @@ s32 ChipGetRegisterIndex(STCHIP_Handle_t hChip, u16 RegId)
 *****************************************************/
 s32 ChipGetFieldIndex(STCHIP_Handle_t hChip, u32 FieldId)
 {
-	s32 reg=0,
-		regIndex=-1;
+	s32	regIndex=-1;
 	u16 regAddress;
 	
 	if(hChip)
@@ -469,17 +516,11 @@ s32 ChipGetFieldIndex(STCHIP_Handle_t hChip, u32 FieldId)
 	            regIndex = hChip->LastRegIndex;
 			else
 			{
-		while(reg < hChip->NbRegs)
-		{
-			if(hChip->pRegMapImage[reg].Addr == regAddress)
-			{
-				regIndex=reg;	
-						hChip->LastRegIndex=reg;
-			}
+			
+			regIndex=dichotomy_search(hChip->pRegMapImage,hChip->NbRegs,regAddress);
+			hChip->LastRegIndex = regIndex;
 
-			reg++;
-		}
-	}
+			}
 		}
 		else
 			regIndex=0;
@@ -580,8 +621,8 @@ STCHIP_Error_t  ChipSetRegisters(STCHIP_Handle_t hChip, u16 FirstReg, s32 NbRegs
 	{
 		if(!hChip->Error)
 		{
-			if(NbRegs < 70)	
-			{
+		//	if(NbRegs < 70)	
+		//	{
 				firstRegIndex =ChipGetRegisterIndex(hChip, FirstReg);
 				if((firstRegIndex >= 0) && ((firstRegIndex + NbRegs - 1) < hChip->NbRegs)) 
 				{
@@ -632,9 +673,9 @@ STCHIP_Error_t  ChipSetRegisters(STCHIP_Handle_t hChip, u16 FirstReg, s32 NbRegs
 				}
 				else
 					hChip->Error = CHIPERR_INVALID_REG_ID;
-			}
-			else
-				hChip->Error = CHIPERR_I2C_BURST;
+	//		}
+	//		else
+	//			hChip->Error = CHIPERR_I2C_BURST;
 		}
 		else
 			return hChip->Error;
