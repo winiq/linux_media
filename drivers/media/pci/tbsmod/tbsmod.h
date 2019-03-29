@@ -37,6 +37,7 @@ struct tbs_pcie_dev {
 	u32						srate;
 	struct mod_channel		channnel[CHANNELS];
 	u8						mod_index;
+	u32				cardid;
 
 };
 

@@ -16,6 +16,11 @@
 
 #define SPI_TESTREG       	 0x30   // debug
 
+#define MOD_ASI_BASEADDRESS  0x4000
+#define MOD_GPIO_BASEADDRESS  0x0000
+#define MOD_ASI_RST  	0x00
+#define MOD_SPI_ENABLE  0x10
+
 enum{
 	AD9789_SPI_CTL	 				= 0x00,
 	AD9789_SATURA_CNT				= 0x01,

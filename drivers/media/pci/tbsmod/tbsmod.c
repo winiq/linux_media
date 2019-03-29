@@ -595,12 +595,13 @@ static void start_dma_transfer(struct mod_channel *pchannel)
 	struct tbs_pcie_dev *dev=pchannel->dev;
 	u32 delay;
 	u32 bitrate;
-	
-	bitrate = getbitrate(dev,pchannel->channel_index);
-	delay = div_u64(1000000000ULL * BLOCKSIZE, bitrate);
+	if(dev->cardid == 0x6004)
+	{
+		bitrate = getbitrate(dev,pchannel->channel_index);
+		delay = div_u64(1000000000ULL * BLOCKSIZE, bitrate);
 //	printk("ioctl 0x14 delay: %d \n", delay);
-	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAY, (delay));
-
+		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAY, (delay));
+	}
 	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_SIZE, (BLOCKSIZE));
 	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_ADDR_HIGH, 0);
 	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_ADDR_LOW, pchannel->dmaphy);
@@ -663,7 +664,10 @@ static ssize_t tbsmod_write(struct file *file, const char __user *ptr, size_t si
 		count = kfifo_avail(&pchannel->fifo);
 		i++;
 		if (i > 100)
+		{
+			printk(" tbsmod_write buffer fulled!\n" );
 			return 0;
+		}
 	}
 	if (count >= size)
 	{
@@ -673,18 +677,18 @@ static ssize_t tbsmod_write(struct file *file, const char __user *ptr, size_t si
 		if (size != copied)
 			printk("%s size:%d  %d\n", __func__, size, copied);
 	}
-
 	return size;
 }
-void spi_read(struct tbs_pcie_dev *dev, struct ecp3_info *info)
+void spi_read(struct tbs_pcie_dev *dev, struct mcu24cxx_info *info)
 {
-	info->data = TBS_PCIE_READ(0, info->reg);
-	
+	info->data = TBS_PCIE_READ(info->bassaddr, info->reg);
+	//printk("%s bassaddr:%x ,reg: %x,val: %x\n", __func__, info->bassaddr, info->reg,info->data);
 }
-void spi_write(struct tbs_pcie_dev *dev, struct ecp3_info *info)
+void spi_write(struct tbs_pcie_dev *dev, struct mcu24cxx_info *info)
 {
 	unsigned char tmpbuf[4];
-	TBS_PCIE_WRITE(0,info->reg,info->data);	
+	TBS_PCIE_WRITE(info->bassaddr,info->reg,info->data);	
+	//printk("%s size:%x, reg: %x, val: %x\n", __func__, info->bassaddr, info->reg,info->data);
 }
 static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -694,7 +698,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct dtv_properties props ;
 	//struct dtv_property *prop = NULL;
 	struct dtv_property prop;
-	
+	struct mcu24cxx_info wrinfo;
 	int ret = 0;
 
 	switch (cmd)
@@ -798,10 +802,13 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 
 	case FE_ECP3FW_READ:
-		spi_read(dev, arg);
+		copy_from_user(&wrinfo , (const char*)arg, sizeof(struct mcu24cxx_info ));
+		spi_read(dev, &wrinfo);
+		copy_to_user((unsigned long)arg, &wrinfo, sizeof(struct mcu24cxx_info ));
 		break;
 	case FE_ECP3FW_WRITE:
-		spi_write(dev, arg);
+		copy_from_user(&wrinfo , (const char*)arg, sizeof(struct mcu24cxx_info ));
+		spi_write(dev, &wrinfo);
 		break;
 
 	default:
@@ -881,6 +888,22 @@ static void tbs_adapters_init(struct tbs_pcie_dev *dev)
 
 }
 
+static sdi_chip_reset(struct tbs_pcie_dev *dev,int sdi_base_addr)
+{
+	unsigned char tmpbuf[4];
+
+	tmpbuf[0] = 0;
+	TBS_PCIE_WRITE( sdi_base_addr, MOD_ASI_RST, *(u32 *)&tmpbuf[0]);
+
+	msleep(20);
+
+	tmpbuf[0] = 1;
+	TBS_PCIE_WRITE( sdi_base_addr, MOD_ASI_RST, *(u32 *)&tmpbuf[0]);
+	
+	msleep(100);
+	return true ;
+}
+
 void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 		struct mod_channel *pchannel = (struct mod_channel *)&dev->channnel[index];
 		int count = 0;
@@ -899,7 +922,7 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 				return ;
 			}
 
-			if (dev->srate){
+			if ((dev->cardid == 0x6004)&&(dev->srate)){
 				u32 delay;
 				u32 bitrate;
 				bitrate = getbitrate(dev,pchannel->channel_index);
@@ -907,6 +930,7 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 				//printk("%s 0x14 delayshort: %d \n", __func__,delay);
 				TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
 				TBS_PCIE_WRITE(Int_adapter, 0x04, 0x00000001);
+
 			}
 		}
 }
@@ -977,7 +1001,7 @@ static int tbsmod_probe(struct pci_dev *pdev,
 	int err = 0, ret = -ENODEV;
 	u8 index=0;
 	u8 i;
-
+	u8 mpbuf[4];
 	
 	dev = kzalloc(sizeof(struct tbs_pcie_dev), GFP_KERNEL);
 	if (dev == NULL)
@@ -1028,6 +1052,19 @@ static int tbsmod_probe(struct pci_dev *pdev,
 	dev->mod_index = index;
 	tbsmodsdev[index] = dev;
 
+	switch(pdev->subsystem_vendor){
+	case 0x6004:
+		dev->cardid = 0x6004; 
+		//CHANNELS = 4;
+	break;
+	case 0x690b:
+		dev->cardid = 0x690b;
+		//CHANNELS = 1;
+	break;
+	default:
+		printk("unknow card\n");
+	}
+
 	for(i=0;i<CHANNELS;i++){
 		dev->channnel[i].dmavirt = pci_alloc_consistent(dev->pdev, DMASIZE, &dev->channnel[i].dmaphy);
 		if (!dev->channnel[i].dmavirt)
@@ -1048,12 +1085,30 @@ static int tbsmod_probe(struct pci_dev *pdev,
 			goto fail3;
 	}
 
-	tbs_adapters_init(dev);
-
 	dev->modulation =QAM_256;
 	dev->srate=7200000;
 	dev->frequency=474000000;
+	switch(pdev->subsystem_vendor){
+	case 0x6004:
+		printk("tbsmod%d:tbs6004 dvbc card\n", dev->mod_index);	
+		tbs_adapters_init(dev);
+	break;
+	case 0x690b:
+		
+		printk("tbsmod%d:tbs690b asi card\n", dev->mod_index);
 
+		mpbuf[0] = 0; //active spi bus from "z"
+		TBS_PCIE_WRITE( MOD_GPIO_BASEADDRESS, 0x34, *(u32 *)&mpbuf[0]);
+
+		sdi_chip_reset(dev,MOD_ASI_BASEADDRESS);
+
+		mpbuf[0] = 1; //active spi bus from "z"
+		TBS_PCIE_WRITE( MOD_ASI_BASEADDRESS, MOD_SPI_ENABLE, *(u32 *)&mpbuf[0]);
+
+	break;
+	default:
+		printk("unknow card\n");
+	}
 	return 0;
 
 fail3:
@@ -1080,6 +1135,7 @@ fail0:
 
 static const struct pci_device_id tbsmod_id_table[] = {
 	MAKE_ENTRY(0x544d, 0x6178, 0x6004, 0x0001, NULL),
+	MAKE_ENTRY(0x544d, 0x6178, 0x690b, 0x0001, NULL),
 	{}};
 MODULE_DEVICE_TABLE(pci, tbsmod_id_table);
 
