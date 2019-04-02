@@ -595,12 +595,20 @@ static void start_dma_transfer(struct mod_channel *pchannel)
 	struct tbs_pcie_dev *dev=pchannel->dev;
 	u32 delay;
 	u32 bitrate;
+	u32 speedctrl;
 	if(dev->cardid == 0x6004)
 	{
 		bitrate = getbitrate(dev,pchannel->channel_index);
 		delay = div_u64(1000000000ULL * BLOCKSIZE, bitrate);
 //	printk("ioctl 0x14 delay: %d \n", delay);
 		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAY, (delay));
+
+		if(dev->input_bitrate){
+			speedctrl =div_u64(1000000000ULL * BLOCKSIZE,(dev->input_bitrate )*1024*1024 );
+			//printk("ioctl 0x20 speedctrl: %d \n", speedctrl);
+			TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_SPEED_CTRL, (speedctrl));
+			TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_INT_MONITOR, (2*speedctrl));
+		}
 	}
 	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_SIZE, (BLOCKSIZE));
 	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_ADDR_HIGH, 0);
@@ -705,11 +713,11 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 	case FE_SET_PROPERTY:
 		printk("%s FE_SET_PROPERTY\n", __func__);
-		if(pchannel->channel_index){
-			printk("%s FE_SET_PROPERTY not allow set\n", __func__);
-			ret = -EINVAL;
-			break;
-		}
+		//if(pchannel->channel_index){
+			//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
+			//ret = -EINVAL;
+			//break;
+		//}
 		//props = (struct dtv_properties *)arg;
 		copy_from_user(&props , (const char*)arg, sizeof(struct dtv_properties ));
 		if (props.num == 1)
@@ -719,6 +727,12 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			switch (prop.cmd)
 			{
 			case MODULATOR_MODULATION:
+
+				if(pchannel->channel_index){
+				printk("%s FE_SET_PROPERTY not allow set\n", __func__);
+				ret = -EINVAL;
+				break;
+				}
 				printk("MODULATOR_MODULATION:%d\n", prop.u.data);
 				if (prop.u.data < QAM_16 || prop.u.data > QAM_256)
 				{
@@ -730,8 +744,12 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				break;
 
 			case MODULATOR_SYMBOL_RATE:
+				if(pchannel->channel_index){
+				printk("%s FE_SET_PROPERTY not allow set\n", __func__);
+				ret = -EINVAL;
+				break;
+				}
 				printk("MODULATOR_SYMBOL_RATE:%d\n", prop.u.data);
-	
 				if (prop.u.data < 1000000)
 				{
 					ret = EINVAL;
@@ -743,6 +761,11 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				break;
 
 			case MODULATOR_FREQUENCY:
+				if(pchannel->channel_index){
+				printk("%s FE_SET_PROPERTY not allow set\n", __func__);
+				ret = -EINVAL;
+				break;
+				}
 				printk("MODULATOR_FREQUENCY:%d\n", prop.u.data);
 				{
 					u32 frequency = prop.u.data;
@@ -760,6 +783,16 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				dev->frequency = prop.u.data;
 				ad9789_setFre(dev,dev->frequency);
 
+				break;
+			case MODULATOR_INPUT_BITRATE:
+				printk("MODULATOR_INPUT_BITRATE:%d\n", prop.u.data);
+				if (prop.u.data > 50)
+				{
+					printk("MODULATOR_INPUT_BITRATE :%d(over 50M)\n", prop.u.data);
+					ret = -1;
+					break;
+				}
+				dev->input_bitrate = prop.u.data;
 				break;
 
 			default:
@@ -827,7 +860,9 @@ static int tbsmod_mmap(struct file *file, struct vm_area_struct *vm)
 static int tbsmod_release(struct inode *inode, struct file *file)
 {
 	struct mod_channel *pchannel = (struct mod_channel *)file->private_data;
-	//printk("%s\n", __func__);
+	struct tbs_pcie_dev *dev=pchannel->dev;
+	printk("%s\n", __func__);
+	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_GO, (0));
 	pchannel->dma_start_flag = 0;
 	return 0;
 }
@@ -888,7 +923,7 @@ static void tbs_adapters_init(struct tbs_pcie_dev *dev)
 
 }
 
-static sdi_chip_reset(struct tbs_pcie_dev *dev,int sdi_base_addr)
+static void sdi_chip_reset(struct tbs_pcie_dev *dev,int sdi_base_addr)
 {
 	unsigned char tmpbuf[4];
 
@@ -901,7 +936,6 @@ static sdi_chip_reset(struct tbs_pcie_dev *dev,int sdi_base_addr)
 	TBS_PCIE_WRITE( sdi_base_addr, MOD_ASI_RST, *(u32 *)&tmpbuf[0]);
 	
 	msleep(100);
-	return true ;
 }
 
 void channelprocess(struct tbs_pcie_dev *dev,u8 index){
@@ -1088,6 +1122,7 @@ static int tbsmod_probe(struct pci_dev *pdev,
 	dev->modulation =QAM_256;
 	dev->srate=7200000;
 	dev->frequency=474000000;
+	dev->input_bitrate=0;
 	switch(pdev->subsystem_vendor){
 	case 0x6004:
 		printk("tbsmod%d:tbs6004 dvbc card\n", dev->mod_index);	

@@ -84,6 +84,8 @@ enum{
 #define DMA_ADDR_LOW	0x0c
 #define DMA_DELAY		0x14
 #define DMA_DELAYSHORT	0x18
+#define DMA_SPEED_CTRL	0x20
+#define DMA_INT_MONITOR 0x1c
 
 #define Dmaout_adapter0  0x8000
 #define Dmaout_adapter1  0x9000
