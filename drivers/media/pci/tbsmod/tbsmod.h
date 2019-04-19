@@ -11,6 +11,7 @@
 #define	DMASIZE		(32 * 1024)
 
 #define BLOCKSIZE		(188*96)
+#define BLOCKCEEL		(96)
 
 struct mod_channel
 {

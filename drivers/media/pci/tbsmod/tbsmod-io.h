@@ -87,6 +87,8 @@ enum{
 #define DMA_SPEED_CTRL	0x20
 #define DMA_INT_MONITOR 0x1c
 
+#define DMA_FRAME_CNT 0x24
+
 #define Dmaout_adapter0  0x8000
 #define Dmaout_adapter1  0x9000
 #define Dmaout_adapter2  0xa000

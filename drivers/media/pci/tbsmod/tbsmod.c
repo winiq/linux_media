@@ -631,6 +631,11 @@ static void start_dma_transfer(struct mod_channel *pchannel)
 		//printk("ioctl 0x20 speedctrl: %d \n", speedctrl);
 		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_SPEED_CTRL, (speedctrl));
 		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_INT_MONITOR, (2*speedctrl));
+		if(dev->cardid == 0x690b)
+		{
+			speedctrl =div_u64(speedctrl,BLOCKCEEL );	
+			TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_FRAME_CNT, (speedctrl));
+		}
 	}
 	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_SIZE, (BLOCKSIZE));
 	TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_ADDR_HIGH, 0);
@@ -735,11 +740,6 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 	case FE_SET_PROPERTY:
 		printk("%s FE_SET_PROPERTY\n", __func__);
-		//if(pchannel->channel_index){
-			//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
-			//ret = -EINVAL;
-			//break;
-		//}
 		//props = (struct dtv_properties *)arg;
 		copy_from_user(&props , (const char*)arg, sizeof(struct dtv_properties ));
 		if (props.num == 1)
@@ -752,8 +752,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				if(dev->cardid == 0x690b)
 					break;
 				if(pchannel->channel_index){
-				printk("%s FE_SET_PROPERTY not allow set\n", __func__);
-				ret = -EINVAL;
+				//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
 				break;
 				}
 				printk("MODULATOR_MODULATION:%d\n", prop.u.data);
@@ -770,8 +769,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				if(dev->cardid == 0x690b)
 					break;
 				if(pchannel->channel_index){
-				printk("%s FE_SET_PROPERTY not allow set\n", __func__);
-				ret = -EINVAL;
+				//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
 				break;
 				}
 				printk("MODULATOR_SYMBOL_RATE:%d\n", prop.u.data);
@@ -789,8 +787,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				if(dev->cardid == 0x690b)
 					break;
 				if(pchannel->channel_index){
-				printk("%s FE_SET_PROPERTY not allow set\n", __func__);
-				ret = -EINVAL;
+				//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
 				break;
 				}
 				printk("MODULATOR_FREQUENCY:%d\n", prop.u.data);
@@ -813,8 +810,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				break;
 			case MODULATOR_GAIN:
 				if(pchannel->channel_index){
-				printk("%s FE_SET_PROPERTY not allow set\n", __func__);
-				ret = -EINVAL;
+				//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
 				break;
 				}
 				printk("MODULATOR_GAIN:%d\n", prop.u.data);
@@ -828,9 +824,9 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				break;
 			case MODULATOR_INPUT_BITRATE:
 				printk("MODULATOR_INPUT_BITRATE:%d\n", prop.u.data);
-				if (prop.u.data > 50)
+				if (prop.u.data > 200)
 				{
-					printk("MODULATOR_INPUT_BITRATE :%d(over 50M)\n", prop.u.data);
+					printk("MODULATOR_INPUT_BITRATE :%d(over 200M)\n", prop.u.data);
 					ret = -1;
 					break;
 				}
@@ -983,6 +979,7 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 		struct mod_channel *pchannel = (struct mod_channel *)&dev->channnel[index];
 		int count = 0;
 		int ret;
+		u32 delay;
 
 		TBS_PCIE_READ(Dmaout_adapter0+pchannel->channel_index*0x1000, 0x00);
 		TBS_PCIE_WRITE(Int_adapter, 0x00, (0x10<<index) );
@@ -997,11 +994,17 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 				return ;
 			}
 
-			if ((dev->cardid == 0x6004)&&(dev->srate)){
-				u32 delay;
+			if ((dev->cardid == 0x6004)&&(dev->srate)){	
 				u32 bitrate;
 				bitrate = getbitrate(dev,pchannel->channel_index);
 				delay = div_u64(1000000000ULL * BLOCKSIZE, bitrate*3);
+				//printk("%s 0x14 delayshort: %d \n", __func__,delay);
+				TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
+				TBS_PCIE_WRITE(Int_adapter, 0x04, 0x00000001);
+
+			}
+			if (dev->cardid == 0x690b){
+				delay = div_u64(1000000000ULL * BLOCKSIZE, (dev->input_bitrate )*1024*1024*3);
 				//printk("%s 0x14 delayshort: %d \n", __func__,delay);
 				TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
 				TBS_PCIE_WRITE(Int_adapter, 0x04, 0x00000001);
