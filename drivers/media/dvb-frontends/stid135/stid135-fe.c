@@ -51,6 +51,10 @@ static unsigned int mc_auto;
 module_param(mc_auto, int, 0644);
 MODULE_PARM_DESC(mc_auto, "Enable auto modcode filtering depend from current C/N (default:0 - disabled)");
 
+static unsigned int nostat;
+module_param(nostat, int, 0644);
+MODULE_PARM_DESC(mc_auto, "Report only lock status (default:0)");
+
 struct stv_base {
 	struct list_head     stvlist;
 
@@ -497,6 +501,13 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_lock_status error %d !\n", __func__, err);
 		return 0;
 	}
+	
+	if (nostat) {
+        if (state->signal_info.locked)
+            *status |= FE_HAS_SIGNAL | FE_HAS_CARRIER
+                    | FE_HAS_VITERBI | FE_HAS_SYNC | FE_HAS_LOCK;
+        return 0;
+    }
 	
 	if (!state->signal_info.locked) {
 		mutex_lock(&state->status_lock);
