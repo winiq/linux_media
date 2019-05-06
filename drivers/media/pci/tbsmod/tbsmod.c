@@ -254,27 +254,28 @@ void AD9789_Init_Configration(struct tbs_pcie_dev *dev)
 	buff[0] = 0x20;
 	ad9789_wt_nBytes(dev, 1, AD9789_INPUT_SCALAR, buff);
 	ad9789_rd_nBytes(dev, 1, AD9789_INPUT_SCALAR, buff);
-
-	buff[2] = 0xC2;
-	buff[1] = 0xF5;
-	buff[0] = 0x28;
+	
+	//default to 114M,122M,130M,138M
+	buff[2] = 0x5c;//0xC2;
+	buff[1] = 0x8f;//0xF5;
+	buff[0] = 0xc2;//0x28;
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_0_FRE, buff); //NCO_0:0x55,0x55,0x55,800Mfreq
 	ad9789_rd_nBytes(dev, 3, AD9789_NCO_0_FRE, buff);
 
-	buff[2] = 0x03;
-	buff[1] = 0x9D;
-	buff[0] = 0x36;	
+	buff[2] = 0x9d;//0x03;
+	buff[1] = 0x36;//0x9D;
+	buff[0] = 0xd0;//0x36;	
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_1_FRE, buff); //NCO_1:0x62,0xFC,0x96,808Mfreq
 	ad9789_rd_nBytes(dev, 3, AD9789_NCO_1_FRE, buff);
-	buff[2] = 0x44;
-	buff[1] = 0x44;
-	buff[0] = 0x44;	
+	buff[2] = 0xdd;//0x44;
+	buff[1] = 0xdd;//0x44;
+	buff[0] = 0xdd;//0x44;	
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_2_FRE, buff); //NCO_2:0x70,0xA3,0xD7,816Mfreq
 	ad9789_rd_nBytes(dev, 3, AD9789_NCO_2_FRE, buff);
 
-	buff[2] = 0x85;
-	buff[1] = 0xEB;
-	buff[0] = 0x51;
+	buff[2] = 0x1e;//0x85;
+	buff[1] = 0x85;//0xEB;
+	buff[0] = 0xeb;//0x51;
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_3_FRE, buff); //NCO_3:0x7E,0x4B,0x17,808Mfreq
 	ad9789_rd_nBytes(dev, 3, AD9789_NCO_3_FRE, buff);
 
@@ -290,8 +291,8 @@ void AD9789_Init_Configration(struct tbs_pcie_dev *dev)
 	ad9789_wt_nBytes(dev, 3, AD9789_RATE_CONVERT_P, buff); 
 	ad9789_rd_nBytes(dev, 3, AD9789_RATE_CONVERT_P, buff);
 
-	buff[1] = 0xD7;
-	buff[0] = 0x33;	
+	buff[1] = 0x70;//0xD7;
+	buff[0] = 0x0d;//0x33;	
 	ad9789_wt_nBytes(dev, 2, AD9789_CENTER_FRE_BPF, buff); 
 	ad9789_rd_nBytes(dev, 2, AD9789_CENTER_FRE_BPF, buff);
 
@@ -619,13 +620,13 @@ static void start_dma_transfer(struct mod_channel *pchannel)
 	u32 delay;
 	u32 bitrate;
 	u32 speedctrl;
-	if(dev->cardid == 0x6004)
-	{
-		bitrate = getbitrate(dev,pchannel->channel_index);
-		delay = div_u64(1000000000ULL * BLOCKSIZE, bitrate);
+//	if(dev->cardid == 0x6004)
+//	{
+//		bitrate = getbitrate(dev,pchannel->channel_index);
+//		delay = div_u64(1000000000ULL * BLOCKSIZE, bitrate);
 //	printk("ioctl 0x14 delay: %d \n", delay);
-		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAY, (delay));
-	}
+//		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAY, (delay));
+//	}
 	if(dev->input_bitrate){
 		speedctrl =div_u64(1000000000ULL * BLOCKSIZE,(dev->input_bitrate )*1024*1024 );
 		//printk("ioctl 0x20 speedctrl: %d \n", speedctrl);
@@ -993,23 +994,10 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 			if (pchannel->dma_start_flag == 0){
 				return ;
 			}
-
-			if ((dev->cardid == 0x6004)&&(dev->srate)){	
-				u32 bitrate;
-				bitrate = getbitrate(dev,pchannel->channel_index);
-				delay = div_u64(1000000000ULL * BLOCKSIZE, bitrate*3);
-				//printk("%s 0x14 delayshort: %d \n", __func__,delay);
-				TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
-				TBS_PCIE_WRITE(Int_adapter, 0x04, 0x00000001);
-
-			}
-			if (dev->cardid == 0x690b){
-				delay = div_u64(1000000000ULL * BLOCKSIZE, (dev->input_bitrate )*1024*1024*3);
-				//printk("%s 0x14 delayshort: %d \n", __func__,delay);
-				TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
-				TBS_PCIE_WRITE(Int_adapter, 0x04, 0x00000001);
-
-			}
+		delay = div_u64(1000000000ULL * BLOCKSIZE, (dev->input_bitrate )*1024*1024*3);
+		//printk("%s 0x14 delayshort: %d \n", __func__,delay);
+		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
+		TBS_PCIE_WRITE(Int_adapter, 0x04, 0x00000001);
 		}
 }
 
@@ -1165,7 +1153,7 @@ static int tbsmod_probe(struct pci_dev *pdev,
 
 	dev->modulation =QAM_256;
 	dev->srate=7200000;
-	dev->frequency=474000000;
+	dev->frequency=114000000;
 	dev->input_bitrate=50;
 	switch(pdev->subsystem_vendor){
 	case 0x6004:
