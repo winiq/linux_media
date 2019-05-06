@@ -53,7 +53,7 @@ MODULE_PARM_DESC(mc_auto, "Enable auto modcode filtering depend from current C/N
 
 static unsigned int nostat;
 module_param(nostat, int, 0644);
-MODULE_PARM_DESC(mc_auto, "Report only lock status (default:0)");
+MODULE_PARM_DESC(nostat, "Report only lock status (default:0)");
 
 struct stv_base {
 	struct list_head     stvlist;
