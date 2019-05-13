@@ -1237,6 +1237,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		break;
 
 	case TBSECP3_BOARD_TBS6522:
+	case TBSECP3_BOARD_TBS6504:
 		/* attach demod */
 		memset(&si2183_config, 0, sizeof(si2183_config));
 		si2183_config.i2c_adapter = &i2c;
@@ -1250,8 +1251,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "si2183", I2C_NAME_SIZE);
-		info.addr = adapter->nr ? 0x64 : 0x67;
-		si2183_config.agc_mode = adapter->nr? 0x4 : 0x5;
+		info.addr = (adapter->nr %2) ? 0x64 : 0x67;
+		si2183_config.agc_mode = (adapter->nr %2)? 0x4 : 0x5;
 		info.platform_data = &si2183_config;
 		request_module(info.type);
 		client_demod = i2c_new_device(i2c, &info);
@@ -1285,7 +1286,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "si2157", I2C_NAME_SIZE);
-		info.addr = adapter->nr ? 0x61 : 0x60;
+		info.addr = (adapter->nr %2) ? 0x61 : 0x60;
 		info.platform_data = &si2157_config;
 		request_module(info.type);
 		client_tuner = i2c_new_device(i2c, &info);
@@ -1306,7 +1307,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		adapter->fe2->ops.delsys[1] = SYS_DVBS2;
 		adapter->fe2->ops.delsys[2] = SYS_DSS;
 		adapter->fe2->id = 1;
-		if (dvb_attach(av201x_attach, adapter->fe2, &tbs6522_av201x_cfg[adapter->nr],
+		if (dvb_attach(av201x_attach, adapter->fe2, &tbs6522_av201x_cfg[(adapter->nr %2)],
 			    i2c) == NULL) {
 		    dev_err(&dev->pci_dev->dev,
 			    "frontend %d tuner attach failed\n",
