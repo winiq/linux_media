@@ -70,6 +70,11 @@ struct stv_base {
 
 	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
 	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
+
+	//for tbs6912
+	void (*set_TSsampling)(struct i2c_adapter *i2c,int tuner,int time);  
+	u32  (*set_TSparam)(struct i2c_adapter *i2c,int tuner,int time,bool flag);
+	//end
 };
 
 struct stv {
@@ -79,6 +84,9 @@ struct stv {
 	int                  rf_in;
 	unsigned long        tune_time;
 	struct fe_sat_signal_info signal_info;
+
+	bool newTP; //for tbs6912
+	u32  bit_rate; //for tbs6912;
 };
 
 I2C_RESULT I2cReadWrite(void *pI2CHost, I2C_MODE mode, u8 ChipAddress, u8 *Data, int NbData)
@@ -327,8 +335,12 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 		return -1;
 	}
 
-	if (search_results.locked)
+	if (search_results.locked){
 		dev_warn(&state->base->i2c->dev, "%s: locked !\n", __func__);
+		state->newTP = true;
+		if(state->base->set_TSsampling)
+			state->base->set_TSsampling(state->base->i2c,state->nr/2,4);   //for tbs6912
+		}
 	else {
 		err |= fe_stid135_get_band_power_demod_not_locked(state->base->handle, state->nr + 1, &rf_power);
 		dev_warn(&state->base->i2c->dev, "%s: not locked, band rf_power %d dBm !\n", __func__, rf_power / 1000);
@@ -478,7 +490,8 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	struct stv *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	fe_lla_error_t err = FE_LLA_NO_ERROR;
-    
+    	u32 speed;
+		
 	*status = 0;
 	if (!mutex_trylock(&state->base->status_lock))
     {
@@ -503,6 +516,23 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_lock_status error %d !\n", __func__, err);
         mutex_unlock(&state->base->status_lock);
 		return 0;
+	}
+
+	//for the tbs6912 ts setting
+	if(state->signal_info.locked)	{
+		if((state->base->set_TSparam)&&(state->newTP)){
+			speed = state->base->set_TSparam(state->base->i2c,state->nr/2,4,0);
+		 if(!state->bit_rate)
+		 	state->bit_rate = speed;
+		 if(((speed-state->bit_rate)<160)&&((speed-state->bit_rate)>5)){
+		 	state->base->set_TSparam(state->base->i2c,state->nr/2,4,1);
+			state->newTP = false;
+			state->bit_rate  = 0;
+			}
+		 else
+		    state->bit_rate = speed;
+		}
+	
 	}
 
 	if (!state->signal_info.locked) {
@@ -854,6 +884,9 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 		base->mode = cfg->set_voltage ? mode : 1;
 		base->write_properties = cfg->write_properties;
 		base->read_properties = cfg->read_properties;
+		base->set_TSsampling = cfg->set_TSsampling;
+		base->set_TSparam  = cfg->set_TSparam;
+
 
 		mutex_init(&base->i2c_lock);
 		mutex_init(&base->status_lock);
@@ -870,7 +903,9 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 	state->fe.ops               = stid135_ops;
 	state->fe.demodulator_priv  = state;
 	state->nr = nr;
-
+	state->newTP = false;
+	state->bit_rate  = 0;
+	
 	if (rfsource > 0 && rfsource < 5)
 		rf_in = rfsource - 1;
 	state->rf_in = base->mode ? rf_in : 0;

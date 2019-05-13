@@ -721,6 +721,75 @@ static struct av201x_config tbs6522_av201x_cfg[] = {
 	},
 };
 
+static void Set_TSsampling(struct i2c_adapter *i2c,int tuner,int time)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+
+	u32 Many_cnt;
+	u32 iobuffer;
+	char tmp[4];
+
+	Many_cnt = 0x3B9ACA00/8*time;
+	tmp[0] = (Many_cnt>>24)&0xff;
+	tmp[1] =  (Many_cnt>>16)&0xff;
+	tmp[2] =  (Many_cnt>>8)&0xff;
+	tmp[3] =  Many_cnt&0xff;
+
+	iobuffer = tmp[0]|(tmp[1]<<8)|(tmp[2]<<16)|(tmp[3]<<24);
+	
+	tbs_write(TBSECP3_GPIO_BASE, (0xc+tuner)*4,iobuffer);
+	
+}
+
+static u32  Set_TSparam(struct i2c_adapter *i2c,int tuner,int time,bool flag)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+
+	u32 iobuffer;
+	u32 Frm_cnt,Bit_rate,Many_cnt;
+	int clk_preset;
+	u8  tmp[4];
+
+	Many_cnt = 0x3B9ACA00/8*time;
+
+	iobuffer =  tbs_read(TBSECP3_GPIO_BASE, (0x10+tuner)*4);
+	tmp[0] = (iobuffer>>24)&0xff;
+	tmp[1] =  (iobuffer>>16)&0xff;
+	tmp[2] =  (iobuffer>>8)&0xff;
+	tmp[3] =  iobuffer&0xff;
+
+	Bit_rate= tmp[0]|(tmp[1]<<8)|(tmp[2]<<16)|(tmp[3]<<24);
+
+	if(!flag)
+		return Bit_rate;
+
+	Frm_cnt = Many_cnt/(Bit_rate-50) -100;
+
+	tmp[0] =  (Frm_cnt>>24)&0xff;
+	tmp[1] =  (Frm_cnt>>16)&0xff;
+	tmp[2] =  (Frm_cnt>>8)&0xff;
+	tmp[3] =  Frm_cnt&0xff;
+
+	iobuffer= tmp[0]|(tmp[1]<<8)|(tmp[2]<<16)|(tmp[3]<<24);
+	
+	tbs_write(TBSECP3_GPIO_BASE, (0xA+tuner)*4,iobuffer);
+
+	if( Frm_cnt==0) return 0;
+
+	//set ci clk preset
+	clk_preset = Frm_cnt/408;
+	if(clk_preset>0xf)clk_preset=0xf;
+	iobuffer =  tbs_read(tuner?0x7000:0x6000,0x04*4);
+	iobuffer = (iobuffer&0xF0FFFFFF)|(clk_preset<<24);
+	
+	tbs_write(tuner?0x7000:0x6000,0x04*4,iobuffer);
+		
+	return 1;
+
+}
+
 static struct stid135_cfg tbs6903x_stid135_cfg = {
 	.adr		= 0x68,
 	.clk		= 27,
@@ -728,6 +797,8 @@ static struct stid135_cfg tbs6903x_stid135_cfg = {
 	.set_voltage	= NULL,
 	.write_properties = ecp3_spi_write, 
 	.read_properties = ecp3_spi_read,
+	.set_TSsampling = NULL,
+	.set_TSparam = NULL,
 };
 
 static struct stid135_cfg tbs6909x_stid135_cfg = {
@@ -737,7 +808,21 @@ static struct stid135_cfg tbs6909x_stid135_cfg = {
 	.set_voltage	= max_set_voltage,
 	.write_properties = ecp3_spi_write, 
 	.read_properties = ecp3_spi_read,
+	.set_TSsampling = NULL,
+	.set_TSparam = NULL,
 };
+
+static struct stid135_cfg tbs6912_stid135_cfg = {
+	.adr		= 0x68,
+	.clk		= 27,
+	.ts_mode	= TS_2PAR,
+	.set_voltage	= NULL,
+	.write_properties = ecp3_spi_write, 
+	.read_properties = ecp3_spi_read,
+	.set_TSsampling = Set_TSsampling,
+	.set_TSparam = Set_TSparam,
+};
+
 
 static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 {
@@ -1472,7 +1557,12 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		break;
 
 	case TBSECP3_BOARD_TBS6903X:
-		adapter->fe = dvb_attach(stid135_attach, i2c,
+	case TBSECP3_BOARD_TBS6912:
+		if(pci->subsystem_vendor==0x6912)
+			adapter->fe = dvb_attach(stid135_attach, i2c,
+					&tbs6912_stid135_cfg, adapter->nr ? 2 : 0, adapter->nr ? 3 : 0);
+		else		
+			adapter->fe = dvb_attach(stid135_attach, i2c,
 				&tbs6903x_stid135_cfg, adapter->nr ? 2 : 0, adapter->nr ? 3 : 0);
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
@@ -1482,6 +1572,9 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 				"error attaching lnb control on adapter %d\n",
 				adapter->nr);
 		}
+		if(pci->subsystem_vendor==0x6912)
+			tbsecp3_ca_init(adapter, adapter->nr);
+		
 		break;
 
 	default:
