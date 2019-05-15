@@ -87,6 +87,7 @@ struct stv {
 
 	bool newTP; //for tbs6912
 	u32  bit_rate; //for tbs6912;
+	int loops ;//for tbs6912
 };
 
 I2C_RESULT I2cReadWrite(void *pI2CHost, I2C_MODE mode, u8 ChipAddress, u8 *Data, int NbData)
@@ -338,6 +339,7 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	if (search_results.locked){
 		dev_warn(&state->base->i2c->dev, "%s: locked !\n", __func__);
 		state->newTP = true;
+		state->loops = 15;
 		if(state->base->set_TSsampling)
 			state->base->set_TSsampling(state->base->i2c,state->nr/2,4);   //for tbs6912
 		}
@@ -524,13 +526,16 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 			speed = state->base->set_TSparam(state->base->i2c,state->nr/2,4,0);
 		 if(!state->bit_rate)
 		 	state->bit_rate = speed;
-		 if(((speed-state->bit_rate)<160)&&((speed-state->bit_rate)>5)){
+		 if((((speed-state->bit_rate)<160)&&((speed-state->bit_rate)>3))||(state->loops==0)){
 		 	state->base->set_TSparam(state->base->i2c,state->nr/2,4,1);
 			state->newTP = false;
 			state->bit_rate  = 0;
 			}
-		 else
-		    state->bit_rate = speed;
+		 else{
+		 	   state->bit_rate = speed;
+			   state->loops--;
+
+		   }
 		}
 	
 	}
@@ -905,6 +910,7 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 	state->nr = nr;
 	state->newTP = false;
 	state->bit_rate  = 0;
+	state->loops = 15;
 	
 	if (rfsource > 0 && rfsource < 5)
 		rf_in = rfsource - 1;
