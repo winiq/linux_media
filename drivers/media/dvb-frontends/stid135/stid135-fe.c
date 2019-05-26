@@ -524,20 +524,18 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if(state->signal_info.locked)	{
 		if((state->base->set_TSparam)&&(state->newTP)){
 			speed = state->base->set_TSparam(state->base->i2c,state->nr/2,4,0);
-		 if(!state->bit_rate)
-		 	state->bit_rate = speed;
-		 if((((speed-state->bit_rate)<160)&&((speed-state->bit_rate)>3))||(state->loops==0)){
-		 	state->base->set_TSparam(state->base->i2c,state->nr/2,4,1);
-			state->newTP = false;
-			state->bit_rate  = 0;
+			if(!state->bit_rate)
+				state->bit_rate = speed;
+			if((((speed-state->bit_rate)<160)&&((speed-state->bit_rate)>3))||(state->loops==0)) {
+				state->base->set_TSparam(state->base->i2c,state->nr/2,4,1);
+				state->newTP = false;
+				state->bit_rate  = 0;
 			}
-		 else{
-		 	   state->bit_rate = speed;
-			   state->loops--;
-
-		   }
+			else {
+				state->bit_rate = speed;
+				state->loops--;
+			}
 		}
-	
 	}
 
 	if (!state->signal_info.locked) {
