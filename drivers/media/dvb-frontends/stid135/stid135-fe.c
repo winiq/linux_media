@@ -56,7 +56,6 @@ struct stv_base {
 
 	u8                   adr;
 	struct i2c_adapter  *i2c;
-	struct mutex         i2c_lock;
 	struct mutex         status_lock;
 	int                  count;
 	u32                  extclk;
@@ -103,9 +102,7 @@ I2C_RESULT I2cReadWrite(void *pI2CHost, I2C_MODE mode, u8 ChipAddress, u8 *Data,
 	if (mode == I2C_READ)
 		msg.flags = I2C_M_RD;
 
-	mutex_lock(&base->i2c_lock);
 	ret = i2c_transfer(base->i2c, &msg, 1);
-	mutex_unlock(&base->i2c_lock);
 
 	return (ret == 1) ? I2C_ERR_NONE : I2C_ERR_ACK;
 }
@@ -890,8 +887,6 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 		base->set_TSsampling = cfg->set_TSsampling;
 		base->set_TSparam  = cfg->set_TSparam;
 
-
-		mutex_init(&base->i2c_lock);
 		mutex_init(&base->status_lock);
 
 		state->base = base;
