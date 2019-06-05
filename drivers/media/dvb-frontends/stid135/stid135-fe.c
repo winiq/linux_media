@@ -264,6 +264,8 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 			p->delivery_system, p->modulation, p->frequency,
 			p->symbol_rate, p->inversion, p->stream_id);
 
+	mutex_lock(&state->base->status_lock);
+
 	/* Search parameters */
 	search_params.search_algo 	= FE_SAT_COLD_START;
 	search_params.frequency 	= p->frequency*1000;
@@ -291,8 +293,6 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 
 	err = FE_STiD135_GetLoFreqHz(state->base->handle, &(search_params.lo_frequency));
 	search_params.lo_frequency *= 1000000;
-
-	mutex_lock(&state->base->status_lock);
 
 	dev_dbg(&state->base->i2c->dev, "%s: demod %d + tuner %d\n", __func__, state->nr, state->rf_in);
 	err |= fe_stid135_set_rfmux_path(p_params->handle_demod, state->nr + 1, state->rf_in + 1);
@@ -492,8 +492,7 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
     	u32 speed;
 		
 	*status = 0;
-	if (!mutex_trylock(&state->base->status_lock))
-    {
+	if (!mutex_trylock(&state->base->status_lock)) {
 		if (state->signal_info.locked)
 			*status |= FE_HAS_SIGNAL | FE_HAS_CARRIER
 					| FE_HAS_VITERBI | FE_HAS_SYNC | FE_HAS_LOCK;
