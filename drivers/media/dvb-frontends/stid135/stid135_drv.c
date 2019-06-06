@@ -3292,7 +3292,7 @@ fe_lla_error_t fe_stid135_init (struct fe_sat_init_params *pInit,
 	/* Internal params structure allocation */
 	#ifdef HOST_PC
 		STCHIP_Info_t DemodChip;
-		pParams = calloc(1, sizeof(struct fe_stid135_internal_param));
+		pParams = kzalloc(1, sizeof(struct fe_stid135_internal_param));
 		(*handle) = (fe_stid135_handle_t) pParams;
 	#endif
 
@@ -4635,7 +4635,7 @@ fe_lla_error_t FE_STiD135_Term(fe_stid135_handle_t Handle)
 			ChipClose(pParams->handle_soc);
 
 			if(Handle)
-				free(pParams);
+				kfree(pParams);
 		#endif
 		
 	} else
