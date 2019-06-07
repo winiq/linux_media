@@ -270,6 +270,8 @@ struct fe_stid135_internal_param {
 	struct gse_ram_byte		gse_flt[8];
 	struct modcod_data		mc_flt[NB_SAT_MODCOD];
 	BOOL 				mis_mode[8]; /* Memorisation of MIS mode */
+
+	struct mutex *master_lock;
 };
 
 

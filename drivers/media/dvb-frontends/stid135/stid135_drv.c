@@ -1928,8 +1928,11 @@ static fe_lla_error_t FE_STiD135_GetDemodLock    (fe_stid135_handle_t handle,
 		break;
 		}
 		
-		if(lock == 0)
+		if(lock == 0) {
+			mutex_unlock(pParams->master_lock);
 			ChipWaitOrAbort(pParams->handle_demod, 10);	/* wait 10ms */
+			mutex_lock(pParams->master_lock);
+		}
 		timer += 10;
 
 	}

@@ -135,6 +135,7 @@ static int stid135_probe(struct stv *state)
 	}
 
 	p_params = state->base->handle;
+	p_params->master_lock = &state->base->status_lock;
 
 	err = fe_stid135_get_cut_id(state->base->handle,&cut_id);
 	switch(cut_id)
