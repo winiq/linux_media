@@ -16,10 +16,19 @@
 
 #define SPI_TESTREG       	 0x30   // debug
 
+#define MOD_ASI_DEVICE		0X14
 #define MOD_ASI_BASEADDRESS  0x4000
 #define MOD_GPIO_BASEADDRESS  0x0000
 #define MOD_ASI_RST  	0x00
-#define MOD_SPI_ENABLE  0x10
+
+//ASI spi flash
+#define ASI_SPI_CONFIG      	 0x04
+#define ASI_SPI_STATUS      	 0x00
+#define ASI_SPI_COMMAND     	 0x08
+#define ASI_SPI_WT_DATA     	 0x0c
+#define ASI_SPI_RD_DATA     	 0x04
+#define ASI_SPI_ENABLE       	 0x10
+#define ASI_SPI_TESTREG       	 0x28   // debug
 
 enum{
 	AD9789_SPI_CTL	 				= 0x00,

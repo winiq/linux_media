@@ -22,6 +22,7 @@ struct mod_channel
 	u8 						dma_start_flag;
 	struct kfifo 			fifo; 
 	u8						channel_index;
+	u32						input_bitrate;
 	
 };
 
@@ -36,7 +37,7 @@ struct tbs_pcie_dev {
 	u8 						modulation;
 	u32						frequency;
 	u32						srate;
-	u32						input_bitrate;
+	//u32						input_bitrate;
 	struct mod_channel		channnel[CHANNELS];
 	u8						mod_index;
 	u32				cardid;
