@@ -1083,7 +1083,7 @@ static void tbsmod_remove(struct pci_dev *pdev)
 	for(i=0;i<CHANNELS;i++){
 		kfifo_free(&dev->channnel[i].fifo);
 //		device_destroy(mod_cdev_class, dev->channnel[i].devno);
-		if (!dev->channnel[i].dmavirt){
+		if (dev->channnel[i].dmavirt){
 			pci_free_consistent(dev->pdev, DMASIZE, dev->channnel[i].dmavirt, dev->channnel[i].dmaphy);
 			dev->channnel[i].dmavirt = NULL;
 		}
