@@ -490,7 +490,7 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	struct stv *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	fe_lla_error_t err = FE_LLA_NO_ERROR;
-    	u32 speed;
+	u32 speed;
 		
 	*status = 0;
 	if (!mutex_trylock(&state->base->status_lock)) {
@@ -510,15 +510,18 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 	p->pre_bit_count.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
 
 	err = fe_stid135_get_lock_status(state->base->handle, state->nr + 1, &state->signal_info.locked);
-
 	if (err != FE_LLA_NO_ERROR) {
-		dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_lock_status error %d !\n", __func__, err);
-        mutex_unlock(&state->base->status_lock);
-		return 0;
+		dev_err(&state->base->i2c->dev, "fe_stid135_get_lock_status error\n");
+		mutex_unlock(&state->base->status_lock);
+		return -EIO;
 	}
 
-	//for the tbs6912 ts setting
-	if(state->signal_info.locked)	{
+	if (state->signal_info.locked) {
+		/* demod has lock */
+		*status |= FE_HAS_SIGNAL | FE_HAS_CARRIER
+					| FE_HAS_VITERBI | FE_HAS_SYNC | FE_HAS_LOCK;
+
+		//for the tbs6912 ts setting
 		if((state->base->set_TSparam)&&(state->newTP)){
 			speed = state->base->set_TSparam(state->base->i2c,state->nr/2,4,0);
 			if(!state->bit_rate)
@@ -533,18 +536,13 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 				state->loops--;
 			}
 		}
-	}
 
-	if (!state->signal_info.locked) {
-		err = fe_stid135_get_band_power_demod_not_locked(state->base->handle, state->nr + 1, &state->signal_info.power);
-
+		err = fe_stid135_get_signal_quality(state->base->handle, state->nr + 1, &state->signal_info, mc_auto);
+		mutex_unlock(&state->base->status_lock);
 		if (err != FE_LLA_NO_ERROR) {
-			dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_band_power_demod_not_locked error %d !\n", __func__, err);
-            mutex_unlock(&state->base->status_lock);
-			return 0;
+			dev_err(&state->base->i2c->dev, "fe_stid135_get_signal_quality error\n");
+			return -EIO;
 		}
-
-		*status |= FE_HAS_SIGNAL;
 
 		p->strength.len = 2;
 		p->strength.stat[0].scale = FE_SCALE_DECIBEL;
@@ -552,49 +550,38 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		
 		p->strength.stat[1].scale = FE_SCALE_RELATIVE;
 		p->strength.stat[1].uvalue = (100 + state->signal_info.power/1000) * 656;
-        mutex_unlock(&state->base->status_lock);
-		return 0;
+
+		p->cnr.len = 2;
+		p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+		p->cnr.stat[0].svalue = state->signal_info.C_N * 100;
+
+		p->cnr.stat[1].scale = FE_SCALE_RELATIVE;
+		p->cnr.stat[1].uvalue = state->signal_info.C_N * 328;
+		if (p->cnr.stat[1].uvalue > 0xffff)
+			p->cnr.stat[1].uvalue = 0xffff;
+
+		p->post_bit_error.len = 1;
+		p->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
+		p->post_bit_error.stat[0].uvalue = state->signal_info.ber;
+
+	} else {
+		/* demod not locked */
+		*status |= FE_HAS_SIGNAL;
+
+		err = fe_stid135_get_band_power_demod_not_locked(state->base->handle, state->nr + 1, &state->signal_info.power);
+		mutex_unlock(&state->base->status_lock);
+		if (err != FE_LLA_NO_ERROR) {
+			dev_err(&state->base->i2c->dev, "fe_stid135_get_band_power_demod_not_locked error\n");
+			return -EIO;
+		}
+
+		p->strength.len = 2;
+		p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+		p->strength.stat[0].svalue = state->signal_info.power;
+
+		p->strength.stat[1].scale = FE_SCALE_RELATIVE;
+		p->strength.stat[1].uvalue = (100 + state->signal_info.power/1000) * 656;
 	}
-	  
-	err = fe_stid135_get_signal_info(state->base->handle, state->nr + 1, &state->signal_info, 0);
-
-	if (err != FE_LLA_NO_ERROR) {
-		dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_signal_info error %d !\n", __func__, err);
-        mutex_unlock(&state->base->status_lock);
-		return 0;
-	}
-
-	*status |= FE_HAS_SIGNAL | FE_HAS_CARRIER
-		    | FE_HAS_VITERBI | FE_HAS_SYNC | FE_HAS_LOCK;
-
-	p->strength.len = 2;
-	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].svalue = state->signal_info.power;
-	
-	p->strength.stat[1].scale = FE_SCALE_RELATIVE;
-	p->strength.stat[1].uvalue = (100 + state->signal_info.power/1000) * 656;
-
-	p->cnr.len = 2;
-	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = state->signal_info.C_N * 100;
-
-	p->cnr.stat[1].scale = FE_SCALE_RELATIVE;
-	p->cnr.stat[1].uvalue = state->signal_info.C_N * 328;
-	if (p->cnr.stat[1].uvalue > 0xffff)
-		p->cnr.stat[1].uvalue = 0xffff;
-
-	p->post_bit_error.len = 1;
-	p->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
-	p->post_bit_error.stat[0].uvalue = state->signal_info.ber;
-	
-	if (mc_auto && state->signal_info.standard == FE_SAT_DVBS2_STANDARD) {
-		err = fe_stid135_filter_forbidden_modcodes(state->base->handle, state->nr + 1, state->signal_info.C_N * 10);
-
-		if (err != FE_LLA_NO_ERROR)
-			dev_warn(&state->base->i2c->dev, "%s: fe_stid135_filter_forbidden_modcodes error %d !\n", __func__, err);
-	}
-
-	mutex_unlock(&state->base->status_lock);
 	return 0;
 }
 
