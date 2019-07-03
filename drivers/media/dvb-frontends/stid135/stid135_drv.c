@@ -2880,6 +2880,31 @@ fe_lla_error_t fe_stid135_get_band_power_demod_not_locked(fe_stid135_handle_t ha
 }
 
 
+fe_lla_error_t fe_stid135_get_signal_quality(fe_stid135_handle_t Handle,
+					enum fe_stid135_demod demod,
+					struct fe_sat_signal_info *pInfo,
+					int mc_auto)
+{
+	fe_lla_error_t error = FE_LLA_NO_ERROR;
+	struct fe_stid135_internal_param *pParams;
+	s32 pch_rf, pband_rf;
+
+	pParams = (struct fe_stid135_internal_param *) Handle;
+
+	error |= FE_STiD135_GetBer(pParams->handle_demod, demod, &(pInfo->ber));
+	error |= FE_STiD135_GetRFLevel(pParams, demod, &pch_rf, &pband_rf);
+	pInfo->power = pch_rf;
+	if (pInfo->standard == FE_SAT_DVBS2_STANDARD) {
+		error |= FE_STiD135_CarrierGetQuality(pParams->handle_demod, &FE_STiD135_S2_CN_LookUp, demod, &(pInfo->C_N));
+		if (mc_auto)
+			error |= fe_stid135_filter_forbidden_modcodes(pParams, demod, pInfo->C_N * 10);
+	} else {
+		error |= FE_STiD135_CarrierGetQuality(pParams->handle_demod, &FE_STiD135_S1_CN_LookUp, demod, &(pInfo->C_N));
+	}
+
+	return error;
+}
+
 /*****************************************************
 --FUNCTION	::	fe_stid135_get_signal_info
 --ACTION	::	Return informations on the locked transponder
