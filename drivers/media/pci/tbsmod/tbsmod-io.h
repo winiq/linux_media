@@ -14,6 +14,8 @@
 #define SPI_AD4351       	 0x2c   // spi config ad4351 
 #define AD9789_MODULATION	 0x28   // spi mod set
 
+#define SPI_BW_LIGHT	 0x34  // spi bw light set
+
 #define SPI_TESTREG       	 0x30   // debug
 
 #define MOD_ASI_DEVICE		0X14
