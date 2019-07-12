@@ -38,7 +38,7 @@ struct tbs_pcie_dev {
 	u32						frequency;
 	u32						srate;
 	//u32						input_bitrate;
-	struct mod_channel		channnel[CHANNELS];
+	struct mod_channel		channel[CHANNELS];
 	u8						mod_index;
 	u32						cardid;
 
@@ -46,8 +46,6 @@ struct tbs_pcie_dev {
 	
 
 };
-
-
 
 static void tbs_adapters_init_dvbc(struct tbs_pcie_dev *dev);
 

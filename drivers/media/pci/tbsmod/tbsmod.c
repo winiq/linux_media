@@ -1107,7 +1107,7 @@ static void start_dma_transfer(struct mod_channel *pchannel)
 static int tbsmod_open(struct inode *inode, struct file *filp)
 {
 	struct tbs_pcie_dev *dev = (struct tbs_pcie_dev * )tbsmodsdev[iminor(inode)>>2];
-	struct mod_channel *pchannel =(struct mod_channel *)&dev->channnel[iminor(inode)&3];
+	struct mod_channel *pchannel =(struct mod_channel *)&dev->channel[iminor(inode)&3];
 	filp->private_data = pchannel;
 	u8 buff[4] = {0,0,0,0};
 	/*
@@ -1414,7 +1414,7 @@ static const struct file_operations tbsmod_fops =
 
 static void tbs_adapters_init_dvbc(struct tbs_pcie_dev *dev)
 {
-	unsigned char tmpbuf[4];
+	unsigned char tmpbuf[4]={0};
 	int id2;
 	BOOL ret;
 
@@ -1458,7 +1458,7 @@ static void tbs_adapters_init_dvbc(struct tbs_pcie_dev *dev)
 
 static void tbs_adapters_init_dvbt(struct tbs_pcie_dev *dev)
 {
-	unsigned char tmpbuf[4];
+	unsigned char tmpbuf[4]={0};
 	int id2;
 	BOOL ret;
 
@@ -1503,7 +1503,7 @@ static void tbs_adapters_init_dvbt(struct tbs_pcie_dev *dev)
 
 static void sdi_chip_reset(struct tbs_pcie_dev *dev,int sdi_base_addr)
 {
-	unsigned char tmpbuf[4];
+	unsigned char tmpbuf[4]={0};
 
 	tmpbuf[0] = 0;
 	TBS_PCIE_WRITE( sdi_base_addr, MOD_ASI_RST, *(u32 *)&tmpbuf[0]);
@@ -1517,7 +1517,7 @@ static void sdi_chip_reset(struct tbs_pcie_dev *dev,int sdi_base_addr)
 }
 
 void channelprocess(struct tbs_pcie_dev *dev,u8 index){
-		struct mod_channel *pchannel = (struct mod_channel *)&dev->channnel[index];
+		struct mod_channel *pchannel = (struct mod_channel *)&dev->channel[index];
 		int count = 0;
 		int ret;
 		u32 delay;
@@ -1584,11 +1584,11 @@ static void tbsmod_remove(struct pci_dev *pdev)
 	int i;
 
 	for(i=0;i<CHANNELS;i++){
-		kfifo_free(&dev->channnel[i].fifo);
-//		device_destroy(mod_cdev_class, dev->channnel[i].devno);
-		if (dev->channnel[i].dmavirt){
-			pci_free_consistent(dev->pdev, DMASIZE, dev->channnel[i].dmavirt, dev->channnel[i].dmaphy);
-			dev->channnel[i].dmavirt = NULL;
+		kfifo_free(&dev->channel[i].fifo);
+//		device_destroy(mod_cdev_class, dev->channel[i].devno);
+		if (dev->channel[i].dmavirt){
+			pci_free_consistent(dev->pdev, DMASIZE, dev->channel[i].dmavirt, dev->channel[i].dmaphy);
+			dev->channel[i].dmavirt = NULL;
 		}
 	}
 	tbsmods[dev->mod_index] =0;
@@ -1611,7 +1611,7 @@ static int tbsmod_probe(struct pci_dev *pdev,
 	int err = 0, ret = -ENODEV;
 	u8 index=0;
 	u8 i;
-	u8 mpbuf[4];
+	u8 mpbuf[4]={0};
 	
 	dev = kzalloc(sizeof(struct tbs_pcie_dev), GFP_KERNEL);
 	if (dev == NULL)
@@ -1676,21 +1676,21 @@ static int tbsmod_probe(struct pci_dev *pdev,
 	}
 
 	for(i=0;i<CHANNELS;i++){
-		dev->channnel[i].dmavirt = pci_alloc_consistent(dev->pdev, DMASIZE, &dev->channnel[i].dmaphy);
-		if (!dev->channnel[i].dmavirt)
+		dev->channel[i].dmavirt = pci_alloc_consistent(dev->pdev, DMASIZE, &dev->channel[i].dmaphy);
+		if (!dev->channel[i].dmavirt)
 		{
 			printk(" allocate memory failed\n");
 			goto fail3;
 		}
-		dev->channnel[i].channel_index=i;
-		dev->channnel[i].dev = dev;
-		dev->channnel[i].input_bitrate = 20;
-		dev->channnel[i].devno = MKDEV(MAJORDEV, (index*CHANNELS+i));
+		dev->channel[i].channel_index=i;
+		dev->channel[i].dev = dev;
+		dev->channel[i].input_bitrate = 30;
+		dev->channel[i].devno = MKDEV(MAJORDEV, (index*CHANNELS+i));
 
 	
-		device_create(mod_cdev_class, NULL, dev->channnel[i].devno, &dev->channnel[i], "tbsmod%d/mod%d",dev->mod_index,i);
+		device_create(mod_cdev_class, NULL, dev->channel[i].devno, &dev->channel[i], "tbsmod%d/mod%d",dev->mod_index,i);
 
-		ret = kfifo_alloc(&dev->channnel[i].fifo, FIFOSIZE, GFP_KERNEL);
+		ret = kfifo_alloc(&dev->channel[i].fifo, FIFOSIZE, GFP_KERNEL);
 		if (ret != 0)
 			goto fail3;
 	}
@@ -1722,7 +1722,10 @@ static int tbsmod_probe(struct pci_dev *pdev,
 
 		mpbuf[0] = 1; //active spi bus from "z"
 		TBS_PCIE_WRITE( MOD_ASI_BASEADDRESS, ASI_SPI_ENABLE, *(u32 *)&mpbuf[0]);
-
+		
+		GS2972_rd_nBytes(dev, 2 ,0x08, mpbuf);
+		if(mpbuf[1]==0x01)
+			printk("GS2972 hardware is ok!\n");
 		}
 	break;
 	default:
@@ -1743,19 +1746,19 @@ fail0:
 	return ret;
 }
 
-#define MAKE_ENTRY(__vend, __chip, __subven, __subdev, __configptr) \
+#define MAKE_ENTRY(__vend, __chip, __subven, __subdev, name) \
 	{                                                               \
 		.vendor = (__vend),                                         \
 		.device = (__chip),                                         \
 		.subvendor = (__subven),                                    \
 		.subdevice = (__subdev),                                    \
-		.driver_data = (unsigned long)(__configptr)                 \
+		.driver_data = (unsigned long)(name)                 \
 	}
 
 static const struct pci_device_id tbsmod_id_table[] = {
-	MAKE_ENTRY(0x544d, 0x6178, 0x6004, 0x0001, NULL),
-	MAKE_ENTRY(0x544d, 0x6178, 0x690b, 0x0001, NULL),
-	MAKE_ENTRY(0x544d, 0x6178, 0x6104, 0x0001, NULL),
+	MAKE_ENTRY(0x544d, 0x6178, 0x6004, 0x0001, "tbs6004 dvbc card"),
+	MAKE_ENTRY(0x544d, 0x6178, 0x690b, 0x0001, "tbs690b asi card"),
+	MAKE_ENTRY(0x544d, 0x6178, 0x6104, 0x0001, "tbs6104 dvbt card"),
 	{}};
 MODULE_DEVICE_TABLE(pci, tbsmod_id_table);
 
