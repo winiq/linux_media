@@ -1462,7 +1462,7 @@ static int dvb_fini(struct cx231xx *dev)
 			}
 
 			unregister_dvb(dev->dvb[i]);
-			kfree(dev->dvb);
+			kfree(dev->dvb[i]);
 			dev->dvb[i] = NULL;
 		}
 	}
