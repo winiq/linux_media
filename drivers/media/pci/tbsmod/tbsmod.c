@@ -312,150 +312,8 @@ static void config_gain(struct tbs_pcie_dev *dev, int gain)
 
 }
 
-static void AD9789_Configration_dvbc(struct tbs_pcie_dev *dev)
-
-{
-	int i = 0;
-	unsigned char buff[4] = {0};
-
-	buff[0] = 0x9E;
-	ad9789_wt_nBytes(dev, 1, AD9789_CLOCK_RECIVER_2, buff); //CLK_DIS=1;PSIGN=0;CLKP_CML=0x0F;NSIGN=0
-
-	buff[0] = 0x80;
-	ad9789_wt_nBytes(dev, 1, AD9789_Mu_CONTROL_DUTY_CYCLE, buff);
-
-	buff[0] = 0xCE;
-	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_1, buff); //SEARCH_TOL=1;SEARCH_ERR=1;TRACK_ERR=0;GUARDBAND=0x0E
-	buff[0] = 0x42;
-	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_2, buff); //MU_CLKDIS=0;SLOPE=1;MODE=0x00;MUSAMP=0;GAIN=0x01;MU_EN=1;
-	buff[0] = 0x4E;
-	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_3, buff); //MUDLY=0x00;SEARCH_DIR=0x10;MUPHZ=0x0E;
-	buff[0] = 0x6C;
-	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_4, buff); //MUDLY=0x9F;
-
-	buff[0] = 0x00;
-	ad9789_wt_nBytes(dev, 1, AD9789_INT_ENABLE, buff); 
-
-	buff[0] = 0xFE;
-	ad9789_wt_nBytes(dev, 1, AD9789_INT_STATUS, buff); 
-
-	buff[0] = 0x0C;
-	ad9789_wt_nBytes(dev, 1, AD9789_INT_ENABLE, buff); 
-
-	buff[0] = 0x43;
-	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_2, buff); //MU_CLKDIS=0;SLOPE=1;MODE=0x00;MUSAMP=0;GAIN=0x01;MU_EN=1;
-
-	buff[0] = 0x01;
-	ad9789_wt_nBytes(dev, 1, AD9789_BYPASS, buff); 
-
-	//0:DVB-C 16
-	//1:DVB-C 32
-	//2:DVB-C 64
-	//3:DVB-C 128
-	//4:DVB-C 256
-	config_QAM(dev, 4);
-
-	buff[0] = 0x14;
-	ad9789_wt_nBytes(dev, 1, AD9789_SUM_SCALAR, buff); 
-
-	buff[0] = 0x20;
-	ad9789_wt_nBytes(dev, 1, AD9789_INPUT_SCALAR, buff);
-	
-	//default to 114M,122M,130M,138M
-	buff[2] = 0x5c;//0xC2;
-	buff[1] = 0x8f;//0xF5;
-	buff[0] = 0xc2;//0x28;
-	ad9789_wt_nBytes(dev, 3, AD9789_NCO_0_FRE, buff); //NCO_0:0x55,0x55,0x55,800Mfreq
-
-	buff[2] = 0x9d;//0x03;
-	buff[1] = 0x36;//0x9D;
-	buff[0] = 0xd0;//0x36;	
-	ad9789_wt_nBytes(dev, 3, AD9789_NCO_1_FRE, buff); //NCO_1:0x62,0xFC,0x96,808Mfreq
-	buff[2] = 0xdd;//0x44;
-	buff[1] = 0xdd;//0x44;
-	buff[0] = 0xdd;//0x44;	
-	ad9789_wt_nBytes(dev, 3, AD9789_NCO_2_FRE, buff); //NCO_2:0x70,0xA3,0xD7,816Mfreq
-
-	buff[2] = 0x1e;//0x85;
-	buff[1] = 0x85;//0xEB;
-	buff[0] = 0xeb;//0x51;
-	ad9789_wt_nBytes(dev, 3, AD9789_NCO_3_FRE, buff); //NCO_3:0x7E,0x4B,0x17,808Mfreq
-
-	buff[2] = 0x00;
-	buff[1] = 0x00;
-	buff[0] = 0x80;
-	ad9789_wt_nBytes(dev, 3, AD9789_RATE_CONVERT_Q, buff); 
-
-	buff[2] = 0x55;
-	buff[1] = 0x55;
-	buff[0] = 0x53;	
-	ad9789_wt_nBytes(dev, 3, AD9789_RATE_CONVERT_P, buff); 
-
-	buff[1] = 0x70;//0xD7;
-	buff[0] = 0x0d;//0x33;	
-	ad9789_wt_nBytes(dev, 2, AD9789_CENTER_FRE_BPF, buff); 
-
-	buff[0] = 0x06;
-	ad9789_wt_nBytes(dev, 1, AD9789_INTERFACE_CONFIG, buff); 
-
-	buff[0] = 0x61;
-	ad9789_wt_nBytes(dev, 1, AD9789_DATA_CONTROL, buff); 
-
-	buff[0] = 0x10;
-	ad9789_wt_nBytes(dev, 1, AD9789_DCO_FRE, buff); 
-
-	buff[0] = 0x62;
-	ad9789_wt_nBytes(dev, 1, AD9789_INTERNAL_COLCK_ADJUST, buff); 
-
-	config_gain(dev, 60);
-
-	buff[0] = 0;
-	ad9789_wt_nBytes(dev, 1, AD9789_SPEC_SHAPING, buff); 
-
-	buff[0] = 0x00;
-	ad9789_wt_nBytes(dev, 1, AD9789_FULL_SCALE_CURRENT_1, buff); 
-
-	buff[0] = 0x02;
-	ad9789_wt_nBytes(dev, 1, AD9789_FULL_SCALE_CURRENT_2, buff); 
-
-	for (i = 0; i < 100; i++){
-		ad9789_rd_nBytes(dev, 1, AD9789_INT_STATUS, buff);
-		if (buff[0] == 0x08)
-			break;
-		msleep(10);
-	}
-
-	buff[0] = 0x80;
-	ad9789_wt_nBytes(dev, 1, AD9789_FRE_UPDATE, buff); 
-
-	buff[0] = 0x00;
-	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
-
-	buff[0] = 0x80;
-	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
-	for (i = 0; i < 100; i++) {
-		ad9789_rd_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff);
-		if (buff[0] == 0x80)
-			break;
-		msleep(10);
-	}
-	if (buff[0] != 0x80)
-			dev_err(&dev->pdev->dev, "error updating parameters");
-	
-	buff[0] = 0x00;
-	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
-
-	buff[0] = 0x0; // disable default four channels
-	ad9789_wt_nBytes(dev, 1, AD9789_CHANNEL_ENABLE, buff); 
-
-	buff[0] = 0x0E;
-	ad9789_wt_nBytes(dev, 1, AD9789_INT_ENABLE, buff); 
-
-	return;
-}
-
 // freq MHZ
-static BOOL ad9789_setFre(struct tbs_pcie_dev *dev, unsigned long freq)
+static BOOL ad9789_setFre_dvbc(struct tbs_pcie_dev *dev, unsigned long freq)
 {
 	unsigned long freq_0, freq_1, freq_2, freq_3;
 	unsigned char buff[4] = {0};
@@ -527,6 +385,118 @@ static void config_srate(struct tbs_pcie_dev *dev, unsigned long srate)
 
 
 }
+
+static void AD9789_Configration_dvbc(struct tbs_pcie_dev *dev)
+
+{
+	int i = 0;
+	unsigned char buff[4] = {0};
+
+	buff[0] = 0x9E;
+	ad9789_wt_nBytes(dev, 1, AD9789_CLOCK_RECIVER_2, buff); //CLK_DIS=1;PSIGN=0;CLKP_CML=0x0F;NSIGN=0
+
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_Mu_CONTROL_DUTY_CYCLE, buff);
+
+	buff[0] = 0xCE;
+	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_1, buff); //SEARCH_TOL=1;SEARCH_ERR=1;TRACK_ERR=0;GUARDBAND=0x0E
+	buff[0] = 0x42;
+	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_2, buff); //MU_CLKDIS=0;SLOPE=1;MODE=0x00;MUSAMP=0;GAIN=0x01;MU_EN=1;
+	buff[0] = 0x4E;
+	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_3, buff); //MUDLY=0x00;SEARCH_DIR=0x10;MUPHZ=0x0E;
+	buff[0] = 0x6C;
+	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_4, buff); //MUDLY=0x9F;
+
+	buff[0] = 0x00;
+	ad9789_wt_nBytes(dev, 1, AD9789_INT_ENABLE, buff); 
+
+	buff[0] = 0xFE;
+	ad9789_wt_nBytes(dev, 1, AD9789_INT_STATUS, buff); 
+
+	buff[0] = 0x0C;
+	ad9789_wt_nBytes(dev, 1, AD9789_INT_ENABLE, buff); 
+
+	buff[0] = 0x43;
+	ad9789_wt_nBytes(dev, 1, AD9789_Mu_DELAY_CONTROL_2, buff); //MU_CLKDIS=0;SLOPE=1;MODE=0x00;MUSAMP=0;GAIN=0x01;MU_EN=1;
+
+	buff[0] = 0x01;
+	ad9789_wt_nBytes(dev, 1, AD9789_BYPASS, buff); 
+
+	//0:DVB-C 16
+	//1:DVB-C 32
+	//2:DVB-C 64
+	//3:DVB-C 128
+	//4:DVB-C 256
+	config_QAM(dev, 4);
+
+	buff[0] = 0x14;
+	ad9789_wt_nBytes(dev, 1, AD9789_SUM_SCALAR, buff); 
+
+	buff[0] = 0x20;
+	ad9789_wt_nBytes(dev, 1, AD9789_INPUT_SCALAR, buff);
+	
+	ad9789_setFre_dvbc(dev,114000000 );
+	config_srate(dev,6900000);
+
+	buff[0] = 0x06;
+	ad9789_wt_nBytes(dev, 1, AD9789_INTERFACE_CONFIG, buff); 
+
+	buff[0] = 0x61;
+	ad9789_wt_nBytes(dev, 1, AD9789_DATA_CONTROL, buff); 
+
+	buff[0] = 0x10;
+	ad9789_wt_nBytes(dev, 1, AD9789_DCO_FRE, buff); 
+
+	buff[0] = 0x62;
+	ad9789_wt_nBytes(dev, 1, AD9789_INTERNAL_COLCK_ADJUST, buff); 
+
+	config_gain(dev, 60);
+
+	buff[0] = 0;
+	ad9789_wt_nBytes(dev, 1, AD9789_SPEC_SHAPING, buff); 
+
+	buff[0] = 0x00;
+	ad9789_wt_nBytes(dev, 1, AD9789_FULL_SCALE_CURRENT_1, buff); 
+
+	buff[0] = 0x02;
+	ad9789_wt_nBytes(dev, 1, AD9789_FULL_SCALE_CURRENT_2, buff); 
+
+	for (i = 0; i < 100; i++){
+		ad9789_rd_nBytes(dev, 1, AD9789_INT_STATUS, buff);
+		if (buff[0] == 0x08)
+			break;
+		msleep(10);
+	}
+
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_FRE_UPDATE, buff); 
+
+	buff[0] = 0x00;
+	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
+
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
+	for (i = 0; i < 100; i++) {
+		ad9789_rd_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff);
+		if (buff[0] == 0x80)
+			break;
+		msleep(10);
+	}
+	if (buff[0] != 0x80)
+			dev_err(&dev->pdev->dev, "error updating parameters");
+	
+	buff[0] = 0x00;
+	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
+
+	buff[0] = 0x0; // disable default four channels
+	ad9789_wt_nBytes(dev, 1, AD9789_CHANNEL_ENABLE, buff); 
+
+	buff[0] = 0x0E;
+	ad9789_wt_nBytes(dev, 1, AD9789_INT_ENABLE, buff); 
+
+	return;
+}
+
 
 static BOOL AD4351_Configration_dvbc(struct tbs_pcie_dev *dev)
 {
@@ -877,18 +847,16 @@ static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidt
 	buff[1] = (freq_3 >> 8) & 0xff;
 	buff[0] = (freq_3 >> 16) & 0xff;
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_3_FRE, buff);
-//test 
+
 	buff[2] = 0;
 	buff[1] = 0;
 	buff[0] = 0x80;
 	ad9789_wt_nBytes(dev, 3, AD9789_RATE_CONVERT_Q, buff);
 
-
 	buff[2] = 0;
 	buff[1] = 0;
 	buff[0] = 0x80;
 	ad9789_wt_nBytes(dev, 3, AD9789_RATE_CONVERT_P, buff);
-//~test
 
 	fcenter = freq*1000000 + (bandwidth * 3 *1000000)/2;
 	//fcenter = (fcenter*65536)/2400;
@@ -1203,7 +1171,6 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct mcu24cxx_info wrinfo;
 	int ret = 0;
 	struct dvb_modulator_parameters params;
-	struct dvb_frontend_info finfo;
 
 	switch (cmd)
 	{
@@ -1260,10 +1227,11 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				break;
 				}
 				printk("%s MODULATOR_FREQUENCY:%d\n", __func__,prop.u.data);
+				/*
 				{
 					u32 frequency = prop.u.data;
 					u32 freq = frequency / 1000000;
-
+					
 					if (frequency % 1000000)
 						ret = -EINVAL;
 					if ((freq - 114) % 8)
@@ -1273,8 +1241,9 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				}
 				if (ret < 0)
 					break;
+				*/
 				dev->frequency = prop.u.data;
-				ad9789_setFre(dev,dev->frequency);
+				ad9789_setFre_dvbc(dev,dev->frequency);
 
 				break;
 			case MODULATOR_GAIN:
@@ -1340,13 +1309,6 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		}
 		break;
 		
-
-	case FE_GET_INFO:
-		memset(&finfo, 0, sizeof(struct dvb_frontend_info));
-		snprintf(finfo.name, 16, "TBS-%X:%d", dev->pdev->subsystem_vendor, dev->mod_index);
-		copy_to_user((unsigned long)arg, &finfo, sizeof(struct dvb_frontend_info));
-		break;
-
 	case DVBMOD_SET_PARAMETERS:
 	{
 		if(pchannel->channel_index)
@@ -1692,19 +1654,22 @@ static int tbsmod_probe(struct pci_dev *pdev,
 		}
 		dev->channel[i].channel_index=i;
 		dev->channel[i].dev = dev;
-		dev->channel[i].input_bitrate = 30;
+		if(dev->cardid == 0x6004)
+			dev->channel[i].input_bitrate = 50;
+		else if(dev->cardid == 0x6104)
+			dev->channel[i].input_bitrate = 30;
+		else if(dev->cardid == 0x690b)
+			dev->channel[i].input_bitrate = 80;
+
 		dev->channel[i].devno = MKDEV(MAJORDEV, (index*CHANNELS+i));
-
-	
 		device_create(mod_cdev_class, NULL, dev->channel[i].devno, &dev->channel[i], "tbsmod%d/mod%d",dev->mod_index,i);
-
 		ret = kfifo_alloc(&dev->channel[i].fifo, FIFOSIZE, GFP_KERNEL);
 		if (ret != 0)
 			goto fail3;
 	}
 
 	dev->modulation =QAM_256;
-	dev->srate=7200000;
+	dev->srate=6900000;
 	dev->frequency=114000000;
 	dev->bw = 8;
 
