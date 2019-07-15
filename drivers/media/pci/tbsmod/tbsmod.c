@@ -1171,6 +1171,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct mcu24cxx_info wrinfo;
 	int ret = 0;
 	struct dvb_modulator_parameters params;
+	struct dvb_frontend_info finfo;
 
 	switch (cmd)
 	{
@@ -1308,7 +1309,14 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 		}
 		break;
-		
+
+	case FE_GET_INFO:
+		memset(&finfo, 0, sizeof(struct dvb_frontend_info));
+		snprintf(finfo.name, 16, "TBS-%X:%d", dev->pdev->subsystem_vendor, dev->mod_index);
+		copy_to_user((unsigned long)arg, &finfo, sizeof(struct dvb_frontend_info));
+		break;
+
+	
 	case DVBMOD_SET_PARAMETERS:
 	{
 		if(pchannel->channel_index)
