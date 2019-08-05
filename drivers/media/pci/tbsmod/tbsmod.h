@@ -23,6 +23,7 @@ struct mod_channel
 	struct kfifo 			fifo; 
 	u8						channel_index;
 	u32						input_bitrate;
+	spinlock_t           	adap_lock; //  dma lock
 	
 };
 
@@ -30,14 +31,13 @@ struct mod_channel
 struct tbs_pcie_dev {
 	struct pci_dev			*pdev;
 	void __iomem			*mmio;
-//	struct mutex           ioctl_mutex; 
-//	u8						block_index;
-//	struct work_struct mywork;
+	struct mutex           spi_mutex; // lock spi access
+	struct mutex           ioctl_mutex; // lock ioctls access
+	spinlock_t           	chip_lock; // lock chip access
 
 	u8 						modulation;
 	u32						frequency;
 	u32						srate;
-	//u32						input_bitrate;
 	struct mod_channel		channel[CHANNELS];
 	u8						mod_index;
 	u32						cardid;

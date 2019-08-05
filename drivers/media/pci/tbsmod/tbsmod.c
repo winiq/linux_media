@@ -85,6 +85,7 @@ static BOOL ad9789_CheckFree(struct tbs_pcie_dev *dev, int OpbyteNum)
 static BOOL ad9789_wt_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr, unsigned char *Wr_buf)
 {
 	unsigned char i = 0, tmpdt = 0, tmpbuf[8];
+	mutex_lock(&dev->spi_mutex);
 
 	if (length == 3)
 		tmpdt = 0x40;
@@ -112,17 +113,20 @@ static BOOL ad9789_wt_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr,
 	TBS_PCIE_WRITE(0, SPI_CONFIG, *(u32 *)&tmpbuf[0]);
 
 	if (ad9789_CheckFree(dev, 4) == 0)
-	{
+	{	
+		mutex_unlock(&dev->spi_mutex);
 		printk((" ad9789_wt_nBytes error!	\n"));
 		return FALSE;
 	}
-
+	
+	mutex_unlock(&dev->spi_mutex);
 	return TRUE;
 }
 
 static BOOL ad9789_rd_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr, unsigned char *Rd_buf)
 {
 	unsigned char tmpdt = 0, tmpbuf[4];
+	mutex_lock(&dev->spi_mutex);
 
 	if (length == 3)
 		tmpdt = 0xc0;
@@ -148,6 +152,7 @@ static BOOL ad9789_rd_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr,
 	if (ad9789_CheckFree(dev, 4) == 0)
 	{
 		printk((" ad9789_rd_nBytes error!   \n"));
+		mutex_unlock(&dev->spi_mutex);
 		return FALSE;
 	}
 
@@ -155,6 +160,7 @@ static BOOL ad9789_rd_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr,
 
 	msleep(1);
 
+	mutex_unlock(&dev->spi_mutex);
 	return TRUE;
 }
 
@@ -203,6 +209,7 @@ static BOOL GS2972_CheckFree(struct tbs_pcie_dev *dev, int OpbyteNum)
 static BOOL GS2972_wt_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr, unsigned char *Wr_buf)
 {
 	unsigned char i = 0, tmpdt = 0, tmpbuf[8];
+	mutex_lock(&dev->spi_mutex);
 
 	if (length == 3)
 		tmpdt = 0x40;
@@ -232,16 +239,18 @@ static BOOL GS2972_wt_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr,
 
 	if (GS2972_CheckFree(dev, 4) == 0)
 	{
+		mutex_unlock(&dev->spi_mutex);
 		printk((" GS2972_wt_nBytes error!	\n"));
 		return FALSE;
 	}
-
+	mutex_unlock(&dev->spi_mutex);
 	return TRUE;
 }
 
 static BOOL GS2972_rd_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr, unsigned char *Rd_buf)
 {
 	unsigned char tmpdt = 0, tmpbuf[4];
+	mutex_lock(&dev->spi_mutex);
 
 	if (length == 3)
 		tmpdt = 0xc0;
@@ -267,6 +276,7 @@ static BOOL GS2972_rd_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr,
 
 	if (GS2972_CheckFree(dev, 4) == 0)
 	{
+		mutex_unlock(&dev->spi_mutex);
 		printk((" GS2972_rd_nBytes error!   \n"));
 		return FALSE;
 	}
@@ -275,6 +285,7 @@ static BOOL GS2972_rd_nBytes(struct tbs_pcie_dev *dev, int length, int Reg_Addr,
 
 	msleep(1);
 
+	mutex_unlock(&dev->spi_mutex);
 	return TRUE;
 }
 
@@ -1092,7 +1103,7 @@ static int tbsmod_open(struct inode *inode, struct file *filp)
 	*/
 	pchannel->dma_start_flag = 0;
 	kfifo_reset(&pchannel->fifo);
-
+	spin_lock_init(&pchannel->adap_lock);
 	//enable rf 
 	if((dev->cardid == 0x6004)||(dev->cardid == 0x6104)){
 		ad9789_rd_nBytes(dev, 1, AD9789_CHANNEL_ENABLE, buff);
@@ -1173,6 +1184,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct dvb_modulator_parameters params;
 	struct dvb_frontend_info finfo;
 
+	mutex_lock(&dev->ioctl_mutex);
 	switch (cmd)
 	{
 	case FE_SET_PROPERTY:
@@ -1350,7 +1362,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		ret = -EINVAL;
 		break;
 	}
-
+	mutex_unlock(&dev->ioctl_mutex);
 	return ret;
 }
 static int tbsmod_mmap(struct file *file, struct vm_area_struct *vm)
@@ -1499,7 +1511,8 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 		int count = 0;
 		int ret;
 		u32 delay;
-
+		
+		spin_lock(&pchannel->adap_lock);
 		TBS_PCIE_READ(Dmaout_adapter0+pchannel->channel_index*0x1000, 0x00);
 		TBS_PCIE_WRITE(Int_adapter, 0x00, (0x10<<index) );
 		count = kfifo_len(&pchannel->fifo);
@@ -1510,6 +1523,7 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 		}else{
 			//printk("dma%d status 22 %d\n", pchannel->channel_index, count);
 			if (pchannel->dma_start_flag == 0){
+				spin_unlock(&pchannel->adap_lock);
 				return ;
 			}
 		delay = div_u64(1000000000ULL * BLOCKSIZE, (pchannel->input_bitrate )*1024*1024*3);
@@ -1517,6 +1531,7 @@ void channelprocess(struct tbs_pcie_dev *dev,u8 index){
 		TBS_PCIE_WRITE(Dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
 		//TBS_PCIE_WRITE(Int_adapter, 0x04, 0x00000001);
 		}
+		spin_unlock(&pchannel->adap_lock);
 }
 
 static irqreturn_t tbsmod_irq(int irq, void *dev_id)
@@ -1628,7 +1643,10 @@ static int tbsmod_probe(struct pci_dev *pdev,
 
 	pci_set_drvdata(pdev, dev);
 
-//	mutex_init(&dev->ioctl_mutex);
+	mutex_init(&dev->spi_mutex);
+	mutex_init(&dev->ioctl_mutex);
+	spin_lock_init(&dev->chip_lock);
+	
 	for(index=0;index<sizeof(tbsmods);index++){
 		if(tbsmods[index] ==0 ){
 			tbsmods[index] = 1;
@@ -1684,16 +1702,20 @@ static int tbsmod_probe(struct pci_dev *pdev,
 	switch(pdev->subsystem_vendor){
 	case 0x6004:
 		printk("tbsmod%d:tbs6004 dvbc card\n", dev->mod_index);	
-		tbs_adapters_init_dvbc(dev);
+		spin_lock(&dev->chip_lock);
+		tbs_adapters_init_dvbc(dev);	
+		spin_unlock(&dev->chip_lock);
 	break;
 	
 	case 0x6104:
 		printk("tbsmod%d:tbs6104 dvbt card\n", dev->mod_index);	
+		spin_lock(&dev->chip_lock);
 		tbs_adapters_init_dvbt(dev);
+		spin_unlock(&dev->chip_lock);
 	break;
 	
 	case 0x690b:
-		
+		spin_lock(&dev->chip_lock);
 		printk("tbsmod%d:tbs690b asi card\n", dev->mod_index);
 		for(i=0;i<4;i++){
 		mpbuf[0] = i; //0--3 :select value
@@ -1708,6 +1730,7 @@ static int tbsmod_probe(struct pci_dev *pdev,
 		if(mpbuf[1]==0x01)
 			printk("GS2972 hardware is ok!\n");
 		}
+		spin_unlock(&dev->chip_lock);
 	break;
 	default:
 		printk("unknow card\n");
