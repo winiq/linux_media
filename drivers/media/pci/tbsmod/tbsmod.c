@@ -1407,7 +1407,7 @@ static void tbs_adapters_init_dvbc(struct tbs_pcie_dev *dev)
 	unsigned char tmpbuf[4]={0};
 	int id2;
 	BOOL ret;
-
+	/*
 	//reset 9789
 	tmpbuf[0] = 1;
 	TBS_PCIE_WRITE(0, SPI_RESET, *(u32 *)&tmpbuf[0]);
@@ -1415,7 +1415,7 @@ static void tbs_adapters_init_dvbc(struct tbs_pcie_dev *dev)
 	tmpbuf[0] = 0;
 	TBS_PCIE_WRITE(0, SPI_RESET, *(u32 *)&tmpbuf[0]);
 	msleep(100);
-
+	*/
 	ret = AD4351_Configration_dvbc(dev);
 	if (ret == FALSE)
 		printk("configration ad4351 false! \n");
@@ -1451,7 +1451,7 @@ static void tbs_adapters_init_dvbt(struct tbs_pcie_dev *dev)
 	unsigned char tmpbuf[4]={0};
 	int id2;
 	BOOL ret;
-
+	/*
 	//reset 9789
 	tmpbuf[0] = 1;
 	TBS_PCIE_WRITE(0, SPI_RESET, *(u32 *)&tmpbuf[0]);
@@ -1459,7 +1459,7 @@ static void tbs_adapters_init_dvbt(struct tbs_pcie_dev *dev)
 	tmpbuf[0] = 0;
 	TBS_PCIE_WRITE(0, SPI_RESET, *(u32 *)&tmpbuf[0]);
 	msleep(100);
-
+	*/
 	ret = AD4351_Configration_dvbt(dev);
 	if (ret == FALSE)
 		printk("configration ad4351 false! \n");
