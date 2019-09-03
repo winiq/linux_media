@@ -896,6 +896,11 @@ static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidt
 	buff[0] = 0x80;
 	ad9789_wt_nBytes(dev, 1, AD9789_FRE_UPDATE, buff);
 
+	buff[0] = 0x00;
+	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
+
 	return TRUE;
 }
 
@@ -1001,7 +1006,7 @@ static void AD9789_Configration_dvbt(struct tbs_pcie_dev *dev)
 	buff[0] = 0x00;
 	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
 
-	buff[0] = 0x0; // disable default four channels
+	buff[0] = 0x00; // disable default four channels
 	ad9789_wt_nBytes(dev, 1, AD9789_CHANNEL_ENABLE, buff); 
 
 	return;
@@ -1341,9 +1346,9 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		dev->frequency = params.frequency_khz *1000;
 		dev->bw = params.bandwidth_hz/1000;
 		AD4351_Configration_dvbt(dev);
+		set_Modulation_dvbt(dev,&params);
 		ad9789_setFre_dvbt(dev, dev->bw, dev->frequency);
 		
-		set_Modulation_dvbt(dev,&params);
 		break;
 	}
 

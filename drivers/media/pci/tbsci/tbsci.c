@@ -39,8 +39,8 @@ static void start_outdma_transfer(struct ca_channel *pchannel)
 		speedctrl =div_u64(1000000000ULL * WRITE_TOTAL_SIZE,(pchannel->w_bitrate )*1024*1024 );
 		TBS_PCIE_WRITE(dmaout_adapter0+pchannel->channel_index*0x1000, DMA_SPEED_CTRL, (speedctrl));
 		TBS_PCIE_WRITE(dmaout_adapter0+pchannel->channel_index*0x1000, DMA_INT_MONITOR, (2*speedctrl));
-
-		speedctrl = div_u64(speedctrl*9 , WRITE_BLOCK_CEEL*10);
+		speedctrl = div_u64(speedctrl , WRITE_BLOCK_CEEL);
+		//speedctrl = div_u64(speedctrl*9 , WRITE_BLOCK_CEEL*10);
 		TBS_PCIE_WRITE(dmaout_adapter0+pchannel->channel_index*0x1000, DMA_FRAME_CNT, (speedctrl));
 	}
 
@@ -224,7 +224,8 @@ static long tbsci_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	struct dtv_properties props ;
 	struct dtv_property prop;
 	int ret = 0;
-
+	u32 clk_freq;
+	u32 clk_data;
 	switch (cmd)
 	{
 	case FE_SET_PROPERTY:
@@ -236,7 +237,32 @@ static long tbsci_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			{
 				case MODULATOR_INPUT_BITRATE:
 					printk("%s ca%d:INPUT_BITRATE:%d\n", __func__,chan->channel_index,prop.u.data);
-					chan->w_bitrate = prop.u.data -5;
+					chan->w_bitrate = prop.u.data;
+					//set clock preset 
+					
+					if(chan->w_bitrate<=76)
+						clk_data = (125*188*8)/(204*chan->w_bitrate*2)-1;
+					else if((chan->w_bitrate>76)&&(chan->w_bitrate<84))
+						clk_data = 0x10;
+					else if((chan->w_bitrate>=84)&&(chan->w_bitrate<88))
+						clk_data = 5;  //10freq
+					else if((chan->w_bitrate>=88)&&(chan->w_bitrate<102))
+						clk_data = 0x20;
+					else if((chan->w_bitrate>=102)&&(chan->w_bitrate<110))
+						clk_data = 4;//8freq
+					else if((chan->w_bitrate>=110)&&(chan->w_bitrate<119))
+						clk_data = 0x30;  
+					else if((chan->w_bitrate>=119)&&(chan->w_bitrate<128))
+						clk_data = 0x40;
+					else if((chan->w_bitrate>=128)&&(chan->w_bitrate<142))
+						clk_data = 0x50;
+					else
+						clk_data = 3 ;
+					printk(" clk preset val : %d\n",clk_data);
+					TBS_PCIE_WRITE(pcmcia_adapter0+chan->channel_index*0x1000, 0x10, clk_data);
+					
+					clk_data=TBS_PCIE_READ(pcmcia_adapter0+chan->channel_index*0x1000, 0x10);
+					printk(" read clk preset val : %d\n",clk_data);	
 					break;
 				default:
 					ret = -EINVAL;
@@ -286,6 +312,8 @@ static void write_dma_work(struct work_struct *p_work)
 	int count = 0;
 	int ret;
 	u32 delay;
+	
+	spin_lock(&pchannel->writelock);
 	TBS_PCIE_READ(dmaout_adapter0+pchannel->channel_index*0x1000, 0x00);
 	//TBS_PCIE_WRITE(int_adapter, 0x00, (0x40<<index) ); 
 	count = kfifo_len(&pchannel->w_fifo); 
@@ -303,6 +331,7 @@ static void write_dma_work(struct work_struct *p_work)
 		TBS_PCIE_WRITE(dmaout_adapter0+pchannel->channel_index*0x1000, DMA_DELAYSHORT, (delay));
 		//TBS_PCIE_WRITE(int_adapter, 0x04, 0x00000001);
 	}
+	spin_unlock(&pchannel->writelock);
 		
 }
 
@@ -316,7 +345,7 @@ static void read_dma_work(struct work_struct *p_work)
 	u8 * data;
 	int i;
 
-	mutex_lock(&pchannel->readlock);
+	spin_lock(&pchannel->readlock);
 
 	if (pchannel->cnt < 2){
 		next_buffer = (TBS_PCIE_READ(dma_wr_adapter0+pchannel->channel_index*0x1000, 0x00) +READ_CELLS-1) & (READ_CELLS-1);
@@ -366,7 +395,7 @@ static void read_dma_work(struct work_struct *p_work)
 		}
 		pchannel->next_buffer = (u8)next_buffer;
 	}
-	mutex_unlock(&pchannel->readlock);
+	spin_unlock(&pchannel->readlock);
 
 }
 
@@ -876,7 +905,8 @@ static int tbs_adapters_init(struct tbs_pcie_dev *dev)
 		INIT_WORK(&tbsca->write_work,write_dma_work);
 		init_waitqueue_head(&tbsca->write_wq);
 		init_waitqueue_head(&tbsca->read_wq);
-		mutex_init(&tbsca->readlock);
+		spin_lock_init(&tbsca->readlock);
+		spin_lock_init(&tbsca->writelock);
 	}
 
 	ret = dvb_register_adapter(&dev->adapter, "tbsci",THIS_MODULE,&dev->pdev->dev,adapter_nr);

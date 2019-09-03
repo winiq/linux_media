@@ -11,7 +11,7 @@
 
 #define TS_PACKET_SIZE		188
 #define WRITE_TOTAL_SIZE	(TS_PACKET_SIZE*96)
-#define WRITE_BLOCK_CEEL		(96)
+#define WRITE_BLOCK_CEEL	(96)
 
 #define READ_PKTS		(256)
 #define READ_CELLS		(16)
@@ -22,54 +22,55 @@
 struct ca_channel
 {
 	struct tbs_pcie_dev 	*dev;
-	u8						dma_offset;
-	u8						next_buffer;
-	u8						cnt;
-	struct work_struct		read_work;
-	struct work_struct		write_work;
-	wait_queue_head_t		write_wq;
-	wait_queue_head_t		read_wq;
-	u8						write_ready;
-	u8						read_ready;
-	struct mutex 			readlock;
+	u8			dma_offset;
+	u8			next_buffer;
+	u8			cnt;
+	struct work_struct	read_work;
+	struct work_struct	write_work;
+	wait_queue_head_t	write_wq;
+	wait_queue_head_t	read_wq;
+	u8			write_ready;
+	u8			read_ready;
+	spinlock_t 		readlock;
+	spinlock_t		writelock;
 
-	__le32					*w_dmavirt;
-	dma_addr_t				w_dmaphy;	
-	__le32					*r_dmavirt;
-	dma_addr_t				r_dmaphy;	
-	struct kfifo 			w_fifo; 
-	struct kfifo 			r_fifo; 
-	u8						channel_index;
-	u8						is_open;
+	__le32			*w_dmavirt;
+	dma_addr_t		w_dmaphy;	
+	__le32			*r_dmavirt;
+	dma_addr_t		r_dmaphy;	
+	struct kfifo 		w_fifo; 
+	struct kfifo 		r_fifo; 
+	u8			channel_index;
+	u8			is_open;
 	//struct tasklet_struct	tasklet;
 
 	/*ca */
 	struct dvb_ca_en50221	ca;
-	struct mutex 			lock;
-	int 					status;
+	struct mutex 		lock;
+	int 			status;
 
-	struct dvb_device    *ci_dev;
+	struct dvb_device    	*ci_dev;
 
 	/* dvb */
 	struct dvb_frontend  	fe;	 
-	struct dmxdev         dmxdev;
-	struct dvb_demux      demux;
-	struct dvb_net        dvbnet;
-	struct dmx_frontend fe_hw;
-	struct dmx_frontend fe_mem;
-	struct dtv_frontend_properties dvt_properties;
+	struct dmxdev         	dmxdev;
+	struct dvb_demux      	demux;
+	struct dvb_net        	dvbnet;
+	struct dmx_frontend 	fe_hw;
+	struct dmx_frontend 	fe_mem;
+	struct dtv_frontend_properties 	dvt_properties;
 	int feeds;
 
-	u32		w_bitrate;
+	u32			w_bitrate;
 
 };
 
 
 struct tbs_pcie_dev {
-	struct pci_dev			*pdev;
-	void __iomem			*mmio;
-	struct dvb_adapter		adapter;
-	struct ca_channel		channnel[CHANNELS];
+	struct pci_dev		*pdev;
+	void __iomem		*mmio;
+	struct dvb_adapter	adapter;
+	struct ca_channel	channnel[CHANNELS];
 };
 
 
