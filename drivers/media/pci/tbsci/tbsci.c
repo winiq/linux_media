@@ -240,9 +240,15 @@ static long tbsci_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 					chan->w_bitrate = prop.u.data;
 					//set clock preset 
 					
-					if(chan->w_bitrate<=76)
+					if(chan->w_bitrate<30)
+						clk_data = 15;
+					else if(chan->w_bitrate<=41)
 						clk_data = (125*188*8)/(204*chan->w_bitrate*2)-1;
-					else if((chan->w_bitrate>76)&&(chan->w_bitrate<84))
+					else if(chan->w_bitrate<=70)
+						clk_data = ((125*188*8)/(204*chan->w_bitrate)-1)/2;
+					else if((chan->w_bitrate>70)&&(chan->w_bitrate<74))
+						clk_data = 6;
+					else if((chan->w_bitrate>=74)&&(chan->w_bitrate<84))
 						clk_data = 0x10;
 					else if((chan->w_bitrate>=84)&&(chan->w_bitrate<88))
 						clk_data = 5;  //10freq
