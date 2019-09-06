@@ -821,6 +821,7 @@ static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidt
 	unsigned char buff[4] = {0};
 	//config center freq
 	unsigned long fcenter;
+	int i;
 
 	if(bandwidth ==8)
 		fdco = 146285714; //146.285714;
@@ -899,6 +900,17 @@ static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidt
 	buff[0] = 0x00;
 	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
 	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
+	for (i = 0; i < 100; i++) {
+		ad9789_rd_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff);
+		if (buff[0] == 0x80)
+			break;
+		msleep(10);
+	}
+	if (buff[0] != 0x80)
+			dev_err(&dev->pdev->dev, "error updating parameters");
+	
+	buff[0] = 0x00;
 	ad9789_wt_nBytes(dev, 1, AD9789_PARAMETER_UPDATE, buff); 
 
 	return TRUE;
@@ -1465,6 +1477,19 @@ static void tbs_adapters_init_dvbt(struct tbs_pcie_dev *dev)
 	TBS_PCIE_WRITE(0, SPI_RESET, *(u32 *)&tmpbuf[0]);
 	msleep(100);
 	*/
+
+	tmpbuf[0] = 0;
+	tmpbuf[1] = 0;
+	tmpbuf[2] = 0;
+	tmpbuf[3] = 0;
+	TBS_PCIE_WRITE(0, SPI_BW_LIGHT, *(u32 *)&tmpbuf[0]);
+	msleep(100);
+	tmpbuf[0] = 0;
+	tmpbuf[1] = 0;
+	tmpbuf[2] = 0;
+	tmpbuf[3] = 0x1;
+	TBS_PCIE_WRITE(0, SPI_BW_LIGHT, *(u32 *)&tmpbuf[0]);
+msleep(100);
 	ret = AD4351_Configration_dvbt(dev);
 	if (ret == FALSE)
 		printk("configration ad4351 false! \n");
