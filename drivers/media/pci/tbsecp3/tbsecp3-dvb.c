@@ -1584,6 +1584,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		break;
 	}
 	strlcpy(adapter->fe->ops.info.name,dev->info->name,52);
+	if (adapter->fe2)
+		strlcpy(adapter->fe2->ops.info.name,dev->info->name,52);
 	return 0;
 
 frontend_atach_fail:
