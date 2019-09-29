@@ -10,13 +10,14 @@
 #define SPI_ENABLE       	 0x1c
 
 #define SPI_DEVICE       	 0x20   // spi choose: 0 is for 9789, 1 is for fpga , default is 0
-#define SPI_RESET       	 0x24   // spi config 9789 reset , default 0, 1 is valid.
+#define SPI_RESET       	 0x24   // spi config 9789 reset , default 0, 1 is valid. read for qamb is mod and control
 #define SPI_AD4351       	 0x2c   // spi config ad4351 
 #define AD9789_MODULATION	 0x28   // spi mod set
 
 #define SPI_BW_LIGHT	 0x34  // spi bw light set
 
 #define SPI_TESTREG       	 0x30   // debug
+#define MOD_RESET_IPCORE       	 0x38   //qamb reset ipcore
 
 #define MOD_ASI_DEVICE		0X14
 #define MOD_ASI_BASEADDRESS  0x4000
