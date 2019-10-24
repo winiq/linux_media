@@ -308,7 +308,7 @@ static void config_QAM(struct tbs_pcie_dev *dev, int qam)
 	
 }
 
-static void reset_ipcore_qamb(struct tbs_pcie_dev *dev)
+static void reset_ipcore_mod(struct tbs_pcie_dev *dev)
 {
 
 	unsigned char buf[4] = {0};
@@ -1548,7 +1548,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				if(dev->cardid == 0x6014)
 				{
 					config_qamb(dev,dev->modulation);
-					reset_ipcore_qamb(dev);
+					reset_ipcore_mod(dev);
 				}
 				break;
 
@@ -1701,7 +1701,8 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		AD4351_Configration_dvbt(dev);
 		set_Modulation_dvbt(dev,&params);
 		ad9789_setFre_dvbt(dev, dev->bw, dev->frequency);
-		
+		reset_ipcore_mod(dev);
+
 		break;
 	}
 
@@ -1842,7 +1843,7 @@ static void tbs_adapters_init_qamb(struct tbs_pcie_dev *dev)
 	TBS_PCIE_WRITE(0, SPI_DEVICE, *(u32 *)&tmpbuf[0]);
 
 	AD9789_Configration_qamb(dev);
-	reset_ipcore_qamb(dev);
+	reset_ipcore_mod(dev);
 
 	tmpbuf[0] = 0;
 	ad9789_rd_nBytes(dev, 1, AD9789_HARDWARE_VERSION, tmpbuf);
@@ -1871,8 +1872,7 @@ static void tbs_adapters_init_dvbt(struct tbs_pcie_dev *dev)
 	tmpbuf[0] = 0;
 	TBS_PCIE_WRITE(0, SPI_RESET, *(u32 *)&tmpbuf[0]);
 	msleep(100);
-	*/
-
+	
 	tmpbuf[0] = 0;
 	tmpbuf[1] = 0;
 	tmpbuf[2] = 0;
@@ -1885,7 +1885,7 @@ static void tbs_adapters_init_dvbt(struct tbs_pcie_dev *dev)
 	tmpbuf[3] = 0x1;
 	TBS_PCIE_WRITE(0, SPI_BW_LIGHT, *(u32 *)&tmpbuf[0]);
 	msleep(100);
-
+	*/
 	ret = AD4351_Configration_dvbt(dev);
 	if (ret == FALSE)
 		printk("configration ad4351 false! \n");
