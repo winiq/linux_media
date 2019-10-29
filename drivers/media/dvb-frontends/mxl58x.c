@@ -353,9 +353,6 @@ static int send_master_cmd(struct dvb_frontend *fe,
 	u8 cmdSize = sizeof(MXL_HYDRA_DISEQC_TX_MSG_T);
 	u8 cmdBuff[MXL_HYDRA_OEM_MAX_CMD_BUFF_LEN];
 	int i = 0,ret = 0;
-	
-	if (!mode)
-		return 0;
 
 	diseqcMsgPtr.diseqcId = state->rf_in;
 	diseqcMsgPtr.nbyte	= cmd->msg_len;
@@ -381,9 +378,6 @@ static int send_burst(struct dvb_frontend *fe,
 	u8 cmdSize = sizeof(MXL_HYDRA_DISEQC_TX_MSG_T);
 	u8 cmdBuff[MXL_HYDRA_OEM_MAX_CMD_BUFF_LEN];
 	int i = 0,ret = 0;
-
-	if (!mode)
-		return 0;
 
 	diseqcMsgPtr.diseqcId = state->rf_in;
 	diseqcMsgPtr.nbyte	= 0;
