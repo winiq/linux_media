@@ -766,20 +766,16 @@ static int set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 	struct i2c_adapter *i2c = state->base->i2c;
 	struct mxl58x_cfg *cfg = state->base->cfg;
 
-	switch (mode) {
-	case 1:
+	if (mode)
 		cfg->set_voltage(i2c, voltage, state->rf_in);
-		break;
-	case 0:
-	default:
+	else {
 		if (voltage == SEC_VOLTAGE_18)
 			state->rf_in &= ~2;
 		else
 			state->rf_in |= 2;
-		break;
 	}
 
-	return 0; //state->base->cfg->set_voltage(fe, voltage, 0);
+	return 0;  
 }
 
 
@@ -787,17 +783,13 @@ static int set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 {
 	struct mxl *state = fe->demodulator_priv;
 
-	switch (mode) {
-	case 1:
+	if (mode)
 		set_input_tone(fe, tone, state->rf_in);
-		break;
-	case 0:
-	default:
+	else {
 		if (tone == SEC_TONE_ON)
 			state->rf_in &= ~1;
 		else
 			state->rf_in |= 1;
-		break;
 	}
 
 	return 0;
@@ -1371,21 +1363,17 @@ static int init_multisw(struct mxl *state)
 	struct i2c_adapter *i2c = state->base->i2c;
 	struct mxl58x_cfg *cfg = state->base->cfg;
 
-	switch (mode) {
-	case 0:
-	default:
-		cfg->set_voltage(i2c, SEC_VOLTAGE_13, 3);
-		cfg->set_voltage(i2c, SEC_VOLTAGE_13, 2);
-		cfg->set_voltage(i2c, SEC_VOLTAGE_18, 1);
-		cfg->set_voltage(i2c, SEC_VOLTAGE_18, 0);
-		set_input_tone(fe, SEC_TONE_OFF, 3);
-		set_input_tone(fe, SEC_TONE_ON, 2);
-		set_input_tone(fe, SEC_TONE_OFF, 1);
-		set_input_tone(fe, SEC_TONE_ON, 0);
-		break;
-	case 1:
-		break;
-	}
+	if (mode)
+		return 0;
+
+	cfg->set_voltage(i2c, SEC_VOLTAGE_13, 3);
+	cfg->set_voltage(i2c, SEC_VOLTAGE_13, 2);
+	cfg->set_voltage(i2c, SEC_VOLTAGE_18, 1);
+	cfg->set_voltage(i2c, SEC_VOLTAGE_18, 0);
+	set_input_tone(fe, SEC_TONE_OFF, 3);
+	set_input_tone(fe, SEC_TONE_ON, 2);
+	set_input_tone(fe, SEC_TONE_OFF, 1);
+	set_input_tone(fe, SEC_TONE_ON, 0);
 
 	return 0;
 }
@@ -1466,7 +1454,6 @@ static int probe(struct mxl *state)
 	write_register(state, 0x90700000, 0x000000ff);
 
 	}
-	
 
 	return 0;
 }
@@ -1486,17 +1473,20 @@ struct dvb_frontend *mxl58x_attach(struct i2c_adapter *i2c,
 	state->rf_in = 0;
 	if(mode)
 	{ 
-		if((demod ==0)||(demod ==1))
-			      state->rf_in = 3;
-		if((demod ==2)||(demod ==3))
-			      state->rf_in = 2;
+		if((demod==0)||(demod==1))
+			state->rf_in = 3;
+		if((demod==2)||(demod==3))
+			state->rf_in = 2;
 		if((demod ==4)||(demod ==5))
-			      state->rf_in = 1;
+			state->rf_in = 1;
 		if((demod ==6)||(demod ==7))
-			      state->rf_in = 0;
+			state->rf_in = 0;
 
 		if (rfsource > 0 && rfsource < 5)
 			state->rf_in = 4 - rfsource;
+		
+		if (mode==2)
+			state->rf_in = 0;
 	}
 	state->fe.ops = mxl_ops;
 	state->fe.demodulator_priv = state;
