@@ -667,8 +667,10 @@ static int stid135_send_master_cmd(struct dvb_frontend *fe,
 	struct stv *state = fe->demodulator_priv;
 	fe_lla_error_t err = FE_LLA_NO_ERROR;
 
+#if 0
 	if (state->base->mode == 0)
 		return 0;
+#endif
 
 	mutex_lock(&state->base->status_lock);
 	err |= fe_stid135_diseqc_init(state->base->handle, state->rf_in + 1, FE_SAT_DISEQC_2_3_PWM);
@@ -687,8 +689,10 @@ static int stid135_recv_slave_reply(struct dvb_frontend *fe,
 	struct stv *state = fe->demodulator_priv;
 	fe_lla_error_t err = FE_LLA_NO_ERROR;
 
+#if 0
 	if (state->base->mode == 0)
 		return 0;
+#endif
 
 	mutex_lock(&state->base->status_lock);
 	err = fe_stid135_diseqc_receive(state->base->handle, reply->msg, &reply->msg_len);
@@ -895,6 +899,9 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 	if (rfsource > 0 && rfsource < 5)
 		rf_in = rfsource - 1;
 	state->rf_in = base->mode ? rf_in : 0;
+
+	if (base->mode == 2)
+		state->rf_in = 3;
 
 	dev_info(&i2c->dev, "%s demod found at adr %02X on %s\n",
 		 state->fe.ops.info.name, cfg->adr, dev_name(&i2c->dev));
