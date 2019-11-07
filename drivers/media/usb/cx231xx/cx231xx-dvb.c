@@ -1271,15 +1271,11 @@ static int dvb_init(struct cx231xx *dev)
 			goto out_free;
 		}
 		msleep(100);
-		tbs_cx_mac(&dev->i2c_bus[1].i2c_adap, 0, mac);//dev->board.demod_i2c_master[1]
 
-		if (i == 1) {
-			memcpy(dev->dvb[0]->adapter.proposed_mac, mac, 6);
-			dev_info(dev->dev, "TurboSight TBS5s990 MAC Addresse bas: %pM\n", mac);
-			mac[5] +=1;
-			memcpy(dev->dvb[1]->adapter.proposed_mac, mac, 6);
-			dev_info(dev->dev, "TurboSight TBS5990 MAC Addresse bas: %pM\n", mac);
-		}
+		/* read mac */
+		tbs_cx_mac(&dev->i2c_bus[1].i2c_adap, i, mac);
+		memcpy(dvb->adapter.proposed_mac, mac, 6);
+		dev_info(dev->dev, "TurboSight TBS5990 MAC[%i]: %pM\n", i, mac);
 
 		/* define general-purpose callback pointer */
 		dvb->frontend[0]->callback = cx231xx_tuner_callback;
