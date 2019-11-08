@@ -596,6 +596,7 @@ struct cx231xx_dvb {
 	struct mutex lock;
 	int nfeeds;
 	u8 count;
+	u8 mac[6];
 
 	/* general boilerplate stuff */
 	struct dvb_adapter adapter;

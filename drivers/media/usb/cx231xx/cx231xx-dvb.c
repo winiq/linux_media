@@ -692,6 +692,7 @@ static int register_dvb(struct cx231xx_dvb *dvb,
 		goto fail_fe_conn;
 	}
 
+	memcpy(dvb->adapter.proposed_mac,dvb->mac,6);
 	/* register network adapter */
 	dvb_net_init(&dvb->adapter, &dvb->net, &dvb->demux.dmx);
 #if 0
@@ -790,7 +791,6 @@ static int dvb_init(struct cx231xx *dev)
 	struct i2c_adapter *demod_i2c;
 	struct i2c_client *client;
 	struct i2c_adapter *adapter;
-	u8 mac[6];
 
 	if (!dev->board.has_dvb) {
 		/* This device does not support the extension */
@@ -1273,9 +1273,8 @@ static int dvb_init(struct cx231xx *dev)
 		msleep(100);
 
 		/* read mac */
-		tbs_cx_mac(&dev->i2c_bus[1].i2c_adap, i, mac);
-		memcpy(dvb->adapter.proposed_mac, mac, 6);
-		dev_info(dev->dev, "TurboSight TBS5990 MAC[%i]: %pM\n", i, mac);
+		tbs_cx_mac(&dev->i2c_bus[1].i2c_adap, i, dvb->mac);
+		dev_info(dev->dev, "TurboSight TBS5990 MAC[%i]: %pM\n", i, dvb->mac);
 
 		/* define general-purpose callback pointer */
 		dvb->frontend[0]->callback = cx231xx_tuner_callback;
