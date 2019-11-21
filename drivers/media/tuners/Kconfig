@@ -334,4 +334,10 @@ config MEDIA_TUNER_MXL603
         help
           A driver for the silicon tuner MXL603 from MaxLinear.
 
+config MEDIA_TUNER_RDA5816
+	tristate "RDA Microelectronics RDA5816"
+	depends on MEDIA_SUPPORT &&I2C
+	default m if !MEDIA_SUBDRV_AUTOSELECT
+	help
+	  Rafael micro Rda5816 tuner driver.
 endmenu
