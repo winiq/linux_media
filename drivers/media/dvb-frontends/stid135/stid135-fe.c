@@ -115,7 +115,7 @@ static int stid135_probe(struct stv *state)
 	enum device_cut_id cut_id;
 	int i;
 
-	//dev_warn(&state->base->i2c->dev, "%s\n", FE_STiD135_GetRevision());
+	dev_warn(&state->base->i2c->dev, "%s\n", FE_STiD135_GetRevision());
 
 	strcpy(init_params.demod_name,"STiD135");
 	init_params.pI2CHost		=	state->base;
@@ -260,7 +260,7 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	u32 pls_mode, pls_code;
 	s32 rf_power;
 
-	dev_warn(&state->base->i2c->dev,
+	dev_dbg(&state->base->i2c->dev,
 			"delivery_system=%u modulation=%u frequency=%u symbol_rate=%u inversion=%u stream_id=%d\n",
 			p->delivery_system, p->modulation, p->frequency,
 			p->symbol_rate, p->inversion, p->stream_id);
@@ -315,7 +315,7 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	}
 
 	/* Set PLS before search */
-	dev_warn(&state->base->i2c->dev, "%s: set pls_mode %d, pls_code %d !\n", __func__, pls_mode, pls_code);
+	dev_dbg(&state->base->i2c->dev, "%s: set pls_mode %d, pls_code %d !\n", __func__, pls_mode, pls_code);
 	err |= fe_stid135_set_pls(state->base->handle, state->nr + 1, pls_mode, pls_code);
 	
 	if (err != FE_LLA_NO_ERROR)
@@ -335,7 +335,7 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	}
 
 	if (search_results.locked){
-		dev_warn(&state->base->i2c->dev, "%s: locked !\n", __func__);
+		dev_dbg(&state->base->i2c->dev, "%s: locked !\n", __func__);
 		state->newTP = true;
 		state->loops = 15;
 		if(state->base->set_TSsampling)
@@ -343,15 +343,15 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 		}
 	else {
 		err |= fe_stid135_get_band_power_demod_not_locked(state->base->handle, state->nr + 1, &rf_power);
-		dev_warn(&state->base->i2c->dev, "%s: not locked, band rf_power %d dBm !\n", __func__, rf_power / 1000);
+		dev_dbg(&state->base->i2c->dev, "%s: not locked, band rf_power %d dBm !\n", __func__, rf_power / 1000);
 	}
 
 	/* Set ISI before search */
 	if (p->stream_id != NO_STREAM_ID_FILTER) {
-		dev_warn(&state->base->i2c->dev, "%s: set ISI %d !\n", __func__, p->stream_id & 0xFF);
+		dev_dbg(&state->base->i2c->dev, "%s: set ISI %d !\n", __func__, p->stream_id & 0xFF);
 		err |= fe_stid135_set_mis_filtering(state->base->handle, state->nr + 1, TRUE, p->stream_id & 0xFF, 0xFF);
 	} else {
-		dev_warn(&state->base->i2c->dev, "%s: disable ISI filtering !\n", __func__);
+		dev_dbg(&state->base->i2c->dev, "%s: disable ISI filtering !\n", __func__);
 		err |= fe_stid135_set_mis_filtering(state->base->handle, state->nr + 1, FALSE, 0, 0xFF);				
 	}
 	if (err != FE_LLA_NO_ERROR)
