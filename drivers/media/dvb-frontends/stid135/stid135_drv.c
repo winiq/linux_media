@@ -2894,6 +2894,10 @@ fe_lla_error_t fe_stid135_get_signal_quality(fe_stid135_handle_t Handle,
 	error |= FE_STiD135_GetBer(pParams->handle_demod, demod, &(pInfo->ber));
 	error |= FE_STiD135_GetRFLevel(pParams, demod, &pch_rf, &pband_rf);
 	pInfo->power = pch_rf;
+	
+	error |= FE_STiD135_GetStandard(
+			pParams->handle_demod, demod, &(pInfo->standard)); 
+
 	if (pInfo->standard == FE_SAT_DVBS2_STANDARD) {
 		error |= FE_STiD135_CarrierGetQuality(pParams->handle_demod, &FE_STiD135_S2_CN_LookUp, demod, &(pInfo->C_N));
 		if (mc_auto)
