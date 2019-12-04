@@ -184,10 +184,12 @@ static int tas2101_read_signal_strength(struct dvb_frontend *fe,
 	u16 *signal_strength)
 {
 	struct tas2101_priv *priv = fe->demodulator_priv;
+	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	int ret, i;
 	long val, dbm_raw;
 	u8 buf[2];
 
+	c->strength.len = 0;
 	ret = tas2101_rdm(priv, SIGSTR_0, buf, 2);
 	if (ret)
 		return ret;
@@ -209,6 +211,10 @@ static int tas2101_read_signal_strength(struct dvb_frontend *fe,
 
 		*signal_strength = (u16)val;
 	}
+
+	c->strength.len = 1;
+	c->strength.stat[0].scale = FE_SCALE_RELATIVE;
+	c->strength.stat[0].uvalue = *signal_strength;
 
 	dev_dbg(&priv->i2c->dev, "%s() strength = 0x%04x\n",
 		__func__, *signal_strength);
