@@ -83,6 +83,9 @@ struct mxl_base {
 	u8                   cmd_data[MAX_CMD_DATA];
 
 	struct mxl58x_cfg   *cfg;
+
+	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
+	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
 };
 
 struct mxl {
@@ -795,6 +798,26 @@ static int set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 	return 0;
 }
 
+static void spi_read(struct dvb_frontend *fe, struct ecp3_info *ecp3inf)
+{
+	struct mxl *state = fe->demodulator_priv;
+	struct i2c_adapter *adapter = state->base->i2c;
+
+	if (state->base->read_properties)
+		state->base->read_properties(adapter,ecp3inf->reg, &(ecp3inf->data));
+	return ;
+}
+
+static void spi_write(struct dvb_frontend *fe,struct ecp3_info *ecp3inf)
+{
+	struct mxl *state = fe->demodulator_priv;
+	struct i2c_adapter *adapter = state->base->i2c;
+
+	if (state->base->write_properties)
+		state->base->write_properties(adapter,ecp3inf->reg, ecp3inf->data);
+	return ;
+}
+
 static struct dvb_frontend_ops mxl_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2, SYS_DSS },
 	.info = {
@@ -824,6 +847,9 @@ static struct dvb_frontend_ops mxl_ops = {
 
 	.set_tone			= set_tone,
 	.set_voltage			= set_voltage,
+
+	.spi_read			= spi_read,
+	.spi_write			= spi_write,
 };
 
 static struct mxl_base *match_base(struct i2c_adapter *i2c, u8 adr)
@@ -1504,6 +1530,8 @@ struct dvb_frontend *mxl58x_attach(struct i2c_adapter *i2c,
 		base->adr = cfg->adr;
 		base->type = cfg->type;
 		base->count = 1;
+		base->write_properties = cfg->write_properties;
+		base->read_properties = cfg->read_properties;
 		mutex_init(&base->i2c_lock);
 		mutex_init(&base->status_lock);
 		state->base = base;

@@ -692,6 +692,8 @@ static struct mxl58x_cfg tbs6909_mxl58x_cfg = {
 	.fw_read	= NULL,
 
 	.set_voltage	= max_set_voltage,
+	.write_properties = ecp3_spi_write, 
+	.read_properties = ecp3_spi_read,
 };
 
 static struct stv091x_cfg tbs6903_stv0910_cfg = {

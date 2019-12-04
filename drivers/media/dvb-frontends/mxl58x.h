@@ -20,6 +20,9 @@ struct mxl58x_cfg {
 
 	int (*set_voltage)(struct i2c_adapter *i2c,
 		enum fe_sec_voltage voltage, u8 rf_in);
+
+	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
+	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
 };
 
 #if IS_REACHABLE(CONFIG_DVB_MXL58X)
