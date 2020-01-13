@@ -68,10 +68,8 @@ static int rda5816_rd(struct rda5816_priv *priv, u8 addr, u8 *data)
 static int rda5816_init(struct dvb_frontend *fe)
 {
 	struct rda5816_priv *priv = fe->tuner_priv;
-	int ret;
 	dev_dbg(&priv->i2c->dev,"%s()\n",__func__);
-	
-	unsigned char buffer = 0;
+	u8 buffer;
 
 	 msleep(1);  //Wait 1ms. 
 
@@ -265,15 +263,25 @@ static int rda5816_init(struct dvb_frontend *fe)
 
    	 msleep(10); //Wait 10ms;
 
-	rda5816_wr(priv,0x04,0x85);  // enable current channel of dual-channel tuner
-	if(priv->cfg->i2c_adr==0x10){ 
-	 priv->cfg->i2c_adr=0x12;
+	 rda5816_wr(priv,0x04,0x85);  // enable current channel of dual-channel tuner
+	if(priv->cfg->i2c_adr==0x8){ 
+	 priv->cfg->i2c_adr=0x9;
 	 rda5816_rd(priv,0x04,&buffer);   //address^0x02
 	 rda5816_wr(priv,0x04,(buffer|0x80));  // address^0x02 enable adjacent channel of dual-channel tuner
-	 priv->cfg->i2c_adr=0x10;
+	 priv->cfg->i2c_adr=0x8;
  	}
 
  	msleep(10); //Wait 10ms;
+
+	// rfsel set rf switch
+	if(priv->cfg->i2c_adr==0x8){
+	  rda5816_rd(priv,0x65,&buffer);	 
+	  rda5816_wr(priv,0x65,(buffer|0x6)); 
+	  priv->cfg->i2c_adr=0x9; 
+	  rda5816_rd(priv,0x65,&buffer); 	
+	  rda5816_wr(priv,0x65,(buffer&0xF9)); 
+	  priv->cfg->i2c_adr=0x8;
+	}
 
 	return 0;
 
@@ -283,9 +291,9 @@ static int rda5816_set_params(struct dvb_frontend *fe)
 	struct rda5816_priv *priv = fe->tuner_priv;
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	u32 fPLL, bw,fSym,temp_value = 0;;
-	u8 buffer = 0; 
+	u8 buffer; 
 	u8 Filter_bw_control_bit;	
-	int ret;
+	int i;
 
 	dev_dbg(&priv->i2c->dev, "%s() delivery_system=%d frequency=%d " \
 			"symbol_rate=%d\n", __func__,
@@ -348,6 +356,23 @@ static int rda5816_set_params(struct dvb_frontend *fe)
 
  	 msleep(5);	 //Wait 5ms;
 
+	 for(i=0; i<130; i++)
+	 
+	 { 
+		 rda5816_rd(priv,0x03,&buffer); 
+		 if((buffer & 0x03) == 0x03)break; 
+		 msleep(2);
+	 }
+	 
+	 if((buffer & 0x03) != 0x03){
+	
+		 printk("rda5816 unlocked!!\n"); //unlocked
+	 } 
+	 else{
+	 
+		printk("rda5816 locked...\n"); //locked 
+		}
+
  	 return 0;
 
 }
@@ -355,7 +380,8 @@ static int rda5816_get_status(struct dvb_frontend *fe, u32 *status)
 {
 	struct rda5816_priv *priv = fe->tuner_priv;
 
-	unsigned char i, buffer= 0 ;
+	u8 buffer ;
+	int i;
 
 	for(i=0; i<130; i++)
 
@@ -416,8 +442,8 @@ static void rda5816_release(struct dvb_frontend* fe)
 {
 	struct rda5816_priv*priv = fe->tuner_priv;
 
-	kfree(fe->tuner_priv);
-	fe->tuner_priv = NULL;
+	kfree(priv);
+	priv= NULL;
 }
 static const struct dvb_tuner_ops rda5816_tuner_ops = {
 	.info = {
@@ -439,7 +465,8 @@ struct dvb_frontend *rda5816_attach(struct dvb_frontend *fe,
 {
 	struct rda5816_priv *priv = NULL;
 	int ret;
-	unsigned char buffer = 0;
+	u8 buffer,buffer1;
+	int Chip_ID,Revision_ID;
 
 	priv = kzalloc(sizeof(struct rda5816_priv), GFP_KERNEL);
 	if (priv == NULL) {
@@ -460,10 +487,12 @@ struct dvb_frontend *rda5816_attach(struct dvb_frontend *fe,
 	fe->tuner_priv = priv;
 
 
- 	ret = rda5816_rd(priv,0x65,&buffer);
+ 	ret = rda5816_rd(priv,0x00,&buffer);
+ 	ret = rda5816_rd(priv,0x01,&buffer1);
+	Chip_ID = (buffer<<4)|(buffer1>>4);
+	Revision_ID = buffer1&0x0f;
 
- 	printk("read tuner id is 0x%x : %d\n",buffer,buffer);
-
+ 	printk("read tuner id is 0x%x : Revision %d\n",Chip_ID,Revision_ID);
 
 	return fe;
 }
