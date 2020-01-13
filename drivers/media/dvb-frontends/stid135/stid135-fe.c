@@ -165,10 +165,10 @@ static int stid135_probe(struct stv *state)
 
 	if (state->base->ts_mode == TS_STFE) {
 		dev_warn(&state->base->i2c->dev, "%s: 8xTS to STFE mode init.\n", __func__);
-		for(i=0;i<8;i++) {
-			err |= fe_stid135_set_ts_parallel_serial(state->base->handle, i+1, FE_TS_PARALLEL_ON_TSOUT_0);
-			err |= fe_stid135_set_maxllr_rate(state->base->handle, i+1, 260);
-		}
+	//	for(i=0;i<8;i++) {
+			err |= fe_stid135_set_ts_parallel_serial(state->base->handle, FE_SAT_DEMOD_1, FE_TS_PARALLEL_ON_TSOUT_0);
+		//	err |= fe_stid135_set_maxllr_rate(state->base->handle, i+1, 260);
+	//	}
 		err |= fe_stid135_enable_stfe(state->base->handle,FE_STFE_OUTPUT0);
 		err |= fe_stid135_set_stfe(state->base->handle, FE_STFE_TAGGING_MERGING_MODE, FE_STFE_INPUT1 |
 						FE_STFE_INPUT2 |FE_STFE_INPUT3 |FE_STFE_INPUT4| FE_STFE_INPUT5 |
@@ -182,9 +182,9 @@ static int stid135_probe(struct stv *state)
 	} else {
 		dev_warn(&state->base->i2c->dev, "%s: 2xTS parallel mode init.\n", __func__);
 		err |= fe_stid135_set_ts_parallel_serial(state->base->handle, FE_SAT_DEMOD_3, FE_TS_PARALLEL_PUNCT_CLOCK);
-		err |= fe_stid135_set_maxllr_rate(state->base->handle, FE_SAT_DEMOD_3, 260);
+		//err |= fe_stid135_set_maxllr_rate(state->base->handle, FE_SAT_DEMOD_3, 260);
 		err |= fe_stid135_set_ts_parallel_serial(state->base->handle, FE_SAT_DEMOD_1, FE_TS_PARALLEL_PUNCT_CLOCK);
-		err |= fe_stid135_set_maxllr_rate(state->base->handle, FE_SAT_DEMOD_1, 260);
+		//err |= fe_stid135_set_maxllr_rate(state->base->handle, FE_SAT_DEMOD_1, 260);
 	}
 
 	if (state->base->mode == 0) {
@@ -336,6 +336,9 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 
 	if (search_results.locked){
 		dev_dbg(&state->base->i2c->dev, "%s: locked !\n", __func__);
+		//set maxllr,when the  demod locked ,allocation of resources
+		err |= fe_stid135_set_maxllr_rate(state->base->handle, state->nr +1, 180);
+		//for tbs6912
 		state->newTP = true;
 		state->loops = 15;
 		if(state->base->set_TSsampling)
@@ -569,6 +572,9 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		*status |= FE_HAS_SIGNAL;
 
 		err = fe_stid135_get_band_power_demod_not_locked(state->base->handle, state->nr + 1, &state->signal_info.power);
+		// if unlocked, set to lowest resource..
+		err |= fe_stid135_set_maxllr_rate(state->base->handle, state->nr +1, 90);
+		
 		mutex_unlock(&state->base->status_lock);
 		if (err != FE_LLA_NO_ERROR) {
 			dev_err(&state->base->i2c->dev, "fe_stid135_get_band_power_demod_not_locked error\n");
