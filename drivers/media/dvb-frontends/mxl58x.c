@@ -693,9 +693,6 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 	HYDRA_DEMOD_STATUS_UNLOCK(state, state->demod);
 	mutex_unlock(&state->base->status_lock);
 
-	dev_warn(&state->base->i2c->dev,"freq=%u delsys=%u srate=%u\n", freq * 1000,
-		regData[DMD_STANDARD_ADDR], regData[DMD_SYMBOL_RATE_ADDR]);
-
 	p->symbol_rate = regData[DMD_SYMBOL_RATE_ADDR];
 	p->frequency = freq;
 	//p->delivery_system = (MXL_HYDRA_BCAST_STD_E )regData[DMD_STANDARD_ADDR];
