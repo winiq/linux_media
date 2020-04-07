@@ -6,11 +6,12 @@
 
 #define	MAJORDEV	168
 
-#define CHANNELS	4
+#define CHANNELS	8
 #define	FIFOSIZE	(2048 * 1024)
 #define	DMASIZE		(32 * 1024)
 
-#define BLOCKSIZE	(188*96)
+//#define BLOCKSIZE	(188*96)
+#define BLOCKSIZE(id) ((id==0x6008)?(188*32):(188*96))
 #define BLOCKCEEL	(96)
 
 struct mod_channel
@@ -41,6 +42,7 @@ struct tbs_pcie_dev {
 	struct mod_channel	channel[CHANNELS];
 	u8			mod_index;
 	u32			cardid;
+	u8			mods_num;
 
 	u8			bw;  //dvbt
 	
