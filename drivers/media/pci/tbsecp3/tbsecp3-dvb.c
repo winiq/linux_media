@@ -86,6 +86,76 @@ static void mcu_24cxx_write(struct i2c_adapter *i2c,u32 bassaddr,u8 reg, u32 buf
 
 	return ;
 }
+static int tbs6302se_read_mac(struct tbsecp3_adapter *adap)
+{
+	struct tbsecp3_dev *dev = adap->dev;
+	int ret = 1;
+	int i =0;
+	u32 postaddr;
+	unsigned char tmpbuf[4]={0};
+	unsigned char rdbuffer[8]={0};
+	
+	if(adap->nr)//adapter1 is equal to adapter3 in tbs6304
+		postaddr =  0x80 *(adap->nr+2) +0x08;
+	else//adapter0 is equal to adapter1 in tbs6304
+		postaddr =  0x80 *(adap->nr+1) +0x08;
+
+	tmpbuf[0] = 0x31; //24cxx read;
+	tmpbuf[1] = 6;  //how many byte;
+	tmpbuf[2] =  (postaddr>>8);
+	tmpbuf[3] = (postaddr &255); //24cxx sub_address,0x08 for mac
+
+	
+	tbs_write( BASE_ADDRESS_24CXX, CMD_24CXX, *(u32 *)&tmpbuf[0] );
+	//wait... until the data are received correctly;
+	for(i=0;i<100;i++)
+	{
+		msleep(1);
+		*(u32 *)tmpbuf = tbs_read( BASE_ADDRESS_24CXX, STATUS_MAC16_24CXX );
+		if((tmpbuf[0]&1) == 0)
+			break;
+	}
+	if(i==100)
+	{
+		ret = 0;
+		//printk(" the receiver always busy !\n");
+		//check mcu status
+		*(u32 *)tmpbuf = tbs_read( BASE_ADDRESS_24CXX,  STATUS_MAC16_24CXX );
+		if((tmpbuf[0]&0x4) == 1) // bit2==1 mcu busy
+		{
+			//printk("MCU status is busy!!!\n" );
+			// release cs;
+			tbs_write( BASE_ADDRESS_24CXX,  CS_RELEASE, *(u32 *)&tmpbuf[0] );
+			ret = 0;
+		}
+		
+	}
+	// release cs;
+	tbs_write(  BASE_ADDRESS_24CXX, CS_RELEASE, *(u32 *)&tmpbuf[0] );
+	//check the write finished;
+	for(i=0;i<100;i++)
+	{
+		msleep(1);
+		*(u32 *)tmpbuf = tbs_read(  BASE_ADDRESS_24CXX, STATUS_MAC16_24CXX );
+		if((tmpbuf[0]&1) == 1)
+			break;
+	}
+	if(i==100)
+	{
+		ret = 0;
+		//printk(" wait wt_24cxx_done timeout! \n");
+	}
+	//read back to host;
+	*(u32 *)rdbuffer = tbs_read(  BASE_ADDRESS_24CXX, DATA0_24CXX );
+	*(u32 *)&rdbuffer[4] = tbs_read(  BASE_ADDRESS_24CXX, DATA1_24CXX );
+	if(ret!=0)
+	{
+		memcpy(adap->dvb_adapter.proposed_mac, rdbuffer,6);
+		printk("adapter %d ,mac address: %x,%x,%x,%x,%x,%x \n",adap->dvb_adapter.num,rdbuffer[0],rdbuffer[1],rdbuffer[2],rdbuffer[3],rdbuffer[4],rdbuffer[5]);
+	}
+
+	return ret;
+};
 
 static int tbs6304_read_mac(struct tbsecp3_adapter *adap)
 {
@@ -482,6 +552,32 @@ static struct av201x_config tbs6902_av201x_cfg = {
 		.xtal_freq	 = 27000,		/* kHz */
 };
 
+static struct tas2101_config tbs6302se_demod_cfg[] = {
+
+    {
+        .i2c_address   = 0x68,
+		.id            = ID_TAS2101,
+		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
+		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
+
+		.mcuWrite_properties = mcu_24cxx_write,  
+		.mcuRead_properties = mcu_24cxx_read,
+    },    
+  
+    {
+        .i2c_address   = 0x68,
+		.id            = ID_TAS2101,
+		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
+		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
+
+		.mcuWrite_properties = mcu_24cxx_write,  
+		.mcuRead_properties = mcu_24cxx_read,
+    } 
+};
 static struct tas2101_config tbs6308_demod_cfg = {
        		 .i2c_address   = 0x60,
 		.id            = ID_TAS2101,
@@ -862,7 +958,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	adapter->i2c_client_demod = NULL;
 	adapter->i2c_client_tuner = NULL;
 
-	if((TBSECP3_BOARD_TBS6304 != dev->info->board_id) && (TBSECP3_BOARD_TBS6308 != dev->info->board_id)){
+	if((TBSECP3_BOARD_TBS6304 != dev->info->board_id) && (TBSECP3_BOARD_TBS6308 != dev->info->board_id) && (TBSECP3_BOARD_TBS6302SE != dev->info->board_id)){
 		reset_demod(adapter);
 		set_mac_address(adapter);
 	}
@@ -1026,7 +1122,13 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		if(tbs6304_read_mac(adapter)==0)
 		    tbs6304_read_mac(adapter);
 		break;
-
+	case TBSECP3_BOARD_TBS6302SE:
+		adapter->fe = dvb_attach(tas2971_attach, &tbs6302se_demod_cfg[adapter->nr], i2c);
+		if (adapter->fe == NULL)
+		    goto frontend_atach_fail;
+		if(tbs6302se_read_mac(adapter)==0)
+		    tbs6302se_read_mac(adapter);
+		break;
 	case TBSECP3_BOARD_TBS6301:
 		adapter->fe = dvb_attach(tas2971_attach, &tbs6301_demod_cfg, i2c);
 		if (adapter->fe == NULL)
