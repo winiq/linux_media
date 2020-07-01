@@ -74,6 +74,8 @@ struct stv_base {
 	void (*set_TSsampling)(struct i2c_adapter *i2c,int tuner,int time);  
 	u32  (*set_TSparam)(struct i2c_adapter *i2c,int tuner,int time,bool flag);
 	//end
+
+	int vglna;
 };
 
 struct stv {
@@ -115,6 +117,18 @@ static int stid135_probe(struct stv *state)
 	enum device_cut_id cut_id;
 	int i;
 
+	// for vglna
+	char *VglnaIdString = NULL;
+	STCHIP_Info_t VGLNAChip;
+	STCHIP_Handle_t vglna_handle;
+	STCHIP_Handle_t vglna_handle1;
+	STCHIP_Handle_t vglna_handle2;
+	STCHIP_Handle_t vglna_handle3;
+	SAT_VGLNA_InitParams_t pVGLNAInit;
+	SAT_VGLNA_InitParams_t pVGLNAInit1;
+	SAT_VGLNA_InitParams_t pVGLNAInit2;
+	SAT_VGLNA_InitParams_t pVGLNAInit3;
+	//end
 	dev_warn(&state->base->i2c->dev, "%s\n", FE_STiD135_GetRevision());
 
 	strcpy(init_params.demod_name,"STiD135");
@@ -205,6 +219,61 @@ static int stid135_probe(struct stv *state)
 		}
 	}
 
+///////////////////*stvvglna*////////////////////////
+	if(state->base->vglna== 1) { //for 909x v2 version
+	dev_warn(&state->base->i2c->dev, "%s:Init STVVGLNA \n", __func__);
+	
+	VglnaIdString = "STVVGLNA";
+	pVGLNAInit.Chip = &VGLNAChip;
+	
+	pVGLNAInit.Chip->pI2CHost	  =	state->base;
+	pVGLNAInit.Chip->RepeaterHost = NULL;
+	pVGLNAInit.Chip->Repeater     = FALSE;
+	pVGLNAInit.Chip->I2cAddr      = 0xc8;
+	pVGLNAInit.NbDefVal = STVVGLNA_NBREGS;
+	strcpy((char *)pVGLNAInit.Chip->Name, VglnaIdString);
+	stvvglna_init(&pVGLNAInit, &vglna_handle);	
+	stvvglna_set_standby(vglna_handle,1);
+	dev_warn(&state->base->i2c->dev, "Initialized STVVGLNA 0 device\n");
+	
+	VglnaIdString = "STVVGLNA1";
+	pVGLNAInit1.Chip = &VGLNAChip;
+	
+	pVGLNAInit1.Chip->pI2CHost	  =	state->base;
+	pVGLNAInit1.Chip->RepeaterHost = NULL;
+	pVGLNAInit1.Chip->Repeater     = FALSE;
+	pVGLNAInit1.Chip->I2cAddr      = 0xce;
+	pVGLNAInit1.NbDefVal = STVVGLNA_NBREGS;
+	strcpy((char *)pVGLNAInit1.Chip->Name, VglnaIdString);
+	stvvglna_init(&pVGLNAInit1, &vglna_handle1);
+	stvvglna_set_standby(vglna_handle1,1);
+	dev_warn(&state->base->i2c->dev, "Initialized STVVGLNA 1 device\n");
+	
+	VglnaIdString = "STVVGLNA2";
+	pVGLNAInit2.Chip = &VGLNAChip;
+	pVGLNAInit2.Chip->pI2CHost	  =	state->base;
+	pVGLNAInit2.Chip->RepeaterHost = NULL;
+	pVGLNAInit2.Chip->Repeater     = FALSE;
+	pVGLNAInit2.Chip->I2cAddr      = 0xcc;
+	pVGLNAInit2.NbDefVal = STVVGLNA_NBREGS;
+	strcpy((char *)pVGLNAInit2.Chip->Name, VglnaIdString);
+	stvvglna_init(&pVGLNAInit2, &vglna_handle2);
+	stvvglna_set_standby(vglna_handle2,1);
+	dev_warn(&state->base->i2c->dev, "Initialized STVVGLNA 2 device\n");	
+	
+	VglnaIdString = "STVVGLNA3";
+	pVGLNAInit3.Chip = &VGLNAChip;
+	pVGLNAInit3.Chip->pI2CHost	  =	state->base;
+	pVGLNAInit3.Chip->RepeaterHost = NULL;
+	pVGLNAInit3.Chip->Repeater     = FALSE;
+	pVGLNAInit3.Chip->I2cAddr      = 0xca;
+	pVGLNAInit3.NbDefVal = STVVGLNA_NBREGS;
+	strcpy((char *)pVGLNAInit3.Chip->Name, VglnaIdString);
+	stvvglna_init(&pVGLNAInit3, &vglna_handle3);
+	stvvglna_set_standby(vglna_handle3,1);		
+	dev_warn(&state->base->i2c->dev, "Initialized STVVGLNA 3 device\n");
+
+	}
 	if (err != FE_LLA_NO_ERROR)
 		dev_err(&state->base->i2c->dev, "%s: setup error %d !\n", __func__, err);
 
@@ -531,8 +600,9 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 			return 0;
 		}
 
-		// if unlocked, set to lowest resource..
-		err |= fe_stid135_set_maxllr_rate(state->base->handle, state->nr +1, 90);
+		// if unlocked, set to lowest resource..   
+		//disable the line, because sometime  the demod unstable, get unlock.
+		//err |= fe_stid135_set_maxllr_rate(state->base->handle, state->nr +1, 90);
 
 		*status |= FE_HAS_SIGNAL;
 
@@ -901,6 +971,7 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 		base->read_properties = cfg->read_properties;
 		base->set_TSsampling = cfg->set_TSsampling;
 		base->set_TSparam  = cfg->set_TSparam;
+		base->vglna		=	cfg->vglna;    //for stvvglna 6909x v2 6903x v2
 
 		mutex_init(&base->status_lock);
 

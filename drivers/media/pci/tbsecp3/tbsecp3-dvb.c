@@ -901,6 +901,7 @@ static struct stid135_cfg tbs6903x_stid135_cfg = {
 	.read_properties = ecp3_spi_read,
 	.set_TSsampling = NULL,
 	.set_TSparam = NULL,
+	.vglna = 0,
 };
 
 static struct stid135_cfg tbs6909x_stid135_cfg = {
@@ -912,6 +913,32 @@ static struct stid135_cfg tbs6909x_stid135_cfg = {
 	.read_properties = ecp3_spi_read,
 	.set_TSsampling = NULL,
 	.set_TSparam = NULL,
+	.vglna = 0,
+	
+};
+static struct stid135_cfg tbs6903x_V2_stid135_cfg = {
+	.adr		= 0x68,
+	.clk		= 27,
+	.ts_mode	= TS_2PAR,
+	.set_voltage	= NULL,
+	.write_properties = ecp3_spi_write, 
+	.read_properties = ecp3_spi_read,
+	.set_TSsampling = NULL,
+	.set_TSparam = NULL,
+	.vglna = 2,
+};
+
+static struct stid135_cfg tbs6909x_V2_stid135_cfg = {
+	.adr		= 0x68,
+	.clk		= 27,
+	.ts_mode	= TS_STFE,
+	.set_voltage	= max_set_voltage,
+	.write_properties = ecp3_spi_write, 
+	.read_properties = ecp3_spi_read,
+	.set_TSsampling = NULL,
+	.set_TSparam = NULL,
+	.vglna = 1,
+	
 };
 
 static struct stid135_cfg tbs6912_stid135_cfg = {
@@ -923,6 +950,7 @@ static struct stid135_cfg tbs6912_stid135_cfg = {
 	.read_properties = ecp3_spi_read,
 	.set_TSsampling = Set_TSsampling,
 	.set_TSparam = Set_TSparam,
+	.vglna = false,
 };
 
 static struct rda5816_config rda5816_cfg[] = {
@@ -1751,8 +1779,13 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		break;
 
 	case TBSECP3_BOARD_TBS6909X:
-		adapter->fe = dvb_attach(stid135_attach, i2c,
+		if(pci->subsystem_device==0x0010)
+			adapter->fe = dvb_attach(stid135_attach, i2c,
 				&tbs6909x_stid135_cfg, adapter->nr, adapter->nr/2);
+		else
+			adapter->fe = dvb_attach(stid135_attach, i2c,
+				&tbs6909x_stid135_cfg, adapter->nr, adapter->nr/2); 	
+
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
 		break;

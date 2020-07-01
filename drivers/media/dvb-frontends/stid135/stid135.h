@@ -42,6 +42,8 @@ struct stid135_cfg {
 	void (*set_TSsampling)(struct i2c_adapter *i2c,int tuner,int time);  
 	u32  (*set_TSparam)(struct i2c_adapter *i2c,int tuner,int time,bool  flag);
 
+	// for stvlna
+	int vglna;
 };
 
 #if IS_REACHABLE(CONFIG_DVB_STID135)
