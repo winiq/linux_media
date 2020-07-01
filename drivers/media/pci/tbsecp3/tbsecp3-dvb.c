@@ -1784,7 +1784,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 				&tbs6909x_stid135_cfg, adapter->nr, adapter->nr/2);
 		else
 			adapter->fe = dvb_attach(stid135_attach, i2c,
-				&tbs6909x_stid135_cfg, adapter->nr, adapter->nr/2); 	
+				&tbs6909x_V2_stid135_cfg, adapter->nr, adapter->nr/2); 	
 
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
