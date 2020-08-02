@@ -1855,9 +1855,13 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		if(pci->subsystem_vendor==0x6912)
 			adapter->fe = dvb_attach(stid135_attach, i2c,
 					&tbs6912_stid135_cfg, adapter->nr ? 2 : 0, adapter->nr ? 3 : 0);
-		else		
+		else if(pci->subsystem_device==0x0021)
+			adapter->fe = dvb_attach(stid135_attach, i2c,
+				&tbs6903x_V2_stid135_cfg, adapter->nr ? 2 : 0, adapter->nr ? 3 : 0);
+		else
 			adapter->fe = dvb_attach(stid135_attach, i2c,
 				&tbs6903x_stid135_cfg, adapter->nr ? 2 : 0, adapter->nr ? 3 : 0);
+
 		if (adapter->fe == NULL)
 			goto frontend_atach_fail;
 
