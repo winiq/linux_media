@@ -70,6 +70,9 @@ struct stv_base {
 	void (*write_properties) (struct i2c_adapter *i2c,u8 reg, u32 buf);
 	void (*read_properties) (struct i2c_adapter *i2c,u8 reg, u32 *buf);
 
+	void (*write_eeprom) (struct i2c_adapter *i2c,u8 reg, u8 buf);
+	void (*read_eeprom) (struct i2c_adapter *i2c,u8 reg, u8 *buf);
+
 	//for tbs6912
 	void (*set_TSsampling)(struct i2c_adapter *i2c,int tuner,int time);  
 	u32  (*set_TSparam)(struct i2c_adapter *i2c,int tuner,int time,bool flag);
@@ -895,6 +898,26 @@ static void spi_write(struct dvb_frontend *fe,struct ecp3_info *ecp3inf)
 	return ;
 }
 
+static void eeprom_read(struct dvb_frontend *fe, struct eeprom_info *eepinf)
+{
+	struct stv *state = fe->demodulator_priv;
+	struct i2c_adapter *adapter = state->base->i2c;
+
+	if (state->base->read_eeprom)
+		state->base->read_eeprom(adapter,eepinf->reg, &(eepinf->data));
+	return ;
+}
+
+static void eeprom_write(struct dvb_frontend *fe,struct eeprom_info *eepinf)
+{
+	struct stv *state = fe->demodulator_priv;
+	struct i2c_adapter *adapter = state->base->i2c;
+
+	if (state->base->write_eeprom)
+		state->base->write_eeprom(adapter,eepinf->reg, eepinf->data);
+	return ;
+}
+
 static struct dvb_frontend_ops stid135_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2, SYS_DSS },
 	.info = {
@@ -929,6 +952,8 @@ static struct dvb_frontend_ops stid135_ops = {
 	.read_ucblocks			= stid135_read_ucblocks,
 	.spi_read			= spi_read,
 	.spi_write			= spi_write,
+	.eeprom_read			= eeprom_read,
+	.eeprom_write			= eeprom_write,
 };
 
 static struct stv_base *match_base(struct i2c_adapter  *i2c, u8 adr)
@@ -969,6 +994,8 @@ struct dvb_frontend *stid135_attach(struct i2c_adapter *i2c,
 		base->mode = cfg->set_voltage ? mode : 1;
 		base->write_properties = cfg->write_properties;
 		base->read_properties = cfg->read_properties;
+		base->write_eeprom = cfg->write_eeprom;
+		base->read_eeprom = cfg->read_eeprom;
 		base->set_TSsampling = cfg->set_TSsampling;
 		base->set_TSparam  = cfg->set_TSparam;
 		base->vglna		=	cfg->vglna;    //for stvvglna 6909x v2 6903x v2

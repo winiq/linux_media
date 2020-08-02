@@ -86,6 +86,46 @@ static void mcu_24cxx_write(struct i2c_adapter *i2c,u32 bassaddr,u8 reg, u32 buf
 
 	return ;
 }
+
+static void ecp3_eeprom_read(struct i2c_adapter *i2c,u8 reg, u8 *buf)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+	u8 eeprom_bus_nr = dev->info->eeprom_i2c;
+	struct i2c_adapter *i2c_eep = &dev->i2c_bus[eeprom_bus_nr].i2c_adap;
+
+	struct i2c_msg msg[] = {
+		{ .addr = 0x50, .flags = 0,
+		  .buf = &reg, .len = 1 },
+		{ .addr = 0x50, .flags = I2C_M_RD,
+		  .buf = buf, .len = 1 }
+	};
+	
+	i2c_transfer(i2c_eep, msg, 2);
+
+	//printk(" tbsecp3-dvb : ecp3_eeprom_read **********%x = %x*******\n",reg,*buf);
+
+	return;
+}
+static void ecp3_eeprom_write(struct i2c_adapter *i2c,u8 reg, u8 data)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+	u8 eeprom_bus_nr = dev->info->eeprom_i2c;
+	struct i2c_adapter *i2c_eep = &dev->i2c_bus[eeprom_bus_nr].i2c_adap;
+	u8 tmp[2] = { reg, data };
+
+	struct i2c_msg msg[] = {
+		{ .addr = 0x50, .flags = 0,
+		  .buf = tmp, .len = 2 },
+	};
+
+	i2c_transfer(i2c_eep, msg, 1);
+	//printk(" ecp3_eeprom_write : ecp3_spi_write **********%x = %x*******\n",reg,buf);
+
+	return ;
+}
+
 static int tbs6302se_read_mac(struct tbsecp3_adapter *adap)
 {
 	struct tbsecp3_dev *dev = adap->dev;
@@ -665,6 +705,8 @@ static struct tas2101_config tbs6904_demod_cfg[] = {
 		.init2         = 0,
 		.write_properties = ecp3_spi_write,  
 		.read_properties = ecp3_spi_read,
+		.write_eeprom = ecp3_eeprom_write, 
+		.read_eeprom = ecp3_eeprom_read,
 	},
 	{
 		.i2c_address   = 0x60,
@@ -673,6 +715,8 @@ static struct tas2101_config tbs6904_demod_cfg[] = {
 		.init2         = 0,
 		.write_properties = ecp3_spi_write,  
 		.read_properties = ecp3_spi_read,
+		.write_eeprom = ecp3_eeprom_write, 
+		.read_eeprom = ecp3_eeprom_read,
 	},
 	{
 		.i2c_address   = 0x68,
@@ -681,6 +725,8 @@ static struct tas2101_config tbs6904_demod_cfg[] = {
 		.init2         = 0,
 		.write_properties = ecp3_spi_write,  
 		.read_properties = ecp3_spi_read,
+		.write_eeprom = ecp3_eeprom_write, 
+		.read_eeprom = ecp3_eeprom_read,
 	}
 };
 
@@ -699,6 +745,8 @@ static struct tas2101_config tbs6910_demod_cfg[] = {
 		.init2         = 0,
 		.write_properties = ecp3_spi_write,  
 		.read_properties = ecp3_spi_read,
+		.write_eeprom = ecp3_eeprom_write, 
+		.read_eeprom = ecp3_eeprom_read,
 	},
 	{
 		.i2c_address   = 0x60,
@@ -707,6 +755,8 @@ static struct tas2101_config tbs6910_demod_cfg[] = {
 		.init2         = 0,
 		.write_properties = ecp3_spi_write,  
 		.read_properties = ecp3_spi_read,
+		.write_eeprom = ecp3_eeprom_write, 
+		.read_eeprom = ecp3_eeprom_read,
 	},
 };
 
@@ -791,6 +841,8 @@ static struct mxl58x_cfg tbs6909_mxl58x_cfg = {
 	.set_voltage	= max_set_voltage,
 	.write_properties = ecp3_spi_write, 
 	.read_properties = ecp3_spi_read,
+	.write_eeprom = ecp3_eeprom_write, 
+	.read_eeprom = ecp3_eeprom_read,
 };
 
 static struct stv091x_cfg tbs6903_stv0910_cfg = {
@@ -801,6 +853,8 @@ static struct stv091x_cfg tbs6903_stv0910_cfg = {
 	.dual_tuner = 1,
 	.write_properties = ecp3_spi_write, 
 	.read_properties = ecp3_spi_read,
+	.write_eeprom = ecp3_eeprom_write, 
+	.read_eeprom = ecp3_eeprom_read,
 };
 
 struct stv6120_cfg tbs6903_stv6120_cfg = {
@@ -899,6 +953,8 @@ static struct stid135_cfg tbs6903x_stid135_cfg = {
 	.set_voltage	= NULL,
 	.write_properties = ecp3_spi_write, 
 	.read_properties = ecp3_spi_read,
+	.write_eeprom = ecp3_eeprom_write, 
+	.read_eeprom = ecp3_eeprom_read,
 	.set_TSsampling = NULL,
 	.set_TSparam = NULL,
 	.vglna = 0,
@@ -911,6 +967,8 @@ static struct stid135_cfg tbs6909x_stid135_cfg = {
 	.set_voltage	= max_set_voltage,
 	.write_properties = ecp3_spi_write, 
 	.read_properties = ecp3_spi_read,
+	.write_eeprom = ecp3_eeprom_write, 
+	.read_eeprom = ecp3_eeprom_read,
 	.set_TSsampling = NULL,
 	.set_TSparam = NULL,
 	.vglna = 0,
@@ -948,6 +1006,8 @@ static struct stid135_cfg tbs6912_stid135_cfg = {
 	.set_voltage	= NULL,
 	.write_properties = ecp3_spi_write, 
 	.read_properties = ecp3_spi_read,
+	.write_eeprom = ecp3_eeprom_write, 
+	.read_eeprom = ecp3_eeprom_read,
 	.set_TSsampling = Set_TSsampling,
 	.set_TSparam = Set_TSparam,
 	.vglna = false,
