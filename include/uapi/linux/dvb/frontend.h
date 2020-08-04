@@ -1064,7 +1064,7 @@ struct eeprom_info
 #define FE_REGI2C_READ    _IOR('o', 94, struct usbi2c_access)
 #define FE_REGI2C_WRITE   _IOW('o', 95, struct usbi2c_access)
 
-#define FE_EEPROM_READ    _IOR('o', 94, struct eeprom_info)
-#define FE_EEPROM_WRITE   _IOW('o', 95, struct eeprom_info)
+#define FE_EEPROM_READ    _IOR('o', 96, struct eeprom_info)
+#define FE_EEPROM_WRITE   _IOW('o', 97, struct eeprom_info)
 
 #endif /* _DVBFRONTEND_H_ */
