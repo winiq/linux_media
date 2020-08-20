@@ -273,16 +273,17 @@ enum fe_sat_diseqc_txmode {
 			structure passed to the FE_STVXXXX_Init() function  
 	 ****************************************************************/
 struct fe_sat_init_params {
-		void 				*pI2CHost;
-		char 				demod_name[20];		/* Demod name */
+		void 			*pI2CHost;
+		char 			demod_name[20];		/* Demod name */
 		u8				demod_i2c_adr;		/* Demod I2c address */
-  		u32       			demod_ref_clk;          /* Refrence,Input clock for the demodulator in MHz (27MHz,30MHz,....)*/  
+  		u32       		demod_ref_clk;          /* Refrence,Input clock for the demodulator in MHz (27MHz,30MHz,....)*/  
 		u8				internal_dcdc; /* DCDC supply either internal or external */
 		u8				internal_ldo; /* LDO supply either internal or external */
 		u8				rf_input_type; /* VGLNA input type, either single ended or differential */
 		enum fe_sat_rolloff		roll_off;		/* NYQUIST Filter value (used for DVBS1,DSS, DVBS2 is automatic)*/
 		enum fe_sat_iq_inversion	tuner_iq_inversion;	/* Tuner 1 Global IQ setting (coonction of IQ from the tuner1 to the demod */
 		enum fe_sat_search_standard	standard;
+		BOOL			ts_nosync;
 	};
 
 	/****************************************************************
