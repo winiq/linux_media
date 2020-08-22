@@ -51,10 +51,6 @@ static unsigned int mc_auto;
 module_param(mc_auto, int, 0644);
 MODULE_PARM_DESC(mc_auto, "Enable auto modcode filtering depend from current C/N (default:0 - disabled)");
 
-static unsigned int ts_nosync;
-module_param(ts_nosync, int, 0644);
-MODULE_PARM_DESC(ts_nosync, "TS FIFO Minimum latence mode (default:on)");
-
 struct stv_base {
 	struct list_head     stvlist;
 
@@ -147,7 +143,6 @@ static int stid135_probe(struct stv *state)
 	init_params.rf_input_type	=	0xF; // Single ended RF input on Oxford valid board rev2
 	init_params.roll_off		=  	FE_SAT_35; // NYQUIST Filter value (used for DVBS1/DSS, DVBS2 is automatic)
 	init_params.tuner_iq_inversion	=	FE_SAT_IQ_NORMAL;
-	init_params.ts_nosync		=	ts_nosync;
 	
 	err = fe_stid135_init(&init_params,&state->base->handle);
 	
