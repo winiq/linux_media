@@ -1027,7 +1027,9 @@ static struct rda5816_config rda5816_cfg[] = {
 		.xtal   = 1,
 	},
 };
-
+static struct mndmd_config tbs6704_cfg={
+	.tuner_address = 0x60,
+};
 static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 {
 	struct tbsecp3_dev *dev = adapter->dev;
@@ -1036,8 +1038,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	struct si2168_config si2168_config;
 	struct si2183_config si2183_config;
 	struct si2157_config si2157_config;
-	struct mn88436_config mn88436_config;
-	struct mxl603_config mxl603_config;
+	//struct mn88436_config mn88436_config;
+	//struct mxl603_config mxl603_config;
 	struct mtv23x_config mtv23x_config;
 	struct gx1503_config gx1503_config;
 
@@ -1389,50 +1391,9 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 
 	case TBSECP3_BOARD_TBS6704:
 		/* attach demod */
-		memset(&mn88436_config, 0, sizeof(mn88436_config));
-		mn88436_config.fe = &adapter->fe;
-		mn88436_config.ts_mode = 0;
-		mn88436_config.i2c_wr_max = 32;
-
-		memset(&info, 0, sizeof(struct i2c_board_info));
-		strlcpy(info.type, "mn88436", I2C_NAME_SIZE);
-		info.addr = 0x18;
-		info.platform_data = &mn88436_config;
-		request_module(info.type);
-		client_demod = i2c_new_client_device(i2c, &info);
-		if (client_demod == NULL ||
-			client_demod->dev.driver == NULL)
+	adapter->fe = dvb_attach(mndmd_attach, &tbs6704_cfg, i2c);
+		if (adapter->fe == NULL)
 		    goto frontend_atach_fail;
-		if (!try_module_get(client_demod->dev.driver->owner)) {
-		    i2c_unregister_device(client_demod);
-		    goto frontend_atach_fail;
-		}
-		adapter->i2c_client_demod = client_demod;
-
-		/* attach tuner */
-		memset(&mxl603_config, 0, sizeof(mxl603_config));
-		mxl603_config.fe = adapter->fe;
-		mxl603_config.xtalFreqSel= 1; //0:16M ,1:24M
-		mxl603_config.agcType = 0 ; //0:self 1:external
-		mxl603_config.ifOutFreq = MXL603_IF_5MHz;
-		mxl603_config.manualIFFreqSet = false;
-		mxl603_config.manualIFOutFreqInKHz = 0 ;//if manual set ,input the freq
-
-		memset(&info, 0, sizeof(struct i2c_board_info));
-		strlcpy(info.type, "mxl603", I2C_NAME_SIZE);
-		info.addr = 0x60;
-		info.platform_data = &mxl603_config;
-		request_module(info.type);
-		client_tuner = i2c_new_client_device(i2c, &info);
-		if (client_tuner == NULL ||
-			client_tuner->dev.driver == NULL)
-		    goto frontend_atach_fail;
-
-		if (!try_module_get(client_tuner->dev.driver->owner)) {
-		    i2c_unregister_device(client_tuner);
-		    goto frontend_atach_fail;
-		}
-		adapter->i2c_client_tuner = client_tuner;
 		break;
 
 	case TBSECP3_BOARD_TBS6205:
