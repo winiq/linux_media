@@ -194,7 +194,7 @@ static int stid135_probe(struct stv *state)
 		dev_warn(&state->base->i2c->dev, "%s: 8xTS serial mode init.\n", __func__);
 		for(i=0;i<8;i++) {
 			err |= fe_stid135_set_ts_parallel_serial(state->base->handle, i+1, FE_TS_SERIAL_CONT_CLOCK);
-			err |= fe_stid135_set_maxllr_rate(state->base->handle, i+1, 90);
+		//	err |= fe_stid135_set_maxllr_rate(state->base->handle, i+1, 90);
 		}
 	} else {
 		dev_warn(&state->base->i2c->dev, "%s: 2xTS parallel mode init.\n", __func__);
@@ -223,7 +223,7 @@ static int stid135_probe(struct stv *state)
 	}
 
 ///////////////////*stvvglna*////////////////////////
-	if(state->base->vglna== 1) { //for 909x v2 version
+	if(state->base->vglna== 1) { //for 6909x v2 version
 	dev_warn(&state->base->i2c->dev, "%s:Init STVVGLNA \n", __func__);
 	
 	VglnaIdString = "STVVGLNA";
@@ -331,7 +331,7 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	struct fe_sat_search_result search_results;
 	u32 pls_mode, pls_code;
 	s32 rf_power;
-
+	s32 current_llr;
 	dev_dbg(&state->base->i2c->dev,
 			"delivery_system=%u modulation=%u frequency=%u symbol_rate=%u inversion=%u stream_id=%d\n",
 			p->delivery_system, p->modulation, p->frequency,
@@ -420,7 +420,8 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	if (search_results.locked){
 		dev_dbg(&state->base->i2c->dev, "%s: locked !\n", __func__);
 		//set maxllr,when the  demod locked ,allocation of resources
-		err |= fe_stid135_set_maxllr_rate(state->base->handle, state->nr +1, 180);
+		//err |= fe_stid135_set_maxllr_rate(state->base->handle, state->nr +1, 180);
+		get_current_llr(state->base->handle, state->nr +1, &current_llr);
 		//for tbs6912
 		state->newTP = true;
 		state->loops = 15;
