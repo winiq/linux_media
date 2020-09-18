@@ -40,6 +40,7 @@
 #include "stid135.h"
 #include "rda5816.h"
 
+#include "gx1133.h"
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
 struct sec_priv {
@@ -581,6 +582,20 @@ static struct tas2101_config tbs6902_demod_cfg[] = {
 		.id            = ID_TAS2101,
 		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
 		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
+	}
+};
+
+static struct gx1133_config tbs6902_gx1133_cfg[] = {
+	{
+		.i2c_address   = 0x52,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,	
+
+	},
+	{
+		.i2c_address   = 0x5A,
 		.write_properties = ecp3_spi_write,  
 		.read_properties = ecp3_spi_read,
 	}
@@ -1684,7 +1699,9 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		break;
 
 	case TBSECP3_BOARD_TBS6902:
-		adapter->fe = dvb_attach(tas2101_attach, &tbs6902_demod_cfg[adapter->nr], i2c);
+		if(pci->subsystem_device!=0x0003){
+			adapter->fe = dvb_attach(tas2101_attach, &tbs6902_demod_cfg[adapter->nr], i2c);
+
 		if (adapter->fe == NULL)
 		    goto frontend_atach_fail;
 
@@ -1697,6 +1714,25 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 			    adapter->nr);
 		    goto frontend_atach_fail;
 		}
+
+		}else{
+			adapter->fe = dvb_attach(gx1133_attach, &tbs6902_gx1133_cfg[adapter->nr], i2c);
+
+			if (adapter->fe == NULL)
+				goto frontend_atach_fail;
+			
+			if (dvb_attach(av201x_attach, adapter->fe, &tbs6902_av201x_cfg,
+					gx1133_get_i2c_adapter(adapter->fe, 2)) == NULL) {
+				dvb_frontend_detach(adapter->fe);
+				adapter->fe = NULL;
+				dev_err(&dev->pci_dev->dev,
+					"frontend %d tuner attach failed\n",
+					adapter->nr);
+				goto frontend_atach_fail;
+			}
+
+		}
+
 
 		if (tbsecp3_attach_sec(adapter, adapter->fe) == NULL) {
 		    dev_warn(&dev->pci_dev->dev,
