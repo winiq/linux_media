@@ -207,12 +207,12 @@ static int ts_release(struct inode *inode, struct file *file)
 void spi_read(struct tbs_pcie_dev *dev, struct mcu24cxx_info *info)
 {
 	info->data = TBS_PCIE_READ(info->bassaddr, info->reg);
-	//printk("%s bassaddr:%x ,reg: %x,val: %x\n", __func__, info->bassaddr, info->reg,info->data);
+	printk("%s bassaddr:%x ,reg: %x,val: %x\n", __func__, info->bassaddr, info->reg,info->data);
 }
 void spi_write(struct tbs_pcie_dev *dev, struct mcu24cxx_info *info)
 {
 	TBS_PCIE_WRITE(info->bassaddr,info->reg,info->data);	
-	//printk("%s size:%x, reg: %x, val: %x\n", __func__, info->bassaddr, info->reg,info->data);
+	printk("%s size:%x, reg: %x, val: %x\n", __func__, info->bassaddr, info->reg,info->data);
 }
 static long tbsci_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -880,7 +880,8 @@ static int tbs_adapters_init(struct tbs_pcie_dev *dev)
 {
 	int i=0;
 	int ret=0;
-		struct ca_channel *tbsca;
+	struct ca_channel *tbsca;
+	struct pci_dev *pci = dev->pdev;
 
 	for(i=0;i<CHANNELS;i++){
 		tbsca = &dev->channnel[i];
@@ -926,10 +927,14 @@ static int tbs_adapters_init(struct tbs_pcie_dev *dev)
 		tbsca->channel_index = i;
 		tbsca->status = 0;
 		mutex_init(&tbsca->lock);
-		ret = dvb_ca_en50221_init(&dev->adapter, &tbsca->ca, 0, 1);
-		if (ret < 0) {
-			printk("%s ERROR: dvb_ca_en50221_init\n", __func__);;
-			goto fail;
+
+		if((pci->subsystem_vendor == 0x6900)&&(pci->subsystem_device == 0x0001))
+		{
+			ret = dvb_ca_en50221_init(&dev->adapter, &tbsca->ca, 0, 1);
+			if (ret < 0) {
+				printk("%s ERROR: dvb_ca_en50221_init\n", __func__);;
+				goto fail;
+			}
 		}
 		ret = dvb_register_device(&dev->adapter, &tbsca->ci_dev,&tbs_ci, (void *) tbsca,DVB_DEVICE_SEC,0);
 		if (ret < 0) {
@@ -1040,7 +1045,7 @@ static int tbsci_probe(struct pci_dev *pdev,
 	}
 
 	pci_set_drvdata(pdev, dev);
-
+			
 	ret = tbs_adapters_init(dev);
 	if (ret < 0)
 	{
@@ -1076,6 +1081,7 @@ fail0:
 
 static const struct pci_device_id tbsci_id_table[] = {
 	MAKE_ENTRY(0x544d, 0x6178, 0x6900, 0x0001, NULL),
+	MAKE_ENTRY(0x544d, 0x6178, 0x6900, 0x0002, NULL),
 	{}};
 MODULE_DEVICE_TABLE(pci, tbsci_id_table);
 
