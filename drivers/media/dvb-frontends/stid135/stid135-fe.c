@@ -441,6 +441,7 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
         m = p->modcode;
         j = 0;
         dev_dbg(&state->base->i2c->dev, "%s: set Modcode mask %x!\n", __func__, p->modcode);
+        m >>= 1;
         for (i=FE_SAT_QPSK_14; i < FE_SAT_MODCODE_UNKNOWN; i ++) {
             if (m & 1) {
                 dev_dbg(&state->base->i2c->dev, "%s: Modcode %02x enabled!\n", __func__, i);
