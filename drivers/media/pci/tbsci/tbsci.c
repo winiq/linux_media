@@ -207,12 +207,12 @@ static int ts_release(struct inode *inode, struct file *file)
 void spi_read(struct tbs_pcie_dev *dev, struct mcu24cxx_info *info)
 {
 	info->data = TBS_PCIE_READ(info->bassaddr, info->reg);
-	printk("%s bassaddr:%x ,reg: %x,val: %x\n", __func__, info->bassaddr, info->reg,info->data);
+	//printk("%s bassaddr:%x ,reg: %x,val: %x\n", __func__, info->bassaddr, info->reg,info->data);
 }
 void spi_write(struct tbs_pcie_dev *dev, struct mcu24cxx_info *info)
 {
 	TBS_PCIE_WRITE(info->bassaddr,info->reg,info->data);	
-	printk("%s size:%x, reg: %x, val: %x\n", __func__, info->bassaddr, info->reg,info->data);
+	//printk("%s size:%x, reg: %x, val: %x\n", __func__, info->bassaddr, info->reg,info->data);
 }
 static long tbsci_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
