@@ -954,12 +954,15 @@ static void eeprom_write(struct dvb_frontend *fe,struct eeprom_info *eepinf)
 
 static int stid135_read_temp(struct dvb_frontend *fe, s16 *temp)
 {
-    struct stv *state = fe->demodulator_priv;
-    fe_lla_error_t err = FE_LLA_NO_ERROR;
+	struct stv *state = fe->demodulator_priv;
+	fe_lla_error_t err = FE_LLA_NO_ERROR;
 
-    err = fe_stid135_get_soc_temperature(state->base->handle, temp);
-    if (err != FE_LLA_NO_ERROR)
-        dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_soc_temperature error %d !\n", __func__, err);
+	mutex_lock(&state->base->status_lock);
+	err = fe_stid135_get_soc_temperature(state->base->handle, temp);
+	mutex_unlock(&state->base->status_lock);
+
+	if (err != FE_LLA_NO_ERROR)
+		dev_warn(&state->base->i2c->dev, "%s: fe_stid135_get_soc_temperature error %d !\n", __func__, err);
 	return 0;
 }
 
