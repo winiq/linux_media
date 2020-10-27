@@ -2419,10 +2419,7 @@ static int dvb_frontend_handle_ioctl(struct file *file,
 
     case FE_READ_TEMP:
 		if (fe->ops.read_temp) {
-			if (fepriv->thread)
 				err = fe->ops.read_temp(fe, parg);
-			else
-				err = -EAGAIN;
 		}
 		break;
 
@@ -2735,37 +2732,25 @@ static int dvb_frontend_handle_ioctl(struct file *file,
 
 	case FE_READ_BER:
 		if (fe->ops.read_ber) {
-			if (fepriv->thread)
 				err = fe->ops.read_ber(fe, parg);
-			else
-				err = -EAGAIN;
 		}
 		break;
 
 	case FE_READ_SIGNAL_STRENGTH:
 		if (fe->ops.read_signal_strength) {
-			if (fepriv->thread)
 				err = fe->ops.read_signal_strength(fe, parg);
-			else
-				err = -EAGAIN;
 		}
 		break;
 
 	case FE_READ_SNR:
 		if (fe->ops.read_snr) {
-			if (fepriv->thread)
 				err = fe->ops.read_snr(fe, parg);
-			else
-				err = -EAGAIN;
 		}
 		break;
 
 	case FE_READ_UNCORRECTED_BLOCKS:
 		if (fe->ops.read_ucblocks) {
-			if (fepriv->thread)
 				err = fe->ops.read_ucblocks(fe, parg);
-			else
-				err = -EAGAIN;
 		}
 		break;
 
