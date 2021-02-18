@@ -596,6 +596,7 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	int i;
 
 	for (i=0; i < p->strength.len; i++) {
 		if (p->strength.stat[i].scale == FE_SCALE_RELATIVE)
@@ -611,6 +612,7 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 static int read_snr(struct dvb_frontend *fe, u16 *snr)
 {
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	int i;
 
 	*snr = 0;
 	for (i=0; i < p->cnr.len; i++)
