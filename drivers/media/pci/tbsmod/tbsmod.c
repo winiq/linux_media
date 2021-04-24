@@ -526,9 +526,58 @@ static BOOL ad9789_setFre_qamb(struct tbs_pcie_dev *dev, unsigned long freq)
 
 	return TRUE;
 }
+// freq MHZ
+static BOOL ad9789_setFre_dvbc(struct tbs_pcie_dev *dev, unsigned long freq, unsigned long bw)
+{
+	unsigned long freq_0, freq_1, freq_2, freq_3;
+	unsigned char buff[4] = {0};
+	//config center freq
+	unsigned long fcenter;
 
+	freq = freq / 1000000;
+	printk("set freq: %ld, bw: %d\n", freq, bw);
+	//freq_0 = (16777216 * freq)/150;
+	freq_0 = div_u64(16777216ULL * freq, 150);
+	buff[2] = freq_0 & 0xff;
+	buff[1] = (freq_0 >> 8) & 0xff;
+	buff[0] = (freq_0 >> 16) & 0xff;
+	ad9789_wt_nBytes(dev, 3, AD9789_NCO_0_FRE, buff);
 
+	//freq_1 = (16777216 * (freq+8))/150;
+	freq_1 = div_u64(16777216ULL * (freq + bw), 150);
+	buff[2] = freq_1 & 0xff;
+	buff[1] = (freq_1 >> 8) & 0xff;
+	buff[0] = (freq_1 >> 16) & 0xff;
+	ad9789_wt_nBytes(dev, 3, AD9789_NCO_1_FRE, buff);
 
+	//freq_2 = (16777216 * (freq+16))/150;
+	freq_2 = div_u64(16777216ULL * (freq + bw*2), 150);
+	buff[2] = freq_2 & 0xff;
+	buff[1] = (freq_2 >> 8) & 0xff;
+	buff[0] = (freq_2 >> 16) & 0xff;
+	ad9789_wt_nBytes(dev, 3, AD9789_NCO_2_FRE, buff);
+
+	//freq_3 = (16777216 * (freq+24))/150;
+	freq_3 = div_u64(16777216ULL * (freq + bw*3), 150);
+	buff[2] = freq_3 & 0xff;
+	buff[1] = (freq_3 >> 8) & 0xff;
+	buff[0] = (freq_3 >> 16) & 0xff;
+	ad9789_wt_nBytes(dev, 3, AD9789_NCO_3_FRE, buff);
+
+	//fcenter = freq + 12;
+	//fcenter = (fcenter*65536)/2400;
+	fcenter = div_u64(freq * 65536ULL + (65536ULL*bw*3)/2, 2400);
+	buff[1] = fcenter & 0xff;
+	buff[0] = (fcenter >> 8) & 0xff; 
+	ad9789_wt_nBytes(dev, 2, AD9789_CENTER_FRE_BPF, buff); 
+
+	//update
+	buff[0] = 0x80;
+	ad9789_wt_nBytes(dev, 1, AD9789_FRE_UPDATE, buff);
+
+	return TRUE;
+}
+/*
 // freq MHZ
 static BOOL ad9789_setFre_dvbc(struct tbs_pcie_dev *dev, unsigned long freq)
 {
@@ -580,7 +629,7 @@ static BOOL ad9789_setFre_dvbc(struct tbs_pcie_dev *dev, unsigned long freq)
 
 	return TRUE;
 }
-
+*/
 //srate Ks
 static void config_srate(struct tbs_pcie_dev *dev, unsigned long srate)
 {
@@ -652,7 +701,7 @@ static void AD9789_Configration_dvbc(struct tbs_pcie_dev *dev)
 	buff[0] = 0x20;
 	ad9789_wt_nBytes(dev, 1, AD9789_INPUT_SCALAR, buff);
 	
-	ad9789_setFre_dvbc(dev,dev->frequency);
+	ad9789_setFre_dvbc(dev,dev->frequency,dev->bw);
 	config_srate(dev,dev->srate);
 
 	buff[0] = 0x06;
@@ -1402,8 +1451,7 @@ static void set_Modulation_dvbt(struct tbs_pcie_dev *dev, struct dvb_modulator_p
 
 }
 
-
-//bandwidth:Mhz,  freq: kHZ
+//bandwidth:Mhz,  freq: HZ
 static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidth, unsigned long freq)
 {
 	unsigned long freq_0, freq_1, freq_2, freq_3;
@@ -1420,31 +1468,30 @@ static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidt
 	else
 		fdco = 109714285; //109.714285;
 
-	freq = freq / 1000000;
 	//printk("set freq: %ld\n", freq);
 	//freq_0 = (16777216 * freq)/150;
-	freq_0 = div_u64(16777216ULL * freq *1000000, fdco);
+	freq_0 = div_u64(16777216ULL * freq, fdco);
 	buff[2] = freq_0 & 0xff;
 	buff[1] = (freq_0 >> 8) & 0xff;
 	buff[0] = (freq_0 >> 16) & 0xff;
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_0_FRE, buff);
 
 	//freq_1 = (16777216 * (freq+8))/150;
-	freq_1 = div_u64(16777216ULL * (freq + bandwidth *1)*1000000, fdco);
+	freq_1 = div_u64(16777216ULL * (freq + bandwidth *1000000), fdco);
 	buff[2] = freq_1 & 0xff;
 	buff[1] = (freq_1 >> 8) & 0xff;
 	buff[0] = (freq_1 >> 16) & 0xff;
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_1_FRE, buff);
 
 	//freq_2 = (16777216 * (freq+16))/150;
-	freq_2 = div_u64(16777216ULL * (freq + bandwidth *2)*1000000, fdco);
+	freq_2 = div_u64(16777216ULL * (freq + bandwidth *2000000), fdco);
 	buff[2] = freq_2 & 0xff;
 	buff[1] = (freq_2 >> 8) & 0xff;
 	buff[0] = (freq_2 >> 16) & 0xff;
 	ad9789_wt_nBytes(dev, 3, AD9789_NCO_2_FRE, buff);
 
 	//freq_3 = (16777216 * (freq+24))/150;
-	freq_3 = div_u64(16777216ULL * (freq + bandwidth *3)*1000000, fdco);
+	freq_3 = div_u64(16777216ULL * (freq + bandwidth *3000000), fdco);
 	buff[2] = freq_3 & 0xff;
 	buff[1] = (freq_3 >> 8) & 0xff;
 	buff[0] = (freq_3 >> 16) & 0xff;
@@ -1460,7 +1507,7 @@ static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidt
 	buff[0] = 0x80;
 	ad9789_wt_nBytes(dev, 3, AD9789_RATE_CONVERT_P, buff);
 
-	fcenter = freq*1000000 + (bandwidth * 3 *1000000)/2;
+	fcenter = freq + (bandwidth * 3 *1000000)/2;
 	//fcenter = (fcenter*65536)/2400;
 	fcenter = div_u64(fcenter * 65536ULL, 16 * fdco);
 	buff[1] = fcenter & 0xff;
@@ -1505,7 +1552,6 @@ static BOOL ad9789_setFre_dvbt (struct tbs_pcie_dev *dev, unsigned long bandwidt
 
 	return TRUE;
 }
-
 static void AD9789_Configration_dvbt(struct tbs_pcie_dev *dev)
 
 {
@@ -2034,7 +2080,15 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				dev->srate = prop.u.data;
 				config_srate(dev, dev->srate);
 				break;
+			case MODULATOR_BANDWIDTH:
+				if((pchannel->channel_index)&&(pchannel->channel_index!=4)){
+				//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
+				break;
+				}
+				printk("%s MODULATOR_BANDWIDTH:%d\n", __func__,prop.u.data);
+				dev->bw = prop.u.data;
 
+				break;
 			case MODULATOR_FREQUENCY:
 				if((pchannel->channel_index)&&(pchannel->channel_index!=4)){
 				//printk("%s FE_SET_PROPERTY not allow set\n", __func__);
@@ -2058,7 +2112,7 @@ static long tbsmod_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				*/
 				dev->frequency = prop.u.data;
 				if((dev->cardid == 0x6004)||(dev->cardid == 0x6008))
-					ad9789_setFre_dvbc(dev,dev->frequency);
+					ad9789_setFre_dvbc(dev,dev->frequency,dev->bw);
 				else if(dev->cardid == 0x6014)
 					ad9789_setFre_qamb(dev,dev->frequency);
 				else
