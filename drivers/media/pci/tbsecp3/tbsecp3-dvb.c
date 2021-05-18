@@ -1077,7 +1077,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		 memset(&m88rs6060_config, 0, sizeof(m88rs6060_config));
 		 m88rs6060_config.fe = &adapter->fe;
 		 m88rs6060_config.clk = 27000000;
-		 m88rs6060_config.i2c_wr_max = 33;
+		 m88rs6060_config.i2c_wr_max = 65;
 		 m88rs6060_config.ts_mode = MtFeTsOutMode_Parallel;
 		 m88rs6060_config.ts_pinswitch = 1;
 
