@@ -607,6 +607,20 @@ static struct av201x_config tbs6902_av201x_cfg = {
 		.xtal_freq	 = 27000,		/* kHz */
 };
 
+static struct tas2101_config tbs6301se_demod_cfg = {
+		.i2c_address   = 0x60,
+		.id            = ID_TAS2101,
+		.init          = {0xb0, 0x32, 0x81, 0x57, 0x64, 0x9a, 0x33}, // 0xb1
+		.init2         = 0,
+		.write_properties = ecp3_spi_write,  
+		.read_properties = ecp3_spi_read,
+
+		.mcuWrite_properties = mcu_24cxx_write,  
+		.mcuRead_properties = mcu_24cxx_read,
+
+};
+
+
 static struct tas2101_config tbs6302se_demod_cfg[] = {
 
     {
@@ -1066,7 +1080,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	adapter->i2c_client_demod = NULL;
 	adapter->i2c_client_tuner = NULL;
 
-	if((TBSECP3_BOARD_TBS6304 != dev->info->board_id) && (TBSECP3_BOARD_TBS6308 != dev->info->board_id) && (TBSECP3_BOARD_TBS6302SE != dev->info->board_id)){
+	if((TBSECP3_BOARD_TBS6304 != dev->info->board_id) && (TBSECP3_BOARD_TBS6308 != dev->info->board_id) && (TBSECP3_BOARD_TBS6302SE != dev->info->board_id)&& (TBSECP3_BOARD_TBS6301SE != dev->info->board_id)){
 		reset_demod(adapter);
 		set_mac_address(adapter);
 	}
@@ -1280,7 +1294,12 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 
 		tbs6301_read_mac(adapter);
 		break;
+	case TBSECP3_BOARD_TBS6301SE:
+		adapter->fe = dvb_attach(tas2971_attach, &tbs6301se_demod_cfg, i2c);
+		if (adapter->fe == NULL)
+		    goto frontend_atach_fail;
 
+		break;
 	case TBSECP3_BOARD_TBS690a:
 		adapter->fe = dvb_attach(tas2971_attach, &tbs6904_demod_cfg[adapter->nr], i2c);
 		if (adapter->fe == NULL)
