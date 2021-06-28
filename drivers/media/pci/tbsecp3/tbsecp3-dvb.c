@@ -1086,15 +1086,22 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	}
 
 	switch (dev->info->board_id) {
+	   case TBSECP3_BOARD_TBS6910SE:
 	   case TBSECP3_BOARD_TBS6904SE:
 	   case TBSECP3_BOARD_TBS6902SE:	   
 		 memset(&m88rs6060_config, 0, sizeof(m88rs6060_config));
 		 m88rs6060_config.fe = &adapter->fe;
 		 m88rs6060_config.clk = 27000000;
 		 m88rs6060_config.i2c_wr_max = 65;
-		 m88rs6060_config.ts_mode = MtFeTsOutMode_Parallel;
-		 m88rs6060_config.ts_pinswitch = 1;
+		 if(dev->info->board_id == TBSECP3_BOARD_TBS6910SE){
+		 	
+			 m88rs6060_config.ts_mode = MtFeTsOutMode_Serial;
+			 m88rs6060_config.ts_pinswitch = 0;
 
+		 }else{
+			 m88rs6060_config.ts_mode = MtFeTsOutMode_Parallel;
+			 m88rs6060_config.ts_pinswitch = 1;
+		 	}
 		 m88rs6060_config.envelope_mode = 0;
 		 m88rs6060_config.demod_adr = 0x69;
 		 m88rs6060_config.tuner_adr = 0x2c;
@@ -1120,7 +1127,10 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 			    			    "error attaching lnb control on adapter %d\n",
 							    adapter->nr);
 			}		    
-		
+
+		 if(dev->info->board_id == TBSECP3_BOARD_TBS6910SE){
+			tbsecp3_ca_init(adapter, adapter->nr);
+		 }
 		 break; 
 	   case TBSECP3_BOARD_TBS6508:
 		/* attach demod */
