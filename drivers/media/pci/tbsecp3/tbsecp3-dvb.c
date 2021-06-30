@@ -1058,6 +1058,76 @@ static struct rda5816_config rda5816_cfg[] = {
 static struct mndmd_config tbs6704_cfg={
 	.tuner_address = 0x60,
 };
+static void SetSpeedstatus(struct i2c_adapter *i2c,int tuner)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+
+	if(tuner)
+		tbs_write(0x7000, 0x1c,0x11111111);
+	else
+		tbs_write(0x6000, 0x1c,0x01010101);
+	
+	return ;
+}
+static int GetSpeedstatus(struct i2c_adapter *i2c,int tuner)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+	u32 iobuffer;
+	u8 tmp;
+	if(tuner){
+	iobuffer =  tbs_read(0x7000,0x1c);
+	iobuffer =  tbs_read(0x7000,0x1c);
+	}
+	else
+	{
+	iobuffer =  tbs_read(0x6000,0x1c);
+	iobuffer =  tbs_read(0x6000,0x1c);		
+	}
+	
+	tmp = iobuffer&0xff;
+
+	return tmp;
+}
+
+static void Set_TSsamplingtimes(struct i2c_adapter *i2c,int tuner,int time)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+
+	u32 Many_cnt;
+	u32 iobuffer;
+	char tmp[4];
+
+	Many_cnt = time*1000000/8;
+	tmp[0] = (Many_cnt>>24)&0xff;
+	tmp[1] =  (Many_cnt>>16)&0xff;
+	tmp[2] =  (Many_cnt>>8)&0xff;
+	tmp[3] =  Many_cnt&0xff;
+
+	iobuffer = tmp[0]|(tmp[1]<<8)|(tmp[2]<<16)|(tmp[3]<<24);
+	
+	tbs_write(TBSECP3_GPIO_BASE, 0x30+tuner*4,iobuffer);
+	
+}
+static int GetTSSpeed(struct i2c_adapter *i2c,int tuner)
+{
+	struct tbsecp3_i2c *i2c_adap = i2c_get_adapdata(i2c);
+	struct tbsecp3_dev *dev = i2c_adap->dev;
+	u32 iobuffer = 0;
+	u8 tmp[4];
+	u32 bit_rate = 0;
+	iobuffer =  tbs_read(TBSECP3_GPIO_BASE, 0x40+tuner*4);
+	tmp[0] = (iobuffer>>24)&0xff;
+	tmp[1] =  (iobuffer>>16)&0xff;
+	tmp[2] =  (iobuffer>>8)&0xff;
+	tmp[3] =  iobuffer&0xff;
+
+	bit_rate= tmp[0]|(tmp[1]<<8)|(tmp[2]<<16)|(tmp[3]<<24);
+
+	return bit_rate;
+}
 static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 {
 	struct tbsecp3_dev *dev = adapter->dev;
@@ -1097,15 +1167,27 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		 	
 			 m88rs6060_config.ts_mode = MtFeTsOutMode_Serial;
 			 m88rs6060_config.ts_pinswitch = 0;
+			 m88rs6060_config.HAS_CI = 1;
+			 m88rs6060_config.SetSpeedstatus = SetSpeedstatus;
+			 m88rs6060_config.GetSpeedstatus = GetSpeedstatus;
+			 m88rs6060_config.GetSpeed = GetTSSpeed;
+			 m88rs6060_config.SetTimes= Set_TSsamplingtimes;
 
 		 }else{
 			 m88rs6060_config.ts_mode = MtFeTsOutMode_Parallel;
 			 m88rs6060_config.ts_pinswitch = 1;
+			 m88rs6060_config.HAS_CI = 0;
+			 m88rs6060_config.SetSpeedstatus = NULL;
+			 m88rs6060_config.GetSpeedstatus = NULL;
+			 m88rs6060_config.GetSpeed = NULL;
+			 m88rs6060_config.SetTimes= NULL;
+
 		 	}
 		 m88rs6060_config.envelope_mode = 0;
 		 m88rs6060_config.demod_adr = 0x69;
 		 m88rs6060_config.tuner_adr = 0x2c;
 		 m88rs6060_config.repeater_value = 0x12;
+		 m88rs6060_config.num = adapter->nr;
 		 m88rs6060_config.read_properties = ecp3_spi_read;
 		 m88rs6060_config.write_properties = ecp3_spi_write;
 		memset(&info, 0, sizeof(struct i2c_board_info));
