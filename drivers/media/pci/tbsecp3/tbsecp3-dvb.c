@@ -1158,7 +1158,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	switch (dev->info->board_id) {
 	   case TBSECP3_BOARD_TBS6910SE:
 	   case TBSECP3_BOARD_TBS6904SE:
-	   case TBSECP3_BOARD_TBS6902SE:	   
+	   case TBSECP3_BOARD_TBS6902SE:
+	   case TBSECP3_BOARD_TBS7901:	   
 		 memset(&m88rs6060_config, 0, sizeof(m88rs6060_config));
 		 m88rs6060_config.fe = &adapter->fe;
 		 m88rs6060_config.clk = 27000000;
