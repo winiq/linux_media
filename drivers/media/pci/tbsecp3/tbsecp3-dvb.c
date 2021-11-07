@@ -43,6 +43,11 @@
 #include "gx1133.h"
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
+static bool swapfe = false;
+module_param(swapfe, bool, 0444);
+MODULE_PARM_DESC(swapfe, "swap combo frontends order");
+
+
 struct sec_priv {
 	struct tbsecp3_adapter *adap;
 	int (*set_voltage)(struct dvb_frontend *fe,
@@ -2050,8 +2055,10 @@ int tbsecp3_dvb_init(struct tbsecp3_adapter *adapter)
     struct dvb_adapter *adap = &adapter->dvb_adapter;
     struct dvb_demux *dvbdemux = &adapter->demux;
     struct dmxdev *dmxdev;
+    struct dvb_frontend *fe;
     struct dmx_frontend *fe_hw;
     struct dmx_frontend *fe_mem;
+
     int ret;
 
     ret = dvb_register_adapter(adap, "TBSECP3 DVB Adapter",
@@ -2130,6 +2137,12 @@ int tbsecp3_dvb_init(struct tbsecp3_adapter *adapter)
         dev_err(&dev->pci_dev->dev, "frontend attach failed\n");
         ret = -ENODEV;
         goto err6;
+    }
+
+    if (adapter->fe && adapter->fe2 && swapfe) {
+        fe = adapter->fe;
+        adapter->fe = adapter->fe2;
+        adapter->fe2 = fe;
     }
 
     ret = dvb_register_frontend(adap, adapter->fe);
