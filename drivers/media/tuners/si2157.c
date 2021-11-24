@@ -751,6 +751,7 @@ static int si2157_get_rf_strength(struct dvb_frontend *fe, u16 *rssi)
 	if (ret)
 		goto err;
 
+	c->strength.len = 1;
 	c->strength.stat[0].scale = FE_SCALE_DECIBEL;
 	c->strength.stat[0].svalue = (s8)cmd.args[3] * 1000;
 
@@ -806,6 +807,7 @@ static void si2157_stat_work(struct work_struct *work)
 	if (ret)
 		goto err;
 
+	c->strength.len = 1;
 	c->strength.stat[0].scale = FE_SCALE_DECIBEL;
 	c->strength.stat[0].svalue = (s8) cmd.args[3] * 1000;
 
