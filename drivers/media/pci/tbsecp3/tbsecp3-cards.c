@@ -18,6 +18,51 @@
 #include "tbsecp3.h"
 
 struct tbsecp3_board tbsecp3_boards[] = {
+	[TBSECP3_BOARD_TBS6209SE] = {
+		.board_id	= TBSECP3_BOARD_TBS6209SE,
+		.name		= "Turbosight TBS 6209SE(Octa DVB-T/T2/C/C2/ISDB-T/C/ATSC)",
+		.i2c_speed  = 39,
+		.eeprom_i2c	= 3,
+		.eeprom_addr = 0x10,
+		.adapters	= 8,
+		.adap_config ={
+			{
+				.ts_in = 0,
+				.i2c_bus_nr = 0,
+			}, 
+			{
+				.ts_in = 1,
+				.i2c_bus_nr = 0,
+			},
+			{
+				.ts_in = 2,
+				.i2c_bus_nr = 1,
+			},
+			{
+				.ts_in = 3,
+				.i2c_bus_nr = 1,
+			},
+			{
+				.ts_in = 4,
+				.i2c_bus_nr = 2,
+
+			},
+			{
+				.ts_in = 5,
+				.i2c_bus_nr = 2,
+			},
+			{
+				.ts_in = 6,
+				.i2c_bus_nr = 3,
+
+			},
+			{
+				.ts_in = 7,
+				.i2c_bus_nr = 3,
+			}
+
+		}
+	},
 	[TBSECP3_BOARD_TBS7901] = {
 		.board_id	= TBSECP3_BOARD_TBS7901,
 		.name		= "TurboSight TBS 7901 DVB-S/S2/S2x ",
@@ -35,7 +80,7 @@ struct tbsecp3_board tbsecp3_boards[] = {
 				.gpio.lnb_power.nr    = TBSECP3_GPIO_PIN(0, 2),
 				.gpio.lnb_voltage.lvl = TBSECP3_GPIODEF_HIGH,
 				.gpio.lnb_voltage.nr  = TBSECP3_GPIO_PIN(0,1),				
-			},	
+			}	
 			
 		}
 	},
