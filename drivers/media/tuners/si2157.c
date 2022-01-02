@@ -35,7 +35,7 @@ static int si2157_cmd_execute(struct i2c_client *client, struct si2157_cmd *cmd)
 
 	if (cmd->rlen) {
 		/* wait cmd execution terminate */
-		#define TIMEOUT 500
+		#define TIMEOUT 100
 		timeout = jiffies + msecs_to_jiffies(TIMEOUT);
 		while (!time_after(jiffies, timeout)) {
 			ret = i2c_master_recv(client, cmd->args, cmd->rlen);
@@ -88,6 +88,9 @@ static int si2157_init(struct dvb_frontend *fe)
 	unsigned int chip_id, xtal_trim;
 
 	dev_dbg(&client->dev, "\n");
+
+	if (dev->active)
+		return 0;	
 
 	/* Try to get Xtal trim property, to verify tuner still running */
 	memcpy(cmd.args, "\x15\x00\x04\x02", 4);
@@ -846,7 +849,7 @@ static int si2157_probe(struct i2c_client *client,
 
 	/* check if the tuner is there */
 	cmd.wlen = 0;
-        cmd.rlen = 1;
+	cmd.rlen = 1;
 	ret = si2157_cmd_execute(client, &cmd);
 	if (ret && ret != -EAGAIN)
 		goto err_kfree;
