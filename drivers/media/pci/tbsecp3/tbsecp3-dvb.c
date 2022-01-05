@@ -1191,6 +1191,21 @@ static struct cxd2878_config tbs6209se_cfg[] = {
 		.read_properties = ecp3_spi_read,	
 	}	
 };
+
+static struct cxd2878_config tbs7230_cfg = {
+	
+		.addr_slvt = 0x64,
+		.xtal      = SONY_DEMOD_XTAL_24000KHz,
+		.tuner_addr = 0x60,
+		.tuner_xtal = SONY_ASCOT3_XTAL_24000KHz,
+		.ts_mode	= 0,
+		.ts_ser_data = 0,
+		.ts_clk = 1,
+		.ts_valid = 0,
+		.atscCoreDisable = 0,
+		.write_properties = ecp3_spi_write, 
+		.read_properties = ecp3_spi_read,	
+	};
 static void tbs6209SE_reset_demod(struct tbsecp3_adapter *adapter)
 {
 	struct tbsecp3_dev *dev = adapter->dev;
@@ -1244,6 +1259,11 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		if (adapter->fe == NULL)
 		    goto frontend_atach_fail;
 	   		break;	
+	   case TBSECP3_BOARD_TBS7230:
+	   	   adapter->fe = dvb_attach(cxd2878_attach, &tbs7230_cfg, i2c);
+		if (adapter->fe == NULL)
+		    goto frontend_atach_fail;
+	   break;
 	   case TBSECP3_BOARD_TBS6910SE:
 	   case TBSECP3_BOARD_TBS6904SE:
 	   case TBSECP3_BOARD_TBS6902SE:
