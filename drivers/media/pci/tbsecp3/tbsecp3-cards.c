@@ -521,6 +521,23 @@ struct tbsecp3_board tbsecp3_boards[] = {
 			
 		}
 	},
+	[TBSECP3_BOARD_TBS6302T] = {
+		.board_id	= TBSECP3_BOARD_TBS6302T,
+		.name		= "TurboSight TBS 6302T HDMI Capture ",
+		.adapters	= 2,
+		.i2c_speed	= 39,
+		.eeprom_i2c	= 1,
+		.adap_config	= {
+			{
+				.ts_in = 0,
+				.i2c_bus_nr = 3,
+			},
+			{
+				.ts_in = 1,
+				.i2c_bus_nr = 2,
+			},
+		}
+	},
 	[TBSECP3_BOARD_TBS690a] = {
 		.board_id	= TBSECP3_BOARD_TBS690a,
 		.name		= "TurboSight TBS 690a ASI Capture ",
