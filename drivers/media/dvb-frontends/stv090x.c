@@ -29,9 +29,9 @@
 static unsigned int verbose;
 module_param(verbose, int, 0644);
 
-static unsigned int ts_nosync=1;
+static unsigned int ts_nosync;
 module_param(ts_nosync, int, 0644);
-MODULE_PARM_DESC(ts_nosync, "TS FIFO Minimum latence mode (default:on)");
+MODULE_PARM_DESC(ts_nosync, "TS FIFO Minimum latence mode (default:off)");
 
 /* internal params node */
 struct stv090x_dev {
