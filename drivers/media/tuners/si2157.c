@@ -35,7 +35,7 @@ static int si2157_cmd_execute(struct i2c_client *client, struct si2157_cmd *cmd)
 
 	if (cmd->rlen) {
 		/* wait cmd execution terminate */
-		#define TIMEOUT 100
+		#define TIMEOUT 500
 		timeout = jiffies + msecs_to_jiffies(TIMEOUT);
 		while (!time_after(jiffies, timeout)) {
 			ret = i2c_master_recv(client, cmd->args, cmd->rlen);
@@ -408,6 +408,9 @@ static int si2157_set_params(struct dvb_frontend *fe)
 	dev_dbg(&client->dev,
 			"delivery_system=%d frequency=%u bandwidth_hz=%u\n",
 			c->delivery_system, c->frequency, c->bandwidth_hz);
+
+	if (!dev->active)
+		si2157_init(fe);
 
 	if (!dev->active) {
 		ret = -EAGAIN;
