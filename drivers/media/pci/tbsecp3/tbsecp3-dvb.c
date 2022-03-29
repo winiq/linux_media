@@ -1256,6 +1256,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	   		tbs6209SE_reset_demod(adapter);
 	   		set_mac_address(adapter);		
 	   		adapter->fe = dvb_attach(cxd2878_attach, &tbs6209se_cfg[(adapter->nr)%4], i2c);
+
 		if (adapter->fe == NULL)
 		    goto frontend_atach_fail;
 	   		break;	
