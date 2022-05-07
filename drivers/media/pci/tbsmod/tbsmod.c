@@ -3040,7 +3040,7 @@ static void tbsmod_remove(struct pci_dev *pdev)
 		kfifo_free(&dev->channel[i].fifo);
 //		device_destroy(mod_cdev_class, dev->channel[i].devno);
 		if (dev->channel[i].dmavirt){
-			pci_free_consistent(dev->pdev, DMASIZE, dev->channel[i].dmavirt, dev->channel[i].dmaphy);
+			dma_free_coherent(&dev->pdev->dev, DMASIZE, dev->channel[i].dmavirt, dev->channel[i].dmaphy);
 			dev->channel[i].dmavirt = NULL;
 		}
 	}
@@ -3147,7 +3147,7 @@ static int tbsmod_probe(struct pci_dev *pdev,
 	}
 
 	for(i=0;i<dev->mods_num;i++){
-		dev->channel[i].dmavirt = pci_alloc_consistent(dev->pdev, DMASIZE, &dev->channel[i].dmaphy);
+		dev->channel[i].dmavirt = dma_alloc_coherent(&dev->pdev->dev, DMASIZE, &dev->channel[i].dmaphy, GFP_KERNEL);
 		if (!dev->channel[i].dmavirt)
 		{
 			printk(" allocate memory failed\n");
