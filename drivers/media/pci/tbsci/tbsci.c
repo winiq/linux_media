@@ -893,11 +893,11 @@ static void tbs_adapters_remove(struct tbs_pcie_dev *dev)
 		kfifo_free(&tbsca->w_fifo);
 		kfifo_free(&tbsca->r_fifo);
 		if (!tbsca->w_dmavirt){
-			pci_free_consistent(dev->pdev, DMASIZE, tbsca->w_dmavirt, tbsca->w_dmaphy);
+			dma_free_coherent(&dev->pdev->dev, DMASIZE, tbsca->w_dmavirt, tbsca->w_dmaphy);
 			tbsca->w_dmavirt = NULL;
 		}
 		if (!tbsca->r_dmavirt){
-			pci_free_consistent(dev->pdev, DMASIZE, tbsca->r_dmavirt, tbsca->r_dmaphy);
+			dma_free_coherent(&dev->pdev->dev, DMASIZE, tbsca->r_dmavirt, tbsca->r_dmaphy);
 			tbsca->r_dmavirt = NULL;
 		}
 	//	tasklet_kill(&tbsca->tasklet);
@@ -930,13 +930,13 @@ static int tbs_adapters_init(struct tbs_pcie_dev *dev)
 
 	for(i=0;i<CHANNELS;i++){
 		tbsca = &dev->channnel[i];
-		tbsca->w_dmavirt = pci_alloc_consistent(dev->pdev, DMASIZE, &tbsca->w_dmaphy);
+		tbsca->w_dmavirt = dma_alloc_coherent(&dev->pdev->dev, DMASIZE, &tbsca->w_dmaphy, GFP_KERNEL);
 		if (!tbsca->w_dmavirt)
 		{
 			printk("allocate write DMA  memory failed, set coherent_pool=4M or higher\n");
 			goto fail;
 		}
-		tbsca->r_dmavirt = pci_alloc_consistent(dev->pdev, DMASIZE, &tbsca->r_dmaphy);
+		tbsca->r_dmavirt = dma_alloc_coherent(&dev->pdev->dev, DMASIZE, &tbsca->r_dmaphy, GFP_KERNEL);
 		if (!tbsca->r_dmavirt)
 		{
 			printk("allocate read DMA memory failed, set coherent_pool=4M or higher\n");
