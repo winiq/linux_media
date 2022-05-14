@@ -1300,6 +1300,8 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		 m88rs6060_config.num = adapter->nr;
 		 m88rs6060_config.read_properties = ecp3_spi_read;
 		 m88rs6060_config.write_properties = ecp3_spi_write;
+		 m88rs6060_config.read_eeprom = ecp3_eeprom_read;
+		 m88rs6060_config.write_eeprom = ecp3_eeprom_write;
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "m88rs6060", I2C_NAME_SIZE);
 		info.addr = 0x69;
