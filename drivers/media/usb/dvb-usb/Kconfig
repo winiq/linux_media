@@ -426,6 +426,14 @@ config DVB_USB_TBS5220
 	help
 	  Say Y here to support the TurboSight TBS5220 DVB-T/T2/C USB2.0 receivers
 
+config DVB_USB_TBS5230
+	tristate "TurboSight TBS5230 DVB-T/T2/C ISDB-T ATSC1.0 USB2.0 support"
+	depends on DVB_USB
+	select DVB_PLL if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_CXD2878 if MEDIA_SUBDRV_AUTOSELECT
+	help
+	  Say Y here to support the TurboSight TBS5230 DVB-T/T2/C ISDB-T ATSC1.0 USB2.0 receivers
+
 config DVB_USB_TBS5881
 	tristate "TurboSight TBS5881 DVB-T/T2/C USB2.0 support"
 	depends on DVB_USB
