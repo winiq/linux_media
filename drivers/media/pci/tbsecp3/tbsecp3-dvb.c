@@ -1208,7 +1208,7 @@ static struct cxd2878_config tbs6209se_cfg[] = {
 	}	
 };
 
-static struct cxd2878_config tbs7230_cfg = {
+static struct cxd2878_config tbsserial_cfg = {
 	
 		.addr_slvt = 0x64,
 		.xtal      = SONY_DEMOD_XTAL_24000KHz,
@@ -1278,9 +1278,13 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		    goto frontend_atach_fail;
 	   		break;	
 	   case TBSECP3_BOARD_TBS7230:
-	   	   adapter->fe = dvb_attach(cxd2878_attach, &tbs7230_cfg, i2c);
+	   case TBSECP3_BOARD_TBS6290TD:
+	   	   adapter->fe = dvb_attach(cxd2878_attach, &tbsserial_cfg, i2c);
 		if (adapter->fe == NULL)
 		    goto frontend_atach_fail;
+		 if(dev->info->board_id==TBSECP3_BOARD_TBS6290TD)
+		 	tbsecp3_ca_init(adapter, adapter->nr);
+		 
 	   break;
 	   case TBSECP3_BOARD_TBS6910SE:
 	   case TBSECP3_BOARD_TBS6904SE:
