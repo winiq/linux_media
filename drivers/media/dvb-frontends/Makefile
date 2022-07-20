@@ -150,3 +150,4 @@ obj-$(CONFIG_DVB_GX1503) += gx1503.o
 obj-$(CONFIG_DVB_TBSPRIV) += tbs_priv.o
 obj-$(CONFIG_DVB_STID135) += stid135/
 obj-$(CONFIG_DVB_M88RS6060) += m88rs6060.o
+obj-$(CONFIG_DVB_CXD2878) += cxd2878.o
