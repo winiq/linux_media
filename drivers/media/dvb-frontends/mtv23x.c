@@ -1480,7 +1480,6 @@ static int rtvRF_Lna_Tuning(struct mtv23x_dev*dev,u32 dwLoFreq)
 	else
 		return -5;
 
-
 	regmap_write(dev->regmap,MAP_SEL_REG,RF_PAGE);
 	regmap_read(dev->regmap,0x50,&temp);
 	WR50 = temp & 0xE0;
@@ -1574,8 +1573,6 @@ static int rtvRF_Lna_Tuning(struct mtv23x_dev*dev,u32 dwLoFreq)
 	regmap_write(dev->regmap,0x87, WR87 | ((g_atLNA_TABLE[nidx][26] & 0x01) << 2));
 	regmap_write(dev->regmap,0x93, WR93 | (g_atLNA_TABLE[nidx][23] << 2));
 	regmap_write(dev->regmap,0x94, WR94 | (g_atLNA_TABLE[nidx][27] << 2));
-
-
 
 	return 0;
 }
@@ -1840,19 +1837,21 @@ static int rtvRF_SetFrequency(struct mtv23x_dev*dev,enum E_RTV_SERVICE_TYPE eSer
 	rtvRF_SelectService(dev,eServiceType);
 
 	if (dev->rtv_1seglpmode) {
-	regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
+		regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
 
-	if (eServiceType == RTV_SERVICE_VHF_ISDBTmm_1seg) {
-		regmap_write(dev->regmap,0x10, 0xFA);
-		dwLoFreq = dwChFreqKHz - 857;
-	} else {
-		regmap_write(dev->regmap,0x10, 0xF8);
-		dwLoFreq = dwChFreqKHz + 857;
+		if (eServiceType == RTV_SERVICE_VHF_ISDBTmm_1seg) {
+			regmap_write(dev->regmap,0x10, 0xFA);
+			dwLoFreq = dwChFreqKHz - 857;
+		} else {
+			regmap_write(dev->regmap,0x10, 0xF8);
+			dwLoFreq = dwChFreqKHz + 857;
 		}
-	} else
+	} else {
 		dwLoFreq = dwChFreqKHz;
+	}
+
 	rtvRF_Lna_Tuning(dev,dwLoFreq);
-	rtvRF_SetUpVCO(dev,dwLoFreq, &dwPllFreq); 
+	rtvRF_SetUpVCO(dev,dwLoFreq, &dwPllFreq);
 
 	dwPLLN = dwPllFreq / dev->clk_freq;
 	dwPLLF = dwPllFreq - (dwPLLN * dev->clk_freq);
@@ -1876,17 +1875,158 @@ static int rtvRF_SetFrequency(struct mtv23x_dev*dev,enum E_RTV_SERVICE_TYPE eSer
 		return -1;
 
 	if (dwPllFreq >= 2140000 && dwPllFreq < 2950000) {
-		   regmap_update_bits(dev->regmap,0x94, 0x02, 0x02);
-		   regmap_update_bits(dev->regmap,0x78, 0x70, 0x50);
-		   regmap_update_bits(dev->regmap,0xEA, 0x60, 0x40);
+		regmap_update_bits(dev->regmap,0x94, 0x02, 0x02);
+		regmap_update_bits(dev->regmap,0x78, 0x70, 0x50);
+		regmap_update_bits(dev->regmap,0xEA, 0x60, 0x40);
 	} else if (dwPllFreq >= 2950000 && dwPllFreq < 3440000) {
-		   regmap_update_bits(dev->regmap,0x94, 0x02, 0x02);
-		   regmap_update_bits(dev->regmap,0x78, 0x70, 0x40);
-		   regmap_update_bits(dev->regmap,0xEA, 0x60, 0x00);
+		regmap_update_bits(dev->regmap,0x94, 0x02, 0x02);
+		regmap_update_bits(dev->regmap,0x78, 0x70, 0x40);
+		regmap_update_bits(dev->regmap,0xEA, 0x60, 0x00);
 	}
-	 
+
 	return 0;
 }
+
+static void rtv_UpdateMon(struct mtv23x_dev*dev)
+{
+	if (dev->rtv_1seglpmode) {
+		regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
+		regmap_update_bits(dev->regmap,0x13, 0x80, 0x80);
+		regmap_update_bits(dev->regmap,0x13, 0x80, 0x00);
+	} else {
+		regmap_write(dev->regmap,MAP_SEL_REG,OFDM_PAGE);
+		regmap_update_bits(dev->regmap,0x1B, 0x80, 0x80);
+		regmap_update_bits(dev->regmap,0x1B, 0x80, 0x00);
+	}
+
+	regmap_write(dev->regmap,MAP_SEL_REG,FEC_PAGE);
+	regmap_update_bits(dev->regmap,0x11, 0x04, 0x04);
+	regmap_update_bits(dev->regmap,0x11, 0x04, 0x00);
+}
+
+static int mtv23x_get_frontend(struct dvb_frontend *fe,
+				struct dtv_frontend_properties *c)
+{
+	struct i2c_client*client = fe->demodulator_priv;
+	struct mtv23x_dev*dev = i2c_get_clientdata(client);
+	int tempData = 0, i;
+	u8 R_Data = 0;
+	u8 tempSeg = 0, tempModule = 0, tempCoderate = 0, tempInterl = 0;
+
+	rtv_UpdateMon(dev);
+	if (dev->rtv_1seglpmode) {
+		regmap_write(dev->regmap, MAP_SEL_REG, LPOFDM_PAGE);
+		regmap_read(dev->regmap, 0xC6, &tempData);
+		R_Data = ((tempData & 0x30) >> 2) | ((tempData & 0xC0) >> 2);
+	} else {
+		regmap_write(dev->regmap, MAP_SEL_REG, SHAD_PAGE);
+		regmap_read(dev->regmap, 0x80, &tempData);
+		R_Data = tempData;
+	}
+
+	switch (R_Data & 0x03) {
+		case 0:
+			c->guard_interval = GUARD_INTERVAL_1_32;
+			break;
+		case 1:
+			c->guard_interval = GUARD_INTERVAL_1_16;
+			break;
+		case 2:
+			c->guard_interval = GUARD_INTERVAL_1_8;
+			break;
+		case 3:
+			c->guard_interval = GUARD_INTERVAL_1_4;
+			break;
+	}
+
+	switch ((R_Data>>2) & 0x03) {
+		case 0:
+			c->isdbt_sb_mode = 1;
+			break;
+		case 1:
+			c->isdbt_sb_mode = 2;
+			break;
+		case 2:
+			c->isdbt_sb_mode = 3;
+			break;
+	}
+
+	regmap_write(dev->regmap, MAP_SEL_REG, FEC_PAGE);
+
+	c->isdbt_layer_enabled = 7;
+	for (i = 0; i < 3; i++) {
+		switch (i) {
+			case 0:
+				//Layer A
+				regmap_update_bits(dev->regmap, 0x76, 0x18, 0x00);
+				break;
+			case 1:
+				//Layer B
+				regmap_update_bits(dev->regmap, 0x76, 0x18, 0x08);
+				break;
+			case 2:
+				//Layer C
+				regmap_update_bits(dev->regmap, 0x76, 0x18, 0x10);
+				break;
+		}
+		regmap_read(dev->regmap, 0x7B, &tempData);
+		R_Data = tempData & 0x3f;
+		tempCoderate = ((R_Data>>3) & 0x07);
+		tempModule = (R_Data & 0x07);
+		regmap_read(dev->regmap, 0x7C, &tempData);
+		R_Data = tempData & 0x7f;
+		tempInterl = R_Data & 0x07;
+		tempSeg = (R_Data>>3) & 0x0f;
+
+		switch (tempCoderate) {
+			case 0:
+				c->layer[i].fec = FEC_1_2;
+				break;
+			case 1:
+				c->layer[i].fec = FEC_2_3;
+				break;
+			case 2:
+				c->layer[i].fec = FEC_3_4;
+				break;
+			case 3:
+				c->layer[i].fec = FEC_5_6;
+				break;
+			case 4:
+				c->layer[i].fec = FEC_7_8;
+				break;
+		}
+
+		switch (tempModule) {
+			case 0:
+				c->layer[i].modulation = DQPSK;
+				break;
+			case 1:
+				c->layer[i].modulation = QPSK;
+				break;
+			case 2:
+				c->layer[i].modulation = QAM_16;
+				break;
+			case 3:
+				c->layer[i].modulation = QAM_64;
+				break;
+		}
+
+		if (tempInterl > 0) {
+			c->layer[i].interleaving = (1 << (tempInterl - 1)) << (3 - c->isdbt_sb_mode);
+		} else {
+			c->layer[i].interleaving = 0;
+		}
+
+		if (tempSeg >= 1 && tempSeg <= 13) {
+			c->layer[i].segment_count = tempSeg;
+		} else {
+			c->layer[i].segment_count = 0;
+		}
+	}
+
+	return 0;
+}
+
 static int mtv23x_set_frontend(struct dvb_frontend *fe)
 {
 	struct i2c_client*client = fe->demodulator_priv;
@@ -1973,23 +2113,6 @@ static int mtv23x_set_frontend(struct dvb_frontend *fe)
 err:
 	dev_dbg(&client->dev,"Failed =%d\n",ret);
 	return ret;
-	
-}
-static  void rtv_UpdateMon(struct mtv23x_dev*dev)
-{
-	if (dev->rtv_1seglpmode) {
-		regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
-		regmap_update_bits(dev->regmap,0x13, 0x80, 0x80);
-		regmap_update_bits(dev->regmap,0x13, 0x80, 0x00);
-	} else {
-		regmap_write(dev->regmap,MAP_SEL_REG,OFDM_PAGE);
-		regmap_update_bits(dev->regmap,0x1B, 0x80, 0x80);
-		regmap_update_bits(dev->regmap,0x1B, 0x80, 0x00);
-	}
-
-	regmap_write(dev->regmap,MAP_SEL_REG,FEC_PAGE);
-	regmap_update_bits(dev->regmap,0x11, 0x04, 0x04);
-	regmap_update_bits(dev->regmap,0x11, 0x04, 0x00);
 }
 
 static u32 rtvMTV23x_GetCNR(struct mtv23x_dev*dev)
@@ -2272,6 +2395,7 @@ static struct dvb_frontend_ops mtv23x_ops = {
 
 	.init = mtv23x_init,
 	.set_frontend = mtv23x_set_frontend,
+	.get_frontend = mtv23x_get_frontend,
 	.read_status  = mtv23x_read_status,
 	.read_signal_strength = mtv23x_read_signal_strength,
 	.read_snr = mtv23x_read_snr,
