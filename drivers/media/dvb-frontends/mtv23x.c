@@ -1893,8 +1893,8 @@ static int mtv23x_set_frontend(struct dvb_frontend *fe)
 	struct mtv23x_dev*dev = i2c_get_clientdata(client);
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache;
 	enum E_RTV_BANDWIDTH_TYPE bandwidth ;
-	enum E_RTV_SERVICE_TYPE svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
-	int ret;
+	enum E_RTV_SERVICE_TYPE svc_type ;
+	int ret, subchannel_id;
 
 	const u8 g_atSubChNum[] = {
 	0x00, 0x00, 0x10, 0x10, 0x10, 0x20, /*0  ~ 5  */
@@ -1905,52 +1905,63 @@ static int mtv23x_set_frontend(struct dvb_frontend *fe)
 	0xA0, 0xA0, 0xB0, 0xB0, 0xB0, 0xC0, /*30 ~ 35 */
 	0xC0, 0xC0, 0xD0, 0xD0, 0xD0, 0x00  /*31 ~ 41 */
 	};
+
+	if (c->isdbt_sb_subchannel > 0 && c->isdbt_sb_subchannel < 42) {
+		subchannel_id = c->isdbt_sb_subchannel;
+	} else {
+		subchannel_id = 0;
+	}
+
 	if (c->bandwidth_hz == 0) {
 		ret = -EINVAL;
 		goto err;
 	}else if(c->bandwidth_hz<=435000){
 		bandwidth = RTV_BW_MODE_430KHZ;
-		svc_type = RTV_SERVICE_UHF_ISDBT_1seg|RTV_SERVICE_VHF_ISDBTsb_1seg
-			|RTV_SERVICE_VHF_ISDBTmm_1seg;
-	} 
-	else if (c->bandwidth_hz <= 505000){
+	} else if (c->bandwidth_hz <= 505000){
 		bandwidth = RTV_BW_MODE_500KHZ;
-		svc_type = RTV_SERVICE_UHF_ISDBT_1seg|RTV_SERVICE_VHF_ISDBTsb_1seg
-			|RTV_SERVICE_VHF_ISDBTmm_1seg;
-		}
-	else if (c->bandwidth_hz <= 575000){
+	} else if (c->bandwidth_hz <= 575000){
 		bandwidth = RTV_BW_MODE_571KHZ;
-		svc_type = RTV_SERVICE_UHF_ISDBT_1seg|RTV_SERVICE_VHF_ISDBTsb_1seg|
-			RTV_SERVICE_VHF_ISDBTmm_1seg;
-		}
-		else if (c->bandwidth_hz <= 860000){
+	} else if (c->bandwidth_hz <= 860000){
 		bandwidth = RTV_BW_MODE_857KHZ;
-		svc_type = RTV_SERVICE_UHF_ISDBT_1seg|RTV_SERVICE_VHF_ISDBTsb_1seg|
-			RTV_SERVICE_VHF_ISDBTmm_1seg;
-		}
-		else if (c->bandwidth_hz <= 1295000){
+	} else if (c->bandwidth_hz <= 1295000){
 		bandwidth = RTV_BW_MODE_1290KHZ;
-		svc_type = RTV_SERVICE_VHF_ISDBTsb_3seg;
-		}
-	else if(c->bandwidth_hz <= 5000000)
+	} else if (c->bandwidth_hz <= 5000000) {
 		bandwidth = RTV_BW_MODE_5MHZ;
-	else if (c->bandwidth_hz <= 6000000)
+	} else if (c->bandwidth_hz <= 6000000) {
 		bandwidth = RTV_BW_MODE_6MHZ;
-	else if (c->bandwidth_hz <= 7000000)
+	} else if (c->bandwidth_hz <= 7000000) {
 		bandwidth = RTV_BW_MODE_7MHZ;
-	else if(c->bandwidth_hz <= 8000000)
+	} else if(c->bandwidth_hz <= 8000000) {
 		bandwidth = RTV_BW_MODE_8MHZ;
-	else
+	} else {
 		bandwidth = RTV_BW_MODE_6MHZ;
-	
-		
+	}
+
+	if (c->frequency < 300000000) { //VHF
+		if (c->isdbt_sb_mode == 1) {
+			if (c->bandwidth_hz <= 860000) {
+				svc_type = RTV_SERVICE_VHF_ISDBTsb_1seg;
+			} else {
+				svc_type = RTV_SERVICE_VHF_ISDBTsb_3seg;
+			}
+		} else if (c->bandwidth_hz <= 860000) {
+			svc_type = RTV_SERVICE_VHF_ISDBTmm_1seg;
+		} else {
+			svc_type = RTV_SERVICE_VHF_ISDBTmm_13seg;
+		}
+	} else if (c->bandwidth_hz <= 860000) {
+		svc_type = RTV_SERVICE_UHF_ISDBT_1seg;
+	} else {
+		svc_type = RTV_SERVICE_UHF_ISDBT_13seg;
+	}
+
 	rtvRF_SetFrequency(dev,svc_type,bandwidth,c->frequency/1000);
 
 	if ((svc_type == RTV_SERVICE_VHF_ISDBTmm_1seg) ||
 	(svc_type == RTV_SERVICE_VHF_ISDBTsb_1seg) ||
 	(svc_type == RTV_SERVICE_VHF_ISDBTsb_3seg)) {
 		regmap_write(dev->regmap,MAP_SEL_REG,LPOFDM_PAGE);
-		regmap_write(dev->regmap,0x31, g_atSubChNum[0]);
+		regmap_write(dev->regmap,0x31, g_atSubChNum[subchannel_id]);
 		regmap_write(dev->regmap,0x34, 0xD1);
 		regmap_write(dev->regmap,0x36, 0x00);
 	} else if (svc_type == RTV_SERVICE_UHF_ISDBT_1seg) {
