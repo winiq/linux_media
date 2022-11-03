@@ -1223,6 +1223,23 @@ static struct cxd2878_config tbsserial_cfg = {
 		.write_properties = ecp3_spi_write, 
 		.read_properties = ecp3_spi_read,	
 	};
+
+static struct cxd2878_config cxd6802_parallel_cfg = {
+	
+		.addr_slvt = 0x64,
+		.xtal      = SONY_DEMOD_XTAL_24000KHz,
+		.tuner_addr = 0x60,
+		.tuner_xtal = SONY_ASCOT3_XTAL_24000KHz,
+		.ts_mode	= 1,
+		.ts_ser_data = 0,
+		.ts_clk = 1,
+		.ts_clk_mask= 1,
+		.ts_valid = 0,
+		.atscCoreDisable = 0,
+		.lock_flag = 0,
+		.write_properties = ecp3_spi_write, 
+		.read_properties = ecp3_spi_read,
+	};
 static void tbs6209SE_reset_demod(struct tbsecp3_adapter *adapter)
 {
 	struct tbsecp3_dev *dev = adapter->dev;
@@ -1285,6 +1302,13 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		 if(dev->info->board_id==TBSECP3_BOARD_TBS6290TD)
 		 	tbsecp3_ca_init(adapter, adapter->nr);
 		 
+	   break;
+	   case TBSECP3_BOARD_TBS6281TD:
+	   case TBSECP3_BOARD_TBS6205SE:
+	   	adapter->fe = dvb_attach(cxd2878_attach, &cxd6802_parallel_cfg, i2c);
+		if (adapter->fe == NULL)
+		    goto frontend_atach_fail;
+
 	   break;
 	   case TBSECP3_BOARD_TBS6910SE:
 	   case TBSECP3_BOARD_TBS6904SE:
