@@ -18,6 +18,51 @@
 #include "tbsecp3.h"
 
 struct tbsecp3_board tbsecp3_boards[] = {
+	[TBSECP3_BOARD_TBS6909SE] = {
+		.board_id	= TBSECP3_BOARD_TBS6909SE,
+		.name		= "Turbosight TBS 6909SE(Octa DVB-S/S2/S2x)",
+		.i2c_speed  = 39,
+		.eeprom_i2c	= 3,
+		.eeprom_addr = 0x10,
+		.adapters	= 8,
+		.adap_config ={
+			{
+				.ts_in = 0,
+				.i2c_bus_nr = 0,
+			}, 
+			{
+				.ts_in = 1,
+				.i2c_bus_nr = 0,
+			},
+			{
+				.ts_in = 2,
+				.i2c_bus_nr = 1,
+			},
+			{
+				.ts_in = 3,
+				.i2c_bus_nr = 1,
+			},
+			{
+				.ts_in = 4,
+				.i2c_bus_nr = 2,
+
+			},
+			{
+				.ts_in = 5,
+				.i2c_bus_nr = 2,
+			},
+			{
+				.ts_in = 6,
+				.i2c_bus_nr = 3,
+
+			},
+			{
+				.ts_in = 7,
+				.i2c_bus_nr = 3,
+			}
+
+		}
+	},
 	[TBSECP3_BOARD_TBS6281TD] = {
 		.board_id	= TBSECP3_BOARD_TBS6281TD,
 		.name		= "TurboSight TBS 6281TD DVB-T/T2/C ISDB-T/C ATSC1.0",

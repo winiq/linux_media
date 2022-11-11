@@ -1240,7 +1240,7 @@ static struct cxd2878_config cxd6802_parallel_cfg = {
 		.write_properties = ecp3_spi_write, 
 		.read_properties = ecp3_spi_read,
 	};
-static void tbs6209SE_reset_demod(struct tbsecp3_adapter *adapter)
+static void tbs_octuples_reset_demod(struct tbsecp3_adapter *adapter)
 {
 	struct tbsecp3_dev *dev = adapter->dev;
 	u32 tmp;
@@ -1257,6 +1257,16 @@ static void tbs6209SE_reset_demod(struct tbsecp3_adapter *adapter)
 	tmp = tmp|0x01;
 	tbs_write(TBSECP3_GPIO_BASE, gpio, tmp);
 	msleep(50);
+}
+static u32 tbs_FPGA_fireware_info(struct tbsecp3_adapter *adapter)
+{
+	struct tbsecp3_dev *dev = adapter->dev;
+	u32 tmp;  //hardware id
+	u32 data; //fw data;
+	tmp = tbs_read(TBSECP3_GPIO_BASE, 0x20);
+	data = tbs_read(TBSECP3_GPIO_BASE, 0x28);
+	printk("the device hardware id :%x,fw data: %x \n",tmp,data);
+	return data;	
 }
 static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 {
@@ -1280,14 +1290,14 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	adapter->i2c_client_demod = NULL;
 	adapter->i2c_client_tuner = NULL;
 
-	if((TBSECP3_BOARD_TBS6304 != dev->info->board_id) && (TBSECP3_BOARD_TBS6308 != dev->info->board_id) && (TBSECP3_BOARD_TBS6302SE != dev->info->board_id)&&(TBSECP3_BOARD_TBS6209SE != dev->info->board_id)){
+	if((TBSECP3_BOARD_TBS6304 != dev->info->board_id) && (TBSECP3_BOARD_TBS6308 != dev->info->board_id) && (TBSECP3_BOARD_TBS6302SE != dev->info->board_id)&&(TBSECP3_BOARD_TBS6209SE != dev->info->board_id)&&(TBSECP3_BOARD_TBS6909SE != dev->info->board_id)){
 		reset_demod(adapter);
 		set_mac_address(adapter);
 	}
 
 	switch (dev->info->board_id) {
 	   case TBSECP3_BOARD_TBS6209SE:
-	   		tbs6209SE_reset_demod(adapter);
+	   		tbs_octuples_reset_demod(adapter);
 	   		set_mac_address(adapter);		
 	   		adapter->fe = dvb_attach(cxd2878_attach, &tbs6209se_cfg[(adapter->nr)%4], i2c);
 
@@ -1313,33 +1323,61 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 	   case TBSECP3_BOARD_TBS6910SE:
 	   case TBSECP3_BOARD_TBS6904SE:
 	   case TBSECP3_BOARD_TBS6902SE:
-	   case TBSECP3_BOARD_TBS7901:	   
+	   case TBSECP3_BOARD_TBS7901:
+	   case TBSECP3_BOARD_TBS6909SE:
+	   	if(dev->info->board_id == TBSECP3_BOARD_TBS6909SE){
+	   		tbs_octuples_reset_demod(adapter);
+	   		set_mac_address(adapter);
+	   	}
+	   
 		 memset(&m88rs6060_config, 0, sizeof(m88rs6060_config));
 		 m88rs6060_config.fe = &adapter->fe;
 		 m88rs6060_config.clk = 27000000;
 		 m88rs6060_config.i2c_wr_max = 65;
-		 if(dev->info->board_id == TBSECP3_BOARD_TBS6910SE){
+		 if((dev->info->board_id == TBSECP3_BOARD_TBS6910SE)||
+		 (dev->info->board_id == TBSECP3_BOARD_TBS6909SE)){
 		 	
 			 m88rs6060_config.ts_mode = MtFeTsOutMode_Serial;
 			 m88rs6060_config.ts_pinswitch = 0;
-			 m88rs6060_config.HAS_CI = 1;
-			 m88rs6060_config.SetSpeedstatus = SetSpeedstatus;
-			 m88rs6060_config.GetSpeedstatus = GetSpeedstatus;
-			 m88rs6060_config.GetSpeed = GetTSSpeed;
-			 m88rs6060_config.SetTimes= Set_TSsamplingtimes;
+
 
 		 }else{
 			 m88rs6060_config.ts_mode = MtFeTsOutMode_Parallel;
 			 m88rs6060_config.ts_pinswitch = 1;
-			 m88rs6060_config.HAS_CI = 0;
+
+
+		 	}
+		 
+		 if(dev->info->board_id == TBSECP3_BOARD_TBS6910SE){
+		 
+		 	if(tbs_FPGA_fireware_info(adapter)==0x22082220)
+		 	 	m88rs6060_config.HAS_CI = 0;
+		 	 else
+		 	 	m88rs6060_config.HAS_CI = 1;
+		 	 	
+			 m88rs6060_config.SetSpeedstatus = SetSpeedstatus;
+			 m88rs6060_config.GetSpeedstatus = GetSpeedstatus;
+			 m88rs6060_config.GetSpeed = GetTSSpeed;
+			 m88rs6060_config.SetTimes= Set_TSsamplingtimes;
+		 }else{
+		 	 m88rs6060_config.HAS_CI = 0;
 			 m88rs6060_config.SetSpeedstatus = NULL;
 			 m88rs6060_config.GetSpeedstatus = NULL;
 			 m88rs6060_config.GetSpeed = NULL;
 			 m88rs6060_config.SetTimes= NULL;
-
-		 	}
+		 }	
+		
 		 m88rs6060_config.envelope_mode = 0;
-		 m88rs6060_config.demod_adr = 0x69;
+		 if(dev->info->board_id == TBSECP3_BOARD_TBS6909SE)
+		 	m88rs6060_config.demod_adr = (adapter->nr%2)?0x6B:0x69;
+		 else
+		       m88rs6060_config.demod_adr = 0x69;
+		
+		if(m88rs6060_config.demod_adr!=0x6B)
+			m88rs6060_config.disable_22k = 0;
+		else
+			m88rs6060_config.disable_22k = 1;
+			     
 		 m88rs6060_config.tuner_adr = 0x2c;
 		 m88rs6060_config.repeater_value = 0x12;
 		 m88rs6060_config.num = adapter->nr;
@@ -1349,7 +1387,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		 m88rs6060_config.write_eeprom = ecp3_eeprom_write;
 		memset(&info, 0, sizeof(struct i2c_board_info));
 		strlcpy(info.type, "m88rs6060", I2C_NAME_SIZE);
-		info.addr = 0x69;
+		info.addr = m88rs6060_config.demod_adr;
 		info.platform_data = &m88rs6060_config;
 		request_module(info.type);
 		client_demod = i2c_new_client_device(i2c, &info);
@@ -1361,12 +1399,13 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 					goto frontend_atach_fail;
 					}
 		adapter->i2c_client_demod = client_demod;
+		if(m88rs6060_config.demod_adr!=0x6B){ 
 		if (tbsecp3_attach_sec(adapter, adapter->fe) == NULL) {
 			    dev_warn(&dev->pci_dev->dev,
 			    			    "error attaching lnb control on adapter %d\n",
 							    adapter->nr);
 			}		    
-
+		}
 		 if(dev->info->board_id == TBSECP3_BOARD_TBS6910SE){
 			tbsecp3_ca_init(adapter, adapter->nr);
 		 }
