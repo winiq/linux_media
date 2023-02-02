@@ -1140,7 +1140,7 @@ static struct stv090x_config prof_7500_stv090x_config = {
 	.xtal                   = 27000000,
 	.address                = 0x6A,
 	.ts1_mode               = STV090x_TSMODE_PARALLEL_PUNCTURED,
-	.repeater_level         = STV090x_RPTLEVEL_64,
+	.repeater_level         = STV090x_RPTLEVEL_16,
 	.adc1_range             = STV090x_ADC_2Vpp,
 	.diseqc_envelope_mode   = false,
 
