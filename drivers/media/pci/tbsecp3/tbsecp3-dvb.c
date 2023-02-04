@@ -1430,13 +1430,13 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 					goto frontend_atach_fail;
 					}
 		adapter->i2c_client_demod = client_demod;
-		if(m88rs6060_config.demod_adr!=0x6B){ 
+		//if(m88rs6060_config.demod_adr!=0x6B){ 
 		if (tbsecp3_attach_sec(adapter, adapter->fe) == NULL) {
 			    dev_warn(&dev->pci_dev->dev,
 			    			    "error attaching lnb control on adapter %d\n",
 							    adapter->nr);
 			}		    
-		}
+		//}
 		 if(dev->info->board_id == TBSECP3_BOARD_TBS6910SE){
 			tbsecp3_ca_init(adapter, adapter->nr);
 		 }
