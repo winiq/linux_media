@@ -188,9 +188,9 @@ static int si2157_find_and_load_firmware(struct dvb_frontend *fe)
 	/* Update the part id based on device's report */
 	dev->part_id = part_id;
 
-	dev_info(&client->dev,
-		 "found a 'Silicon Labs Si21%d-%c%c%c ROM 0x%02x'\n",
-		 part_id, cmd.args[1], cmd.args[3], cmd.args[4], rom_id);
+	//dev_info(&client->dev,
+	//	 "found a 'Silicon Labs Si21%d-%c%c%c ROM 0x%02x'\n",
+	//	 part_id, cmd.args[1], cmd.args[3], cmd.args[4], rom_id);
 
 	if (fw_name)
 		ret = si2157_load_firmware(fe, fw_name);
@@ -288,8 +288,8 @@ static int si2157_init(struct dvb_frontend *fe)
 	if (ret)
 		goto err;
 
-	dev_info(&client->dev, "firmware version: %c.%c.%d\n",
-			cmd.args[6], cmd.args[7], cmd.args[8]);
+	//dev_info(&client->dev, "firmware version: %c.%c.%d\n",
+	//		cmd.args[6], cmd.args[7], cmd.args[8]);
 
 	/* enable tuner status flags */
 	memcpy(cmd.args, "\x14\x00\x01\x05\x01\x00", 6);
