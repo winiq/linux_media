@@ -18,6 +18,65 @@
 #include "tbsecp3.h"
 
 struct tbsecp3_board tbsecp3_boards[] = {
+	[TBSECP3_BOARD_TBS6504H] = {
+		.board_id	= TBSECP3_BOARD_TBS6504H,
+		.name		= "TurboSight TBS 6504H Quad DVBS/S2x + Quad DVB-T/T2/C ISDB-T/C ATSC1.0",
+		.i2c_speed	= 39,
+		.eeprom_i2c	= 3,
+		.eeprom_addr = 0x10,
+		.adapters	= 8,
+		.adap_config	= {
+			{
+				.ts_in = 0,
+				.i2c_bus_nr = 0,
+				.gpio.lnb_power.lvl   = TBSECP3_GPIODEF_HIGH,
+				.gpio.lnb_power.nr    = TBSECP3_GPIO_PIN(0, 2),
+				.gpio.lnb_voltage.lvl = TBSECP3_GPIODEF_HIGH,
+				.gpio.lnb_voltage.nr  = TBSECP3_GPIO_PIN(0, 1),		
+			}, 
+			{
+				.ts_in = 1,
+				.i2c_bus_nr = 0,
+				.gpio.lnb_power.lvl   = TBSECP3_GPIODEF_HIGH,
+				.gpio.lnb_power.nr    = TBSECP3_GPIO_PIN(2, 2),
+				.gpio.lnb_voltage.lvl = TBSECP3_GPIODEF_HIGH,
+				.gpio.lnb_voltage.nr  = TBSECP3_GPIO_PIN(2, 1),				
+			},
+			{
+				.ts_in = 2,
+				.i2c_bus_nr = 1,
+				.gpio.lnb_power.lvl   = TBSECP3_GPIODEF_HIGH,
+				.gpio.lnb_power.nr    = TBSECP3_GPIO_PIN(2, 2),
+				.gpio.lnb_voltage.lvl = TBSECP3_GPIODEF_HIGH,
+				.gpio.lnb_voltage.nr  = TBSECP3_GPIO_PIN(2, 1),
+			},
+			{
+				.ts_in = 3,
+				.i2c_bus_nr = 1,
+				.gpio.lnb_power.lvl   = TBSECP3_GPIODEF_HIGH,
+				.gpio.lnb_power.nr    = TBSECP3_GPIO_PIN(3, 2),
+				.gpio.lnb_voltage.lvl = TBSECP3_GPIODEF_HIGH,
+	                       .gpio.lnb_voltage.nr  = TBSECP3_GPIO_PIN(3, 1),				
+			},
+			{
+				.ts_in = 4,
+				.i2c_bus_nr = 2,
+
+			},
+			{
+				.ts_in = 5,
+				.i2c_bus_nr = 2,
+			},
+			{
+				.ts_in = 6,
+				.i2c_bus_nr = 3,
+			},
+			{
+				.ts_in = 7,
+				.i2c_bus_nr = 3,
+			},												
+		}
+	},
 	[TBSECP3_BOARD_TBS6522H] = {
 		.board_id	= TBSECP3_BOARD_TBS6522H,
 		.name		= "TurboSight TBS 6522H Dual DVBS/S2x + Dual DVB-T/T2/C ISDB-T/C ATSC1.0",
