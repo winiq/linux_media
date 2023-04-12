@@ -18,6 +18,30 @@
 #include "tbsecp3.h"
 
 struct tbsecp3_board tbsecp3_boards[] = {
+	[TBSECP3_BOARD_TBS6590SE] = {
+		.board_id	= TBSECP3_BOARD_TBS6590SE,
+		.name		= "TurboSight TBS 6590SE DVB-S/S2/S2X/T/T2/C/C2 + 2xCI ",
+		.adapters	= 2,
+		.i2c_speed	= 39,
+		.eeprom_i2c	= 0,
+		.eeprom_addr = 0x10,
+		.adap_config	= {
+			{
+				.ts_in = 0,
+				.i2c_bus_nr = 0,
+				.gpio.demod_reset.lvl = TBSECP3_GPIODEF_LOW,
+				.gpio.demod_reset.nr  = TBSECP3_GPIO_PIN(0, 0),
+
+			},
+			{
+				.ts_in = 1,
+				.i2c_bus_nr = 1,
+				.gpio.demod_reset.lvl = TBSECP3_GPIODEF_LOW,
+				.gpio.demod_reset.nr  = TBSECP3_GPIO_PIN(1, 0),
+
+			},
+		}
+	},
 	[TBSECP3_BOARD_TBS6504H] = {
 		.board_id	= TBSECP3_BOARD_TBS6504H,
 		.name		= "TurboSight TBS 6504H Quad DVBS/S2x + Quad DVB-T/T2/C ISDB-T/C ATSC1.0",
