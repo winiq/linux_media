@@ -1615,6 +1615,7 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 		 }else{
 			 m88rs6060_config.ts_mode = MtFeTsOutMode_Parallel;
 			 m88rs6060_config.ts_pinswitch = 1;
+			 m88rs6060_config.ts_autoclock = 1;
 		 	}
 		 
 		 if(dev->info->board_id == TBSECP3_BOARD_TBS6910SE){
