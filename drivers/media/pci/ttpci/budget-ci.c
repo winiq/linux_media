@@ -297,6 +297,7 @@ static int ciintf_slot_reset(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct budget_ci *budget_ci = (struct budget_ci *) ca->data;
 	struct saa7146_dev *saa = budget_ci->budget.dev;
+	int i,ret ;
 
 	if (slot != 0)
 		return -EINVAL;
@@ -307,10 +308,18 @@ static int ciintf_slot_reset(struct dvb_ca_en50221 *ca, int slot)
 	}
 	budget_ci->slot_status = SLOTSTATUS_RESET;
 	ttpci_budget_debiwrite(&budget_ci->budget, DEBICICTL, DEBIADDR_CICONTROL, 1, 0, 1, 0);
-	msleep(1);
+	msleep(10); // modified for some CI devices
 	ttpci_budget_debiwrite(&budget_ci->budget, DEBICICTL, DEBIADDR_CICONTROL, 1,
 			       CICONTROL_RESET, 1, 0);
-
+    for (i = 0; i < 15; i++) {                          // attempt to read FR bit after reset
+		                    msleep(100);                           
+                                    ret = ciintf_read_cam_control(ca,slot,1); // RE or zero or status (smit)
+                                                            // printk("Status register: %d \n", ret);
+		                    if (ret & 64) {         // STATUSREG_FR (module free bit found) , see dvb_ca_en50221.c
+			                            printk("exit waiting CAM reset at %d00 ms\n" , i);
+			                            break;  // exit loop saving time.
+		                                   }
+	                         }                          // do all loops (1500 ms) if STATUSREG_FR bit not implemented after reset by manufacturer 
 	saa7146_setgpio(saa, 1, SAA7146_GPIO_OUTHI);
 	ttpci_budget_set_video_port(saa, BUDGET_VIDEO_PORTB);
 	return 0;
@@ -1503,7 +1512,7 @@ static int budget_ci_detach(struct saa7146_dev *dev)
 	msp430_ir_deinit(budget_ci);
 	if (budget_ci->budget.dvb_frontend) {
 		dvb_unregister_frontend(budget_ci->budget.dvb_frontend);
-		dvb_frontend_detach(budget_ci->budget.dvb_frontend);
+		dvb_frontend_detach(budget_ci->budget.dvb_frontend); // hangs module stb0899 if detach function exist
 	}
 	err = ttpci_budget_deinit(&budget_ci->budget);
 
@@ -1570,5 +1579,5 @@ module_init(budget_ci_init);
 module_exit(budget_ci_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Michael Hunold, Jack Thomasson, Andrew de Quincey, others");
+MODULE_AUTHOR("Michael Hunold, Jack Thomasson, Andrew de Quincey, Enigma13, others");
 MODULE_DESCRIPTION("driver for the SAA7146 based so-called budget PCI DVB cards w/ CI-module produced by Siemens, Technotrend, Hauppauge");
