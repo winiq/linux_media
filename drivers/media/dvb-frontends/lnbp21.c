@@ -1,9 +1,23 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * lnbp21.c - driver for lnb supply and control ic lnbp21
  *
  * Copyright (C) 2006, 2009 Oliver Endriss <o.endriss@gmx.de>
  * Copyright (C) 2009 Igor M. Liplianin <liplianin@netup.ru>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * To obtain the license, point your browser to
+ * http://www.gnu.org/copyleft/gpl.html
+ *
  *
  * the project's page is at https://linuxtv.org
  */
@@ -38,20 +52,19 @@ static int lnbp21_set_voltage(struct dvb_frontend *fe,
 	lnbp21->config &= ~(LNBP21_VSEL | LNBP21_EN);
 
 	switch(voltage) {
-	case SEC_VOLTAGE_OFF:
-		break;
+	case SEC_VOLTAGE_OFF:    // need minimum for diseqc control
 	case SEC_VOLTAGE_13:
-		lnbp21->config |= LNBP21_EN;
+		lnbp21->config |= (LNBP21_EN | LNBP21_LLC);              // force high voltage
 		break;
 	case SEC_VOLTAGE_18:
-		lnbp21->config |= (LNBP21_EN | LNBP21_VSEL);
+		lnbp21->config |= (LNBP21_EN | LNBP21_VSEL| LNBP21_LLC); // force high voltage
 		break;
 	default:
 		return -EINVAL;
 	}
 
-	lnbp21->config |= lnbp21->override_or;
-	lnbp21->config &= lnbp21->override_and;
+	lnbp21->config |= lnbp21->override_or;   /* bits which should be forced to '1' */
+	lnbp21->config &= lnbp21->override_and;  /* bits which should be forced to '0' */
 
 	return (i2c_transfer(lnbp21->i2c, &msg, 1) == 1) ? 0 : -EIO;
 }
@@ -93,8 +106,8 @@ static int lnbp21_set_tone(struct dvb_frontend *fe,
 		return -EINVAL;
 	}
 
-	lnbp21->config |= lnbp21->override_or;
-	lnbp21->config &= lnbp21->override_and;
+	lnbp21->config |= lnbp21->override_or;   /* bits which should be forced to '1' */
+	lnbp21->config &= lnbp21->override_and;  /* bits which should be forced to '0' */
 
 	return (i2c_transfer(lnbp21->i2c, &msg, 1) == 1) ? 0 : -EIO;
 }
@@ -167,5 +180,5 @@ struct dvb_frontend *lnbp21_attach(struct dvb_frontend *fe,
 EXPORT_SYMBOL(lnbp21_attach);
 
 MODULE_DESCRIPTION("Driver for lnb supply and control ic lnbp21, lnbh24");
-MODULE_AUTHOR("Oliver Endriss, Igor M. Liplianin");
+MODULE_AUTHOR("Oliver Endriss, Igor M. Liplianin, Enigma13");
 MODULE_LICENSE("GPL");
