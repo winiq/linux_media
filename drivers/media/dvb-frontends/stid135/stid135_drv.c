@@ -3456,7 +3456,7 @@ fe_lla_error_t fe_stid135_init (struct fe_sat_init_params *pInit,
 	/* Internal params structure allocation */
 	#ifdef HOST_PC
 		STCHIP_Info_t DemodChip;
-		pParams = kvzalloc(sizeof(struct fe_stid135_internal_param), GFP_KERNEL);
+		pParams = calloc(sizeof(struct fe_stid135_internal_param),1);
 		(*handle) = (fe_stid135_handle_t) pParams;
 	#endif
 
@@ -4798,7 +4798,7 @@ fe_lla_error_t FE_STiD135_Term(fe_stid135_handle_t Handle)
 			ChipClose(pParams->handle_soc);
 
 			if(Handle)
-				kvfree(pParams);
+				free(pParams);
 		#endif
 		
 	} else
@@ -11638,6 +11638,8 @@ fe_lla_error_t get_current_llr(fe_stid135_handle_t handle,enum fe_stid135_demod 
 		case FE_SAT_MOD_1024APSK:
 			*current_llr *= 10;
 			break;
+		default:
+			*current_llr *= 3;			
 	}
 
 	if(*current_llr != 0)
