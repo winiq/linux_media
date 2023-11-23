@@ -352,6 +352,11 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	err = FE_STiD135_GetLoFreqHz(state->base->handle, &(search_params.lo_frequency));
 	search_params.lo_frequency *= 1000000;
 
+	err |= fe_stid135_unlock(state->base->handle, state->nr + 1);
+
+	if (err != FE_LLA_NO_ERROR)
+		dev_err(&state->base->i2c->dev, "%s: fe_stid135_unlock error %d !\n", __func__, err);
+
 	dev_dbg(&state->base->i2c->dev, "%s: demod %d + tuner %d\n", __func__, state->nr, state->rf_in);
 	err |= fe_stid135_set_rfmux_path(p_params->handle_demod, state->nr + 1, state->rf_in + 1);
 
@@ -462,10 +467,10 @@ static int stid135_set_parameters(struct dvb_frontend *fe)
 	/* Set ISI after search */
 	if (p->stream_id != NO_STREAM_ID_FILTER) {
 		dev_dbg(&state->base->i2c->dev, "%s: set ISI %d !\n", __func__, p->stream_id & 0xFF);
-		err |= fe_stid135_select_isi(state->base->handle, state->nr + 1, p->stream_id & 0xFF);
+		err |= fe_stid135_set_mis_filtering(state->base->handle, state->nr + 1, TRUE, p->stream_id & 0xFF, 0xFF);
 	} else {
 		dev_dbg(&state->base->i2c->dev, "%s: disable ISI filtering !\n", __func__);
-		err |= fe_stid135_set_mis_filtering(state->base->handle, state->nr + 1, FALSE, 0, 0xFF);				
+		err |= fe_stid135_set_mis_filtering(state->base->handle, state->nr + 1, FALSE, 0, 0xFF);
 	}
 	if (err != FE_LLA_NO_ERROR)
 		dev_err(&state->base->i2c->dev, "%s: fe_stid135_set_mis_filtering error %d !\n", __func__, err);
