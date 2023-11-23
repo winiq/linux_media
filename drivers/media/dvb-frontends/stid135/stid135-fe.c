@@ -664,6 +664,8 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 		//err |= fe_stid135_set_maxllr_rate(state->base->handle, state->nr +1, 90);
 
 		*status |= FE_HAS_SIGNAL;
+		dev_dbg(&state->base->i2c->dev, "%s: No lock, signal strength %d dBm !\n", __func__,
+				state->signal_info.power/1000);
 
 		p->strength.len = 2;
 		p->strength.stat[0].scale = FE_SCALE_DECIBEL;
@@ -687,6 +689,9 @@ static int stid135_read_status(struct dvb_frontend *fe, enum fe_status *status)
 			mutex_unlock(&state->base->status_lock);
 			return -EIO;
 		}
+
+		dev_dbg(&state->base->i2c->dev, "%s: Locked, signal strength %d dBm, C/N %d dB !\n", __func__,
+				state->signal_info.power/1000, state->signal_info.C_N/10);
 
 		p->strength.len = 2;
 		p->strength.stat[0].scale = FE_SCALE_DECIBEL;
