@@ -526,7 +526,7 @@ static int set_mac_address(struct tbsecp3_adapter *adap)
 
 	if (dev->info->eeprom_addr)
 		eep_addr = dev->info->eeprom_addr;
-	
+
 	eep_addr += 0x10 * adap->nr;
 	
 	ret = i2c_transfer(i2c, msg, 2);
@@ -1833,7 +1833,12 @@ static int tbsecp3_frontend_attach(struct tbsecp3_adapter *adapter)
 				    tbs6308_read_mac_ext(adapter);//try again
 		    }
 		break;
-
+	case TBSECP3_BOARD_TBS6308X:
+		adapter->fe = dvb_attach(tas2971_attach, &tbs6308_demod_cfg, i2c);
+		if (adapter->fe == NULL)
+		    goto frontend_atach_fail;
+		  
+		break;
 	case TBSECP3_BOARD_TBS6304:
 		adapter->fe = dvb_attach(tas2971_attach, &tbs6304_demod_cfg[adapter->nr], i2c);
 		if (adapter->fe == NULL)
