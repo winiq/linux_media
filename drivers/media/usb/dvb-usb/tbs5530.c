@@ -198,14 +198,14 @@ static int tbs5530_frontend_cxd2878_attach(struct dvb_usb_adapter *adap)
 	adap->fe_adap[0].fe = dvb_attach(cxd2878_attach, &tbs5530_cfg, &d->i2c_adap);
 
 	if(adap->fe_adap[0].fe!=NULL){
-		strlcpy(adap->fe_adap[0].fe->ops.info.name,d->props.devices[0].name,60);
+		strscpy(adap->fe_adap[0].fe->ops.info.name,d->props.devices[0].name,60);
 		strcat(adap->fe_adap[0].fe->ops.info.name," DVB-T/T2/C/C2,ISDB-T/C,ATSC1.0");
 		return 0;		
 		}
 	
-//	strlcpy(adap->fe_adap[0].fe->ops.info.name,d->props.devices[0].name,52);
+//	strscpy(adap->fe_adap[0].fe->ops.info.name,d->props.devices[0].name,52);
 
-//	strlcpy(adap->fe_adap[0].fe2->ops.info.name,d->props.devices[0].name,52);
+//	strscpy(adap->fe_adap[0].fe2->ops.info.name,d->props.devices[0].name,52);
 //	strcat(adap->fe_adap[0].fe2->ops.info.name," DVB-S/S2/S2X");
 
 	return -EIO;
@@ -232,7 +232,7 @@ static int tbs5930_frontend_m88rs6060_attach(struct dvb_usb_adapter *adap)
 	m88rs6060_config.write_properties  = NULL;
 
 	memset(&info, 0, sizeof(struct i2c_board_info));
-	strlcpy(info.type, "m88rs6060", I2C_NAME_SIZE);
+	strscpy(info.type, "m88rs6060", I2C_NAME_SIZE);
 	info.addr = 0x69;
 	info.platform_data = &m88rs6060_config;
 	request_module(info.type);
@@ -256,7 +256,7 @@ static int tbs5930_frontend_m88rs6060_attach(struct dvb_usb_adapter *adap)
 			buf, 2, tbs5530_WRITE_MSG);
 	msleep(10);
 	
-	strlcpy(adap->fe_adap[1].fe->ops.info.name,d->props.devices[0].name,52);
+	strscpy(adap->fe_adap[1].fe->ops.info.name,d->props.devices[0].name,52);
 	strcat(adap->fe_adap[1].fe->ops.info.name," DVB-S/S2/S2X");
 	return 0;
 }
