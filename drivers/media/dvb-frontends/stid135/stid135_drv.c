@@ -2249,6 +2249,7 @@ static fe_lla_error_t fe_stid135_set_reg_init_values(fe_stid135_handle_t handle,
 		
 		/* Remove MPEG packetization mode */
 		error |= ChipSetField(pParams->handle_demod, FLD_FC8CODEW_DVBSX_HWARE_TSCFG0_TSFIFO_EMBINDVB(demod), 0);
+		error |= ChipSetField(pParams->handle_demod, FLD_FC8CODEW_DVBSX_HWARE_TSSTATE1_TSOUT_NOSYNC(demod), 0);
 		
 		error |= ChipSetOneRegister(pParams->handle_demod, (u16)REG_RC8CODEW_DVBSX_DEMOD_CARHDR(demod), 0x08);
 		
