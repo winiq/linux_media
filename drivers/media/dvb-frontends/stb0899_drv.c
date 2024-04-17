@@ -1716,7 +1716,7 @@ error:
 	kfree(state);
 	return NULL;
 }
-EXPORT_SYMBOL(stb0899_attach);
+EXPORT_SYMBOL_GPL(stb0899_attach);
 MODULE_PARM_DESC(verbose, "Set Verbosity level");
 MODULE_AUTHOR("Manu Abraham, Enigma13");
 MODULE_DESCRIPTION("STB0899 no .release");
