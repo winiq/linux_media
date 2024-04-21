@@ -2583,7 +2583,7 @@ static struct dvb_usb_device_properties tt_s2_4600_properties = {
 		.num_frontends = 1,
 		.fe = {{
 			.streaming_ctrl   = su3000_streaming_ctrl,
-			.frontend_attach  = tt_s2_4600_frontend_attach,
+			.frontend_attach  = su3000_frontend_attach,
 			.stream = {
 				.type = USB_BULK,
 				.count = 8,
@@ -2597,7 +2597,7 @@ static struct dvb_usb_device_properties tt_s2_4600_properties = {
 		} },
 		}
 	},
-	.num_device_descs = 5,
+	.num_device_descs = 1,
 	.devices = {
 		{ "TechnoTrend TT-connect S2-4600",
 			{ &dw2102_table[TECHNOTREND_CONNECT_S2_4600], NULL },
@@ -2646,7 +2646,7 @@ static struct dvb_usb_device_properties tevii_properties = {
 		} },
 		}
 	},
-	.num_device_descs = 3,
+	.num_device_descs = 4,
 	.devices = {
 		{ "TeVii S482 (tuner 1)",
 			{ &dw2102_table[TEVII_S482_1], NULL },
